@@ -1,0 +1,507 @@
+import os
+import threading
+import time
+import psycopg2
+from psycopg2 import pool
+import uvicorn
+import queue
+from fastapi import FastAPI, Query, Header, HTTPException, Depends, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from opcua import Server
+from pylogix import PLC
+from dotenv import load_dotenv
+from pydantic import BaseModel
+from typing import Union, List, Optional
+from datetime import datetime, timezone, timedelta
+from contextlib import asynccontextmanager
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+
+# --- SECURITY SETUP ---
+load_dotenv()
+SECRET_KEY = os.getenv("SECRET_KEY", "dev_fallback_key")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# --- CONFIGURATION ---
+PLC_IP = os.getenv("PLC_IP")
+OPCUA_ENDPOINT = "opc.tcp://0.0.0.0:4840"
+OPCUA_SERVER_NAME = "Flywheel_OPCUA_Gateway"
+DB_CONFIG = {
+    "host": os.getenv("DB_HOST"),
+    "port": int(os.getenv("DB_PORT", 5432)),
+    "dbname": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+}
+API_KEY = os.getenv("API_KEY")
+
+WRITEABLE_TAGS = {"Test_OutputVal1", "EM_SV"}
+TAGS_TO_READ = []
+live_data = {"status": "initializing", "tags": {}}
+live_data_lock = threading.Lock()
+tag_map = {}
+opc_tag_nodes = {}
+stop_event = threading.Event()
+historian_queue = queue.Queue(maxsize=100000) 
+
+# --- DB CONNECTION POOL ---
+pg_pool = None
+
+pg_pool = None
+
+def init_db_pool():
+    global pg_pool
+    print(f"🔵 DB: Attempting connection to {DB_CONFIG['host']}...")
+    
+    # RETRY LOGIC: Keep trying until connected or manually stopped
+    while not stop_event.is_set():
+        try:
+            pg_pool = pool.ThreadedConnectionPool(minconn=1, maxconn=20, **DB_CONFIG)
+            if pg_pool:
+                print("✅ DB: Connection pool established.")
+                return # Success!
+        except Exception as e:
+            print(f"🟡 DB Connection Failed: {e}")
+            print("⏳ Retrying in 2 seconds...")
+            time.sleep(2)
+
+def get_db_conn():
+    if not pg_pool: 
+        # If pool is missing (e.g. still starting), throw 503 Service Unavailable
+        # This tells the frontend "I'm alive, but busy" instead of crashing
+        raise HTTPException(status_code=503, detail="Database initializing...")
+    return pg_pool.getconn()
+
+def release_db_conn(conn):
+    if pg_pool and conn: pg_pool.putconn(conn)
+
+# --- MODELS ---
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class User(BaseModel):
+    username: str
+    role: str
+
+class Tag(BaseModel):
+    id: int
+    tag: str
+    datatype: str
+    is_active: bool
+
+class TagUpdate(BaseModel):
+    is_active: bool
+
+class TagWriteRequest(BaseModel):
+    tag_name: str
+    value: Union[float, int, bool]
+
+class Setting(BaseModel):
+    key: str
+    value: Union[float, str]
+
+# --- HELPERS ---
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def get_user_from_db(username: str):
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute("SELECT username, hashed_password, role, is_active FROM app.users WHERE username = %s", (username,))
+            user_data = cur.fetchone()
+            if user_data:
+                return {"username": user_data[0], "hashed_password": user_data[1], "role": user_data[2], "is_active": user_data[3]}
+    except Exception as e:
+        print(f"🔴 DB Error (get_user): {e}")
+    finally:
+        release_db_conn(conn)
+    return None
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if not username: raise HTTPException(401, "Invalid token")
+    except JWTError: raise HTTPException(401, "Invalid token")
+    
+    try: user = get_user_from_db(username)
+    except: raise HTTPException(500, "DB Error")
+
+    if not user or not user["is_active"]: raise HTTPException(401, "User inactive")
+    return User(username=user["username"], role=user["role"])
+
+def get_current_active_admin(current_user: User = Depends(get_current_user)):
+    if current_user.role != "Admin": raise HTTPException(403, "Admin required")
+    return current_user
+
+def get_current_active_engineer(current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["Engineer", "Admin"]: raise HTTPException(403, "Engineer required")
+    return current_user
+
+def require_api_key(x_api_key: str = Header(None)):
+    if not API_KEY or x_api_key != API_KEY: raise HTTPException(401, "Invalid API Key")
+
+# --- THREADS ---
+def plc_polling_task():
+    print("🚀 PLC Poller started.")
+    comm = PLC()
+    comm.IPAddress = PLC_IP
+    comm.ProcessorSlot = 0
+    
+    while not stop_event.is_set():
+        try:
+            names = [t["name"] for t in TAGS_TO_READ]
+            if not names:
+                time.sleep(2)
+                continue
+            
+            results = comm.Read(names)
+            ts = datetime.now(timezone.utc)
+            
+            with live_data_lock:
+                live_data["status"] = "connected"
+                temp = {}
+                iterable = results if isinstance(results, list) else [results]
+                
+                for res in iterable:
+                    tn = getattr(res, "TagName", None)
+                    st = getattr(res, "Status", "Success")
+                    val = res.Value if st == 'Success' else f"Error: {st}"
+                    temp[tn] = val
+                    
+                    if st == 'Success' and isinstance(val, (int, float, bool)):
+                        try:
+                            historian_queue.put_nowait({"tag": tn, "value": val, "ts": ts})
+                        except queue.Full: pass
+                
+                live_data["tags"] = temp
+            
+            time.sleep(0.25) # 4Hz
+            
+        except Exception as e:
+            print(f"🔴 PLC Error: {e}")
+            with live_data_lock: live_data["status"] = "disconnected"
+            time.sleep(5)
+    try: comm.Close() 
+    except: pass
+
+def opcua_updater_task():
+    print("🚀 OPC-UA Updater started.")
+    while not stop_event.is_set():
+        with live_data_lock: snap = live_data.get("tags", {}).copy()
+        for k,v in snap.items():
+            if k in opc_tag_nodes and not isinstance(v, str):
+                try: opc_tag_nodes[k].set_value(v)
+                except: pass
+        time.sleep(0.5)
+
+def historian_ingester_task():
+    print("🚀 Historian Ingester started.")
+    batch_counter = 0
+    warned_tags = set() # To avoid spamming the same error
+    
+    while not stop_event.is_set():
+        time.sleep(0.5)
+        if historian_queue.empty() or not tag_map: continue
+        
+        batch = []
+        while not historian_queue.empty() and len(batch) < 500:
+            batch.append(historian_queue.get())
+        if not batch: continue
+
+        conn = None
+        count = 0
+        # Map Tag Name -> Datatype string
+        name_map = {t["name"]: t["datatype"].lower() for t in TAGS_TO_READ}
+        
+        try:
+            conn = get_db_conn()
+            with conn.cursor() as cur:
+                for item in batch:
+                    tn = item['tag']
+                    
+                    # 1. Check if tag exists in map
+                    if tn not in tag_map:
+                        if tn not in warned_tags:
+                            print(f"⚠️ Ingest Warning: Tag '{tn}' found in PLC but not in DB tag_lookup.")
+                            warned_tags.add(tn)
+                        continue
+
+                    tid = tag_map[tn]
+                    raw_dtype = name_map.get(tn, 'float')
+                    val = item['value']
+                    ts = item['ts']
+                    
+                    # 2. Map DB datatype string to SQL Table
+                    sql = None
+                    # Flexible matching for common PLC types
+                    if raw_dtype in ['float', 'real']:
+                        sql = "INSERT INTO historian.historian (tag_id, value_float, ts) VALUES (%s, %s, %s)"
+                        params = (tid, float(val), ts)
+                    elif raw_dtype in ['int', 'integer', 'dint', 'sint']:
+                        sql = "INSERT INTO historian.historian (tag_id, value_int, ts) VALUES (%s, %s, %s)"
+                        params = (tid, int(val), ts)
+                    elif raw_dtype in ['bool', 'boolean', 'bit']:
+                        sql = "INSERT INTO historian.historian (tag_id, value_bool, ts) VALUES (%s, %s, %s)"
+                        params = (tid, bool(val), ts)
+                    
+                    if sql:
+                        try:
+                            cur.execute(sql, params)
+                            count += 1
+                        except Exception as e:
+                            print(f"🔴 SQL Insert Error for {tn}: {e}")
+                    else:
+                        if tn not in warned_tags:
+                            print(f"⚠️ Ingest Warning: Unknown datatype '{raw_dtype}' for tag '{tn}'. Skipping.")
+                            warned_tags.add(tn)
+                
+                conn.commit()
+                
+                batch_counter += 1
+                if batch_counter >= 10:
+                    print(f"✅ Historian: Ingested {count} records. Q-Size: {historian_queue.qsize()}")
+                    batch_counter = 0
+        except Exception as e:
+            print(f"🔴 Historian Batch Level Error: {e}")
+        finally:
+            release_db_conn(conn)
+
+def sync_tags_with_db():
+    global tag_map, TAGS_TO_READ
+    print("🔵 Syncing tags...")
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, tag, datatype, is_active FROM historian.tag_lookup")
+            rows = cur.fetchall()
+            tag_map = {row[1]: row[0] for row in rows}
+            TAGS_TO_READ = [{"name": row[1], "datatype": row[2]} for row in rows if row[3]]
+            print(f"✅ Active Tags: {len(TAGS_TO_READ)}")
+    except Exception as e:
+        print(f"🔴 Tag Sync Failed: {e}")
+    finally:
+        release_db_conn(conn)
+
+# --- LIFESPAN ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 1. Start threads first so API is responsive immediately
+    # (The DB retry loop will happen in main thread or we should spawn it?)
+    # actually, blocking startup for DB is safer for integrity, 
+    # but let's allow it to retry a few times then fail, OR run it in a thread.
+    
+    # Better approach for Robustness: Run DB init in a background thread 
+    # so the API comes up immediately (responding to Health Checks) 
+    # even if DB is down.
+    
+    db_thread = threading.Thread(target=init_db_pool, daemon=True)
+    db_thread.start()
+    
+    # 2. OPC UA Setup
+    s = Server()
+    s.set_endpoint(OPCUA_ENDPOINT)
+    s.set_server_name(OPCUA_SERVER_NAME)
+    idx = s.register_namespace("Flywheel")
+    obj = s.get_objects_node()
+    pf = obj.add_object(idx, "PLC_Tags")
+    # Note: opc_tag_nodes will be populated once DB connects and Sync runs
+    
+    ts = [
+        threading.Thread(target=plc_polling_task, daemon=True),
+        threading.Thread(target=s.start, daemon=True),
+        threading.Thread(target=opcua_updater_task, daemon=True),
+        threading.Thread(target=historian_ingester_task, daemon=True)
+    ]
+    for t in ts: t.start()
+    
+    # Periodically check if DB is ready to sync tags
+    # (Simple sync loop inside lifespan won't work well, 
+    # let's add a "Maintenance Thread" that syncs tags once DB is up)
+    def maintenance_task():
+        tags_loaded = False
+        while not stop_event.is_set():
+            if pg_pool and not tags_loaded:
+                sync_tags_with_db()
+                # Create nodes now that we have tags
+                global opc_tag_nodes
+                for t in TAGS_TO_READ:
+                    try:
+                        n = pf.add_variable(idx, t["name"], 0)
+                        n.set_writable()
+                        opc_tag_nodes[t["name"]] = n
+                    except: pass
+                tags_loaded = True
+            time.sleep(1)
+            
+    threading.Thread(target=maintenance_task, daemon=True).start()
+    
+    print("🚀 SYSTEM READY. Listening on 0.0.0.0:8000")
+    yield
+    print("🛑 SHUTDOWN.")
+    stop_event.set()
+    try: s.stop()
+    except: pass
+    if pg_pool: pg_pool.closeall()
+
+app = FastAPI(lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    if request.method == "POST":
+        print(f"🔹 {request.method} {request.url.path} from {request.client.host}")
+    return await call_next(request)
+
+# --- ENDPOINTS ---
+@app.get("/")
+def health_check(): return {"status": "online", "ts": datetime.now().isoformat()}
+
+@app.post("/token", response_model=Token)
+def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = get_user_from_db(form_data.username)
+    if not user or not verify_password(form_data.password, user['hashed_password']):
+        raise HTTPException(401, "Invalid credentials")
+    token = create_access_token(data={"sub": user['username'], "role": user['role']})
+    return {"access_token": token, "token_type": "bearer"}
+
+@app.get("/users/me", response_model=User)
+def read_users_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+@app.get("/api/tags", response_model=List[Tag])
+def get_tags(user: User = Depends(get_current_active_admin)):
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, tag, datatype, is_active FROM historian.tag_lookup ORDER BY id")
+            return [Tag(id=r[0], tag=r[1], datatype=r[2], is_active=r[3]) for r in cur.fetchall()]
+    finally:
+        release_db_conn(conn)
+
+@app.put("/api/tags/{tag_id}", response_model=Tag)
+def update_tag(tag_id: int, u: TagUpdate, user: User = Depends(get_current_active_admin)):
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute("UPDATE historian.tag_lookup SET is_active = %s WHERE id = %s RETURNING id, tag, datatype, is_active", (u.is_active, tag_id))
+            res = cur.fetchone()
+            conn.commit()
+            if res:
+                sync_tags_with_db()
+                return Tag(id=res[0], tag=res[1], datatype=res[2], is_active=res[3])
+            raise HTTPException(404, "Tag not found")
+    finally:
+        release_db_conn(conn)
+
+@app.get("/api/historian")
+def get_historian(tags: List[str] = Query(None), start_time: Optional[str] = None, end_time: Optional[str] = None):
+    if not tags: return {}
+    st = start_time or "1970-01-01T00:00:00Z"
+    et = end_time or datetime.utcnow().isoformat()
+    try:
+        st_obj = datetime.fromisoformat(st.replace('Z', '+00:00'))
+        et_obj = datetime.fromisoformat(et.replace('Z', '+00:00'))
+        dur = (et_obj - st_obj).total_seconds()
+    except:
+        dur = 9999999
+        st_obj = datetime(1970, 1, 1, tzinfo=timezone.utc)
+        et_obj = datetime.now(timezone.utc)
+
+    raw = dur <= 1800
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            if raw:
+                sql = """SELECT h.ts, tl.tag, COALESCE(h.value_float, h.value_int::double precision, h.value_bool::int::double precision) 
+                         FROM historian.historian h JOIN historian.tag_lookup tl ON h.tag_id = tl.id 
+                         WHERE tl.tag = ANY(%s) AND h.ts >= %s AND h.ts <= %s ORDER BY h.ts ASC"""
+                params = (tags, st_obj, et_obj)
+            else:
+                buck = "1 minute"
+                if dur > 86400*2: buck = "15 minutes"
+                elif dur > 86400: buck = "5 minutes"
+                sql = """SELECT time_bucket(%s, h.ts) as b, tl.tag, AVG(COALESCE(h.value_float, h.value_int::double precision, h.value_bool::int::double precision))
+                         FROM historian.historian h JOIN historian.tag_lookup tl ON h.tag_id = tl.id
+                         WHERE tl.tag = ANY(%s) AND h.ts >= %s AND h.ts <= %s GROUP BY b, tl.tag ORDER BY b ASC"""
+                params = (buck, tags, st_obj, et_obj)
+            cur.execute(sql, params)
+            res = {t: [] for t in tags}
+            for r in cur.fetchall():
+                if r[2] is not None:
+                    res[r[1]].append({"ts": r[0].isoformat(), "value": r[2]})
+            return res
+    except Exception as e:
+        print(f"🔴 Query Error: {e}")
+        return {"error": str(e)}
+    finally:
+        release_db_conn(conn)
+
+@app.get("/api/live-data")
+def live_endpoint():
+    with live_data_lock: return live_data
+
+@app.post("/api/write-tag", dependencies=[Depends(require_api_key)])
+def write_tag_endpoint(req: TagWriteRequest):
+    if req.tag_name not in WRITEABLE_TAGS: raise HTTPException(403, "Not writable")
+    c = PLC()
+    c.IPAddress = PLC_IP
+    c.ProcessorSlot = 0
+    try:
+        ret = c.Write(req.tag_name, req.value)
+        c.Close()
+        if getattr(ret, "Status", None) == 'Success': return {"status": "success"}
+        return {"status": "error", "message": str(getattr(ret, "Status", "Unknown"))}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/settings", response_model=List[Setting])
+def get_settings_endpoint(user: User = Depends(get_current_active_engineer)):
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute("SELECT key, value_float, value_text FROM app.settings")
+            return [Setting(key=r[0], value=r[1] if r[1] is not None else r[2]) for r in cur.fetchall()]
+    finally:
+        release_db_conn(conn)
+
+@app.put("/api/settings/{key}", response_model=Setting)
+def update_setting_endpoint(key: str, s: Setting, user: User = Depends(get_current_active_engineer)):
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            if isinstance(s.value, (float, int)):
+                cur.execute("UPDATE app.settings SET value_float = %s WHERE key = %s", (s.value, key))
+            else:
+                cur.execute("UPDATE app.settings SET value_text = %s WHERE key = %s", (s.value, key))
+            conn.commit()
+        return s
+    finally:
+        release_db_conn(conn)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

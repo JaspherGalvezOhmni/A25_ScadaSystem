@@ -1,0 +1,406 @@
+/* --- GLOBAL STYLES & DARK THEME --- */
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #1e1e1e;
+  color: #dcdcdc;
+}
+body { margin: 0; }
+.App { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+.main-content { flex-grow: 1; overflow-y: auto; }
+
+/* Custom Scrollbar for Dark Theme */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #2d2d2d; }
+::-webkit-scrollbar-thumb { background: #555; border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: #777; }
+
+/* --- HEADER & NAVIGATION --- */
+.App-header { display: flex; align-items: center; background-color: #2d2d2d; padding: 0 2rem; height: 60px; border-bottom: 1px solid #444; flex-shrink: 0; }
+.logo-container img { height: 40px; }
+.navigation { flex-grow: 1; display: flex; justify-content: center; gap: 1rem; }
+.navigation a { color: #a0a0a0; text-decoration: none; font-size: 1.1em; padding: 0.5rem 1rem; border-radius: 6px; transition: background-color 0.2s; }
+.navigation a.active, .navigation a:hover { color: #ffffff; background-color: #444; }
+.header-right-side { display: flex; align-items: center; gap: 1.5rem; margin-left: auto; }
+.status-time { color: #a0a0a0; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.logout-button { background-color: #3a3a3a; color: #a0a0a0; border: 1px solid #555; border-radius: 6px; padding: 0.5rem 1rem; font-size: 1em; cursor: pointer; transition: all 0.2s; }
+.logout-button:hover { background-color: #c0392b; color: white; border-color: #e74c3c; }
+
+/* --- GENERIC COMPONENTS --- */
+.sidebar { background-color: #2d2d2d; border-radius: 8px; overflow-y: auto; }
+.card { background-color: #2d2d2d; border-radius: 8px; padding: 1.5rem; }
+
+/* --- HOME PAGE --- */
+.home-layout { 
+  display: grid; 
+  grid-template-columns: 300px 1fr 350px; 
+  height: calc(100vh - 60px); 
+  overflow: hidden; 
+}
+
+.commands-sidebar { padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+.commands-sidebar h2 { margin: 0 0 1rem 0; font-size: 1.5em; font-weight: 600; border-bottom: 1px solid #444; padding-bottom: 1rem; }
+.commands-sidebar button { width: 100%; padding: 1.2rem; font-size: 1.5em; border-radius: 8px; border: 1px solid #555; background-color: #3a3a3a; color: #dcdcdc; cursor: pointer; transition: background-color 0.2s; }
+.commands-sidebar button:hover { background-color: #4a4a4a; }
+.commands-sidebar button:disabled { background-color: #2a2a2a; color: #666; cursor: not-allowed; border-color: #444; }
+
+.status-sidebar { padding: 2rem; }
+.status-group { margin-bottom: 2rem; }
+.status-group h2 { margin: 0 0 1rem 0; font-size: 1.5em; font-weight: 600; border-bottom: 1px solid #444; padding-bottom: 1rem; }
+.status-item { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 0; border-bottom: 1px solid #444; font-size: 1.1em; }
+.status-item:last-child { border-bottom: none; }
+.status-item span:first-child { color: #a0a0a0; }
+.status-item span:last-child { font-weight: bold; font-size: 1.1em; font-variant-numeric: tabular-nums; }
+.debug-item span:first-child { color: #f0a !important; font-style: italic; }
+
+/* --- IMPROVED FLYWHEEL VISUAL --- */
+.flywheel-container { 
+  display: flex; flex-direction: column; align-items: center; justify-content: center; 
+  gap: 1.5rem; padding: 2rem; position: relative; color: #a0a0a0; 
+  overflow: hidden;
+}
+.flywheel-visual { 
+  width: 200px; height: 200px; /* Made square for rotation */
+  border: 6px solid #555; border-radius: 50%; /* Circular */
+  position: relative; display: flex; align-items: center; justify-content: center; 
+  overflow: hidden; 
+  background: radial-gradient(circle at center, #333 0%, #1a1a1a 100%);
+  box-shadow: 0 0 20px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.8); 
+  transition: border-color 0.3s;
+}
+
+/* The spinning content */
+.flywheel-fill { 
+  position: absolute; width: 100%; height: 100%; top: 0; left: 0;
+  background: conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+/* Animations for spinning */
+@keyframes spin { 100% { transform: rotate(360deg); } }
+.spinning-charge { animation: spin 0.5s linear infinite; border-color: #2ecc71; }
+.spinning-discharge { animation: spin 0.5s linear infinite reverse; border-color: #3498db; }
+
+/* Text overlaid on top */
+.flywheel-text { 
+  position: absolute; z-index: 10; 
+  display: flex; flex-direction: column; align-items: center;
+  color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.9); font-size: 1.5em; font-weight: 600; 
+}
+.power-flow-arrow { font-size: 3em; font-weight: bold; line-height: 1; min-height: 1em; }
+
+/* --------------------------------------------------------- */
+
+.health-item { display: flex; justify-content: space-between; align-items: center; font-size: 1.1em; margin-bottom: 0.8rem; }
+.health-indicator { font-weight: bold; padding: 0.2rem 0.6rem; border-radius: 5px; }
+.health-item.healthy .health-indicator { background-color: #27ae60; color: white; }
+.health-item.unhealthy .health-indicator { background-color: #c0392b; color: white; }
+.health-item.unknown .health-indicator { background-color: #7f8c8d; color: white; }
+
+/* --- OPERATIONAL DETAILS PAGE --- */
+.details-layout-final { 
+  display: grid; grid-template-columns: 250px 1fr 350px; 
+  height: calc(100vh - 60px); 
+  gap: 1rem; padding: 1rem; box-sizing: border-box;
+}
+
+.charts-container-final { display: flex; flex-direction: column; gap: 1.5rem; overflow-y: auto; padding-right: 0.5rem; }
+.pens-sidebar { padding: 1rem; }
+.pen-group h4 { margin: 0 0 1rem 0; border-bottom: 1px solid #555; padding-bottom: 0.5rem; }
+.pen-item { display: flex; align-items: center; margin-bottom: 0.75rem; font-size: 0.9em; }
+.pen-color-swatch { width: 15px; height: 15px; margin-right: 0.75rem; border: 1px solid #555; border-radius: 3px; }
+.pen-item input { margin-right: 0.5rem; }
+.pen-item label { cursor: pointer; user-select: none; }
+
+.chart-card-container { display: grid; grid-template-columns: 220px 1fr; gap: 1rem; background-color: #2d2d2d; padding: 1rem; border-radius: 8px; height: 350px; }
+.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; height: 40px; }
+.chart-header h3 { margin: 0; font-size: 1.2em; display: flex; align-items: center; gap: 0.5rem; }
+.live-badge { background-color: #c0392b; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 4px; animation: pulse 2s infinite; }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+.individual-time-selector { display: flex; align-items: center; gap: 0.5rem; }
+.individual-time-selector select { padding: 0.3rem; border-radius: 4px; background-color: #3a3a3a; color: #dcdcdc; border: 1px solid #555; }
+.chart-wrapper { height: calc(100% - 45px); position: relative; width: 100%; }
+
+.sensor-sidebar { padding: 1rem; }
+.sensor-list { display: flex; flex-direction: column; gap: 0.8rem; }
+.sensor-item { display: flex; justify-content: space-between; align-items: center; font-size: 1em; border-bottom: 1px solid #444; padding-bottom: 0.8rem; }
+.sensor-item:last-child { border-bottom: none; }
+.sensor-value { font-variant-numeric: tabular-nums; font-family: monospace; font-size: 1.1em; color: #41D1FF; }
+
+/* --- ENGINEERING & LOGIN PAGES --- */
+.engineering-layout, .login-container { padding: 2rem; display: flex; justify-content: center; width: 100%; box-sizing: border-box; }
+.engineering-layout > div, .login-container form { width: 100%; max-width: 600px; }
+.form-group { display: flex; flex-direction: column; margin-bottom: 1.5rem; }
+.form-group label { margin-bottom: 0.5rem; color: #a0a0a0; }
+.form-group input { padding: 0.8rem; border-radius: 6px; background-color: #1e1e1e; color: #dcdcdc; border: 1px solid #555; font-size: 1.1em; }
+.form-group-with-button { display: grid; grid-template-columns: 1fr 120px 80px; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+.tag-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.tag-table th, .tag-table td { padding: 0.8rem; text-align: left; border-bottom: 1px solid #444; }
+.tag-table th { background-color: #3a3a3a; }
+.status-toggle { border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 5px; font-weight: bold; width: 100%; }
+.status-toggle.active { background-color: #27ae60; color: white; }
+.status-toggle.inactive { background-color: #7f8c8d; color: #ddd; }
+.error-message { color: #e74c3c; font-weight: bold; margin-bottom: 1rem; }
+
+/* --- RESPONSIVE MEDIA QUERIES --- */
+@media (max-width: 1200px) {
+  .home-layout, .details-layout-final {
+    grid-template-columns: 1fr; /* Stack vertically */
+    height: auto;
+    overflow-y: auto;
+  }
+  .sidebar, .chart-card-container {
+    height: auto;
+    min-height: 400px;
+  }
+  .flywheel-container {
+    padding: 3rem 0;
+  }
+  /* On mobile/tablet, stack the specific chart sidebar */
+  .chart-card-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 400px;
+  }
+  .App-header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 1rem;
+    gap: 1rem;
+  }
+  .header-right-side {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* --- OPERATIONAL DETAILS PAGE LAYOUT --- */
+.details-layout-final { 
+  display: grid; 
+  /* Fixed Width Sidebar | Flexible Charts | Fixed Width Sidebar */
+  grid-template-columns: 250px 1fr 300px; 
+  height: calc(100vh - 60px); 
+  gap: 1rem; 
+  padding: 1rem; 
+  box-sizing: border-box;
+  overflow: hidden; /* Prevent the whole page from scrolling */
+}
+
+/* Middle Column: The Scrollable Chart Area */
+.charts-container-final { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 1.5rem; 
+  overflow-y: auto; /* Only this middle part scrolls */
+  padding-right: 0.5rem; 
+  min-height: 0; /* Crucial for nested flex scrolling */
+}
+
+/* Individual Chart Card */
+.chart-card-container { 
+  display: flex; 
+  flex-direction: column; 
+  background-color: #2d2d2d; 
+  padding: 1rem; 
+  border-radius: 8px; 
+  /* Fixed height for each chart card ensures they don't collapse or explode */
+  height: 400px; 
+  flex-shrink: 0; /* Don't let them shrink smaller than 400px */
+}
+
+.chart-header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 1rem; 
+  height: 40px; 
+}
+
+/* The wrapper around the Canvas */
+.chart-wrapper { 
+  flex-grow: 1; 
+  position: relative; 
+  width: 100%; 
+  min-height: 0; /* CRITICAL FIX: Stops chart from growing infinitely */
+}
+
+/* Message styling for Loading / No Data */
+.no-data-message, .loading-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #666;
+  font-style: italic;
+}
+
+/* Sidebars */
+.sidebar { 
+  background-color: #2d2d2d; 
+  border-radius: 8px; 
+  overflow-y: auto; 
+  height: 100%; /* Fill the grid cell */
+}
+
+/* Right Sidebar specific */
+.sensor-list {
+  padding-bottom: 2rem;
+}
+
+/* --- SENSOR SIDEBAR IMPROVEMENTS --- */
+
+/* 1. Header with Maximize Button */
+.sidebar-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #444;
+  padding-bottom: 0.5rem;
+}
+
+.sidebar-header-row h2 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.maximize-btn {
+  background-color: #333;
+  color: #a0a0a0;
+  border: 1px solid #555;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8em;
+  border-radius: 4px;
+}
+.maximize-btn:hover {
+  background-color: #41D1FF;
+  color: #000;
+  border-color: #41D1FF;
+}
+
+/* 2. Stacked Items (Label Top, Value Bottom) for readability */
+.sensor-item {
+  display: flex;
+  flex-direction: column; /* Stack vertically */
+  align-items: flex-start; /* Align left */
+  border-bottom: 1px solid #444;
+  padding: 0.8rem 0;
+}
+
+.sensor-label {
+  font-size: 0.85em;
+  color: #888;
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sensor-value {
+  font-size: 1.3em; /* Larger font for value */
+  font-family: 'Courier New', monospace; /* Monospace for alignment */
+  color: #41D1FF;
+  font-weight: 600;
+}
+
+/* 3. MAXIMIZED MODE (The "Sensor Wall") */
+.sensor-sidebar.maximized {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  background-color: #1a1a1a;
+  padding: 2rem;
+  box-sizing: border-box;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* When maximized, switch list to a Grid */
+.sensor-sidebar.maximized .sensor-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Auto-fit grid */
+  gap: 1.5rem;
+  padding-top: 1rem;
+}
+
+.sensor-sidebar.maximized .sensor-item {
+  background-color: #2d2d2d;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #444;
+  border-bottom: 1px solid #444; /* Reset border */
+}
+
+.sensor-sidebar.maximized .sensor-label {
+  color: #aaa;
+}
+
+.sensor-sidebar.maximized .sensor-value {
+  font-size: 1.8em; /* Even bigger on big screen */
+  margin-top: 0.5rem;
+}
+
+/* Scrollbar within sidebar */
+.sensor-sidebar::-webkit-scrollbar { width: 6px; }
+.sensor-sidebar::-webkit-scrollbar-thumb { background-color: #555; border-radius: 3px; }
+
+/* --- SCADA ALARM OVERLAYS --- */
+.connection-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.75); /* Dim the background */
+  backdrop-filter: blur(3px); /* Blur the dashboard */
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.connection-box {
+  background-color: #1a1a1a;
+  padding: 2.5rem;
+  border-radius: 12px;
+  border: 2px solid #e74c3c; /* Red Border */
+  text-align: center;
+  box-shadow: 0 0 30px rgba(231, 76, 60, 0.3);
+  animation: pulse-border 2s infinite;
+  max-width: 500px;
+}
+
+.connection-box h2 {
+  margin: 0 0 1rem 0;
+  color: #e74c3c;
+  font-size: 2em;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.connection-box p {
+  color: #dcdcdc;
+  font-size: 1.2em;
+  margin-bottom: 1.5rem;
+}
+
+.retry-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #333;
+  border-top: 4px solid #e74c3c;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes pulse-border {
+  0% { box-shadow: 0 0 10px rgba(231, 76, 60, 0.2); }
+  50% { box-shadow: 0 0 25px rgba(231, 76, 60, 0.6); }
+  100% { box-shadow: 0 0 10px rgba(231, 76, 60, 0.2); }
+}
