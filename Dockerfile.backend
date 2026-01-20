@@ -1,0 +1,43 @@
+# Dockerfile.backend
+
+# Use a specific Python image built for ARM architecture
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# 1. Install System Build Dependencies (gcc, libpq-dev, python headers)
+# We keep these separate to ensure we clean them up later if needed, 
+# but for now, they are needed during pip install.
+# 1. Install System Build Dependencies (CRITICAL FIX: Adding ping/net tools)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    make \
+    libpq-dev \
+    python3-dev \
+    libffi-dev \
+    # --- ADDED NETWORK DIAGNOSTICS ---
+    iputils-ping \
+    net-tools \
+    # -----------------------------------
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. Copy requirements and install Python packages (including psycopg2)
+COPY requirements.txt .
+# This step is where psycopg2-binary and others are compiled and installed
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 3. Clean up the build tools (OPTIONAL: saves space, but may cause issues if needed later)
+# Since the image is slim, we'll skip removing gcc/g++ to avoid complication, 
+# but a production image would ideally remove them.
+
+# 4. Copy application files
+COPY main_api.py .
+COPY .env .
+
+# Expose FastAPI port
+EXPOSE 8000
+
+# Command to run the application
+CMD ["python", "main_api.py"]

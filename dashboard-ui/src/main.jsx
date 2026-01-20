@@ -37,9 +37,9 @@ const router = createBrowserRouter([
 ]);
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-    <AuthProvider>
-      <SystemStatusProvider> {/* <--- WRAP ROUTER WITH SYSTEM STATUS */}
+    <SystemStatusProvider> 
+      <AuthProvider> 
         <RouterProvider router={router} />
-      </SystemStatusProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </SystemStatusProvider>
 )

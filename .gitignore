@@ -2,3 +2,8 @@ venv/
 __pycache__/
 
 .env
+repomix-output.xml
+node_modules/
+dist/
+dashboarrd-ui/node_modules/
+dashboard-ui/dist/

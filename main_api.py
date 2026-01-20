@@ -134,14 +134,23 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-        if not username: raise HTTPException(401, "Invalid token")
+        role: str = payload.get("role")  # Get role from JWT
+        if not username or not role: raise HTTPException(401, "Invalid token payload")
     except JWTError: raise HTTPException(401, "Invalid token")
     
-    try: user = get_user_from_db(username)
-    except: raise HTTPException(500, "DB Error")
+    # Check if user is active using the database
+    user_db = get_user_from_db(username) 
+    if not user_db or not user_db["is_active"]: raise HTTPException(401, "User inactive")
 
-    if not user or not user["is_active"]: raise HTTPException(401, "User inactive")
-    return User(username=user["username"], role=user["role"])
+    # === REMOVE DEBUG FIX: Rely on actual data (either JWT or user_db role if JWT missing) ===
+    # The JWT created in login is: {"sub": user['username'], "role": user['role']}
+    # We trust the JWT role, otherwise use the database role as fallback.
+    
+    # If the JWT contains the role (which it should), use it.
+    # We must ensure we return the Pydantic model here using the determined role.
+    final_role = payload.get("role") or user_db["role"]
+    print(f"!!! DEBUG ROLE RESOLVED: {final_role} !!!") # <--- ADD THIS LOG
+    return User(username=username, role=final_role) 
 
 def get_current_active_admin(current_user: User = Depends(get_current_user)):
     if current_user.role != "Admin": raise HTTPException(403, "Admin required")
@@ -155,48 +164,100 @@ def require_api_key(x_api_key: str = Header(None)):
     if not API_KEY or x_api_key != API_KEY: raise HTTPException(401, "Invalid API Key")
 
 # --- THREADS ---
+PLC_SOURCE_IP = os.getenv("PLC_SOURCE_IP", None)
+
+
 def plc_polling_task():
-    print("🚀 PLC Poller started.")
-    comm = PLC()
-    comm.IPAddress = PLC_IP
-    comm.ProcessorSlot = 0
+    print("🚀 PLC Poller thread started.")
+    comm = None
     
-    while not stop_event.is_set():
-        try:
-            names = [t["name"] for t in TAGS_TO_READ]
-            if not names:
-                time.sleep(2)
-                continue
+    try:
+        while not stop_event.is_set():
             
-            results = comm.Read(names)
-            ts = datetime.now(timezone.utc)
-            
-            with live_data_lock:
-                live_data["status"] = "connected"
-                temp = {}
-                iterable = results if isinstance(results, list) else [results]
-                
-                for res in iterable:
-                    tn = getattr(res, "TagName", None)
-                    st = getattr(res, "Status", "Success")
-                    val = res.Value if st == 'Success' else f"Error: {st}"
-                    temp[tn] = val
+            if comm is None:
+                # --- INITIAL CONNECTION/RECONNECTION ATTEMPT ---
+                try:
+                    print(f"🔌 Attempting PLC connection to {PLC_IP}...")
                     
-                    if st == 'Success' and isinstance(val, (int, float, bool)):
-                        try:
-                            historian_queue.put_nowait({"tag": tn, "value": val, "ts": ts})
-                        except queue.Full: pass
+                    comm = PLC()
+                    comm.IPAddress = PLC_IP
+                    # Check if tags are loaded before attempting test read (prevents crash if DB is slow)
+                    if not TAGS_TO_READ:
+                        print("⏳ Waiting for initial DB tag sync...")
+                        time.sleep(1)
+                        continue
+
+                    # Diagnostic Test Read
+                    test_tag = TAGS_TO_READ[0]["name"]
+                    test_result = comm.Read(test_tag)
+                    
+                    status_check = getattr(test_result, "Status", "Error")
+                    if status_check != "Success":
+                        comm.Close()
+                        comm = None 
+                        raise Exception(f"Diagnostic Read Failed: Status={status_check}")
+                    
+                    print(f"✅ PLC Connection successful.")
+                    
+                except Exception as e:
+                    print(f"🔴 PLC Connection Failed (Initialization): {e}")
+                    # Ensure comm is cleaned up
+                    if comm:
+                        try: comm.Close()
+                        except: pass
+                    comm = None
+                    with live_data_lock: live_data["status"] = "disconnected"
+                    time.sleep(5)
+                    continue 
+
+            # --- READ LOOP ---
+            try:
+                tag_names_to_read = [tag["name"] for tag in TAGS_TO_READ]
+                if not tag_names_to_read:
+                    with live_data_lock: live_data["status"] = "no_tags_configured"
+                    time.sleep(1)
+                    continue
+
+                results = comm.Read(tag_names_to_read)
+                timestamp = datetime.now(timezone.utc)
+                # ... (live data processing and historian_queue write unchanged) ...
                 
-                live_data["tags"] = temp
-            
-            time.sleep(0.25) # 4Hz
-            
-        except Exception as e:
-            print(f"🔴 PLC Error: {e}")
-            with live_data_lock: live_data["status"] = "disconnected"
-            time.sleep(5)
-    try: comm.Close() 
-    except: pass
+                with live_data_lock:
+                    live_data["status"] = "connected"
+                    temp_tags = {}
+                    iterable_results = results if isinstance(results, list) else [results]
+                    
+                    for res in iterable_results:
+                        tagname = getattr(res, "TagName", None)
+                        status = getattr(res, "Status", "Success")
+                        val = res.Value if status == 'Success' else f"Error: {status}"
+                        temp_tags[tagname] = val
+                        
+                        if status == 'Success' and isinstance(val, (int, float, bool)):
+                            try:
+                                historian_queue.put_nowait({"tag": tagname, "value": val, "ts": timestamp})
+                            except queue.Full: pass
+
+                    live_data["tags"] = temp_tags
+
+                time.sleep(0.25)
+                
+            except Exception as e:
+                # Handle read failures by closing and retrying connection
+                print(f"🔴 PLC Read Error/Timeout. Reconnecting: {e}")
+                with live_data_lock: live_data["status"] = "disconnected"
+                
+                if comm:
+                    try: comm.Close()
+                    except: pass
+                comm = None 
+                time.sleep(5) 
+    
+    finally:
+        if comm:
+            try: comm.Close() 
+            except: pass
+        print("⚪️ PLC Poller thread stopped.")
 
 def opcua_updater_task():
     print("🚀 OPC-UA Updater started.")
@@ -381,11 +442,13 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     user = get_user_from_db(form_data.username)
     if not user or not verify_password(form_data.password, user['hashed_password']):
         raise HTTPException(401, "Invalid credentials")
+
     token = create_access_token(data={"sub": user['username'], "role": user['role']})
     return {"access_token": token, "token_type": "bearer"}
 
-@app.get("/users/me", response_model=User)
+@app.get("/users/me", response_model=User) # <-- Ensure this line remains response_model=User
 def read_users_me(current_user: User = Depends(get_current_user)):
+    # REVERTED to standard return
     return current_user
 
 @app.get("/api/tags", response_model=List[Tag])
@@ -463,7 +526,7 @@ def get_historian(tags: List[str] = Query(None), start_time: Optional[str] = Non
 def live_endpoint():
     with live_data_lock: return live_data
 
-@app.post("/api/write-tag", dependencies=[Depends(require_api_key)])
+@app.post("/api/write-tag", dependencies=[Depends(require_api_key), Depends(get_current_active_engineer)])
 def write_tag_endpoint(req: TagWriteRequest):
     if req.tag_name not in WRITEABLE_TAGS: raise HTTPException(403, "Not writable")
     c = PLC()

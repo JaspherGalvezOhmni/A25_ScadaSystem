@@ -1,12 +1,13 @@
 // src/api.js
 import axios from 'axios';
 
-export const BASE_API_URL = 'http://localhost:8000'; // Or your 192.168.x.x IP
+// Set BASE_API_URL to the root path ('/') so Nginx handles proxying to http://backend:8000
+export const BASE_API_URL = '/'; 
 const API_KEY = import.meta.env.VITE_API_KEY;
 
 const apiClient = axios.create({
   baseURL: BASE_API_URL,
-  timeout: 5000, // CRITICAL FIX: Fail requests after 5 seconds if server hangs
+  timeout: 5000, // CRITICAL: Fail requests after 5 seconds if server hangs
 });
 
 apiClient.interceptors.request.use(

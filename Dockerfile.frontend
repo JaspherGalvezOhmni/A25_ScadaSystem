@@ -1,0 +1,16 @@
+# Dockerfile.frontend
+# 1 - build react app
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY dashboard-ui/package.json dashboard-ui/package-lock.json ./
+RUN npm install
+COPY dashboard-ui/ .
+RUN npm run build
+
+# 2 - serve static files with nginx
+FROM nginx:alpine AS runner
+RUN rm /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
