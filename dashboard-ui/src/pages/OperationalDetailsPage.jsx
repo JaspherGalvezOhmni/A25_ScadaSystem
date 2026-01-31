@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Line } from 'react-chartjs-2';
 import { 
     Chart as ChartJS, 
@@ -62,7 +62,7 @@ const getStartEndTime = (timeRangeKey) => {
     else if (timeRangeKey === '7d') startTime = subDays(now, 7);
     else if (timeRangeKey === '1mo') startTime = subMonths(now, 1);
     else if (timeRangeKey === 'YTD') startTime = startOfYear(now);
-    else if (timeRangeKey === 'All') startTime = new Date(0); 
+    else if (timeRangeKey === 'All') startTime = subDays(now, 365 * 5); // Go back 5 years 
 
     return { startTime, endTime: now };
 };
@@ -144,49 +144,26 @@ const IndividualTimeSelector = ({ onSelect }) => {
 };
 
 // --- UPDATED: HistorianChart with Pop-out Logic ---
-function HistorianChart({ title, visibleTags }) {
+function HistorianChart({ title, visibleTags, fetchHistoricalData }) {
     const [timeRange, setTimeRange] = useState('5m'); 
     const [staticData, setStaticData] = useState({ datasets: [] });
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [isPoppedOut, setIsPoppedOut] = useState(false);
 
-    const isStreamingMode = ['1s', '5s', '10s', '30s', '1m', '5m', '15m', '30m'].includes(timeRange);
+    const isStreamingMode = ['1m', '5m', '30m'].includes(timeRange);
 
     useEffect(() => {
         if (isStreamingMode || visibleTags.length === 0) return;
 
-        const fetchHistory = async () => {
+        const loadHistory = async () => {
             setIsLoadingHistory(true);
-            try {
-                const { startTime, endTime } = getStartEndTime(timeRange);
-                const params = new URLSearchParams();
-                visibleTags.forEach(tag => params.append('tags', tag));
-                if (startTime) params.append('start_time', startTime.toISOString());
-                params.append('end_time', endTime.toISOString());
-
-                const response = await apiClient.get('/api/historian', { params });
-                const data = response.data;
-
-                const newDatasets = visibleTags.map(tagName => ({
-                    label: tagName,
-                    data: data[tagName]?.map(p => ({ x: new Date(p.ts).getTime(), y: p.value })) || [],
-                    borderColor: tagColorMap[tagName] || '#888',
-                    backgroundColor: (tagColorMap[tagName] || '#888') + '80',
-                    tension: 0.2, 
-                    pointRadius: 0, 
-                    borderWidth: 2,
-                }));
-
-                setStaticData({ datasets: newDatasets });
-            } catch (error) {
-                console.error(`History fetch failed for ${title}:`, error);
-            } finally {
-                setIsLoadingHistory(false);
-            }
+            const data = await fetchHistoricalData(title, visibleTags, timeRange);
+            setStaticData(data);
+            setIsLoadingHistory(false);
         };
 
-        fetchHistory();
-    }, [timeRange, visibleTags, isStreamingMode, title]);
+        loadHistory();
+    }, [timeRange, visibleTags, isStreamingMode, title, fetchHistoricalData]);
 
     // The Inner Content
     const chartContent = (
@@ -220,7 +197,10 @@ function HistorianChart({ title, visibleTags }) {
                     isLoadingHistory ? (
                         <div className="loading-message">Loading History...</div>
                     ) : (
-                        <Line options={staticChartOptions} data={staticData} />
+                        <Line
+                            key={visibleTags.join('-')}
+                            options={staticChartOptions}
+                            data={staticData}></Line>
                     )
                 )}
             </div>
@@ -259,6 +239,48 @@ function OperationalDetailsPage() {
         });
         return initial;
     });
+    const [historicalCache, setHistoricalCache] = useState({});
+    const fetchHistoricalData = useCallback(async (chartTitle, visibleTags, timeRange) => {
+        // Create unique key for the cache entry
+        const cacheKey = `${chartTitle}-${timeRange}-${visibleTags.join(',')}`;
+        
+        // 1. Check Cache
+        if (historicalCache[cacheKey]) {
+            return historicalCache[cacheKey];
+        }
+        
+        // 2. Fetch from API
+        try {
+            const { startTime, endTime } = getStartEndTime(timeRange);
+            const params = new URLSearchParams();
+            visibleTags.forEach(tag => params.append('tags', tag));
+            if (startTime) params.append('start_time', startTime.toISOString());
+            params.append('end_time', endTime.toISOString());
+
+            const response = await apiClient.get('/api/historian', { params });
+            const data = response.data;
+            
+            // Convert data into chart datasets (same logic as before)
+            const newDatasets = visibleTags.map(tagName => ({
+                label: tagName,
+                data: data[tagName]?.map(p => ({ x: new Date(p.ts).getTime(), y: p.value })) || [],
+                borderColor: tagColorMap[tagName] || '#888',
+                backgroundColor: (tagColorMap[tagName] || '#888') + '80',
+                tension: 0.2, 
+                pointRadius: 0, 
+                borderWidth: 2,
+            }));
+            const chartData = { datasets: newDatasets };
+
+            // 3. Update Cache
+            setHistoricalCache(prev => ({ ...prev, [cacheKey]: chartData }));
+            return chartData;
+
+        } catch (error) {
+            console.error(`History fetch failed for ${chartTitle}:`, error);
+            return { datasets: [] };
+        }
+    }, [historicalCache, setHistoricalCache]);
 
     useEffect(() => {
         const fetchLive = async () => {
@@ -298,6 +320,7 @@ function OperationalDetailsPage() {
                         key={chart.title}
                         title={chart.title} 
                         visibleTags={visiblePens[chart.title] || []}
+                        fetchHistoricalData={fetchHistoricalData}
                     />
                 ))}
             </div>

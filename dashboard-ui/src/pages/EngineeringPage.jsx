@@ -154,7 +154,7 @@ function EngineeringPage() {
                 {(!isEngineer && !isAdmin) && (
                     <div className="card">
                         <h2>Access Denied</h2>
-                        <p>Your current role ({role || 'Unknown'}) does not have permission to view this page.</p>
+                        <p>Your current role ({role}) does not have permission to view this page.</p>
                     </div>
                 )}
             </div>

@@ -240,7 +240,7 @@ def plc_polling_task():
 
                     live_data["tags"] = temp_tags
 
-                time.sleep(0.25)
+                time.sleep(0.5)
                 
             except Exception as e:
                 # Handle read failures by closing and retrying connection
@@ -272,7 +272,7 @@ def opcua_updater_task():
 def historian_ingester_task():
     print("🚀 Historian Ingester started.")
     batch_counter = 0
-    warned_tags = set() # To avoid spamming the same error
+    warned_tags = set() 
     
     while not stop_event.is_set():
         time.sleep(0.5)
@@ -305,11 +305,16 @@ def historian_ingester_task():
                     raw_dtype = name_map.get(tn, 'float')
                     val = item['value']
                     ts = item['ts']
+
+                    # --- FIX: Force scaled/analog tags to FLOAT column (Structural Data Integrity) ---
+                    is_analog = any(
+                        s in tn.lower() for s in ['.scaled', '_rescaled', 'outpowerscaled', 'mtrspeedscaled']
+                    )
                     
                     # 2. Map DB datatype string to SQL Table
                     sql = None
-                    # Flexible matching for common PLC types
-                    if raw_dtype in ['float', 'real']:
+                    # If it's explicitly float/real OR if it's a scaled/analog tag, save as float
+                    if raw_dtype in ['float', 'real'] or is_analog:
                         sql = "INSERT INTO historian.historian (tag_id, value_float, ts) VALUES (%s, %s, %s)"
                         params = (tid, float(val), ts)
                     elif raw_dtype in ['int', 'integer', 'dint', 'sint']:
@@ -480,36 +485,77 @@ def update_tag(tag_id: int, u: TagUpdate, user: User = Depends(get_current_activ
 
 @app.get("/api/historian")
 def get_historian(tags: List[str] = Query(None), start_time: Optional[str] = None, end_time: Optional[str] = None):
+    
     if not tags: return {}
     st = start_time or "1970-01-01T00:00:00Z"
     et = end_time or datetime.utcnow().isoformat()
+    
+    dur = 9999999
     try:
         st_obj = datetime.fromisoformat(st.replace('Z', '+00:00'))
         et_obj = datetime.fromisoformat(et.replace('Z', '+00:00'))
         dur = (et_obj - st_obj).total_seconds()
     except:
-        dur = 9999999
         st_obj = datetime(1970, 1, 1, tzinfo=timezone.utc)
         et_obj = datetime.now(timezone.utc)
 
-    raw = dur <= 1800
+    # RAW/AGGREGATION SWITCH (1800 seconds = 30 minutes)
+    raw = dur <= 1800 
     conn = None
+    
     try:
         conn = get_db_conn()
         with conn.cursor() as cur:
             if raw:
+                # RAW QUERY block (unchanged)
                 sql = """SELECT h.ts, tl.tag, COALESCE(h.value_float, h.value_int::double precision, h.value_bool::int::double precision) 
                          FROM historian.historian h JOIN historian.tag_lookup tl ON h.tag_id = tl.id 
                          WHERE tl.tag = ANY(%s) AND h.ts >= %s AND h.ts <= %s ORDER BY h.ts ASC"""
                 params = (tags, st_obj, et_obj)
             else:
-                buck = "1 minute"
-                if dur > 86400*2: buck = "15 minutes"
-                elif dur > 86400: buck = "5 minutes"
-                sql = """SELECT time_bucket(%s, h.ts) as b, tl.tag, AVG(COALESCE(h.value_float, h.value_int::double precision, h.value_bool::int::double precision))
-                         FROM historian.historian h JOIN historian.tag_lookup tl ON h.tag_id = tl.id
-                         WHERE tl.tag = ANY(%s) AND h.ts >= %s AND h.ts <= %s GROUP BY b, tl.tag ORDER BY b ASC"""
-                params = (buck, tags, st_obj, et_obj)
+                # AGGREGATED QUERY block - FIX: Aggressive Hierarchical Time Buckets
+                
+                # Check for All Time (2 years in the frontend logic) and huge queries first
+                if dur > 86400 * 365 * 2: # > 2 years (This should catch the 'All Time' span)
+                    buck = "1 week" 
+                elif dur > 86400 * 30: # > 1 month
+                    buck = "1 day" 
+                elif dur > 86400 * 7: # > 1 week
+                    buck = "6 hours" # 7 days * 4 per day = 28 points. Very fast.
+                elif dur > 86400 * 2: # > 2 days
+                    buck = "1 hour" # 2 days * 24 per day = 48 points. Fast.
+                else:
+                    buck = "5 minutes" # Default for > 30 minutes up to 2 days. 
+                
+                sql = """
+                    SELECT 
+                        time_bucket(%s, h.ts) as b, 
+                        tl.tag, 
+                        AVG(
+                            CASE
+                                WHEN h.value_float IS NOT NULL THEN h.value_float
+                                WHEN h.value_int IS NOT NULL THEN h.value_int::double precision
+                                WHEN h.value_bool IS NOT NULL THEN h.value_bool::int::double precision
+                                ELSE NULL
+                            END
+                        )
+                    FROM historian.historian h 
+                    JOIN historian.tag_lookup tl ON h.tag_id = tl.id
+                    WHERE tl.tag = ANY(%s) 
+                      AND h.ts >= %s 
+                      AND h.ts <= %s 
+                    GROUP BY b, tl.tag 
+                    ORDER BY b ASC
+                """
+                # Trust the original parameter order for safety:
+                params = (buck, tags, st_obj, et_obj) 
+            
+            # --- DEBUG FIX: LOG THE EXECUTED QUERY ---
+            print("\n--- DEBUG: HISTORIAN QUERY ---")
+            print(cur.mogrify(sql, params).decode('utf-8'))
+            print("------------------------------\n")
+            # --- END DEBUG FIX ---
+
             cur.execute(sql, params)
             res = {t: [] for t in tags}
             for r in cur.fetchall():
@@ -532,13 +578,32 @@ def write_tag_endpoint(req: TagWriteRequest):
     c = PLC()
     c.IPAddress = PLC_IP
     c.ProcessorSlot = 0
+    
+    status = "error"
+    message = "Unknown error"
+    
     try:
         ret = c.Write(req.tag_name, req.value)
-        c.Close()
-        if getattr(ret, "Status", None) == 'Success': return {"status": "success"}
-        return {"status": "error", "message": str(getattr(ret, "Status", "Unknown"))}
+        if getattr(ret, "Status", None) == 'Success': 
+            status = "success"
+            message = "Success"
+        else:
+            message = str(getattr(ret, "Status", "Unknown Status"))
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        message = str(e)
+    finally:
+        # FIX 2.3: Ensure the PLC connection is closed regardless of success/fail
+        try:
+            c.Close()
+        except:
+            # If close fails, we just ignore it and return the original error.
+            pass 
+            
+    if status == 'success':
+        return {"status": "success"}
+    
+    # If the write failed, raise a detailed error to the client
+    raise HTTPException(status_code=500, detail={"status": status, "message": message})
 
 @app.get("/api/settings", response_model=List[Setting])
 def get_settings_endpoint(user: User = Depends(get_current_active_engineer)):
