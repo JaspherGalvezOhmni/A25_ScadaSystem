@@ -86,6 +86,10 @@ function LiveSensorTable({ tags }) {
     };
 
     if (!tags) return <div className="sidebar sensor-sidebar">Loading...</div>;
+    const filteredTags = Object.entries(tags)
+        .filter(([tagName, value]) => {
+            return typeof value !== 'string' || !value.includes("Error");
+        })
     const sortedTags = Object.entries(tags).sort((a, b) => a[0].localeCompare(b[0]));
 
     return (

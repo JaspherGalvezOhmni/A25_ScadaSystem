@@ -39,7 +39,19 @@ DB_CONFIG = {
 }
 API_KEY = os.getenv("API_KEY")
 
-WRITEABLE_TAGS = {"Test_OutputVal1", "EM_SV"}
+WRITEABLE_TAGS = {
+    "A25_SIM_Charge", 
+    "A25_SIM_Discharge", 
+    "A25_SIM_Shutdown", 
+    "A25_SIM_Startup",
+    "A25_CMD_Charge", 
+    "A25_CMD_Discharge", 
+    "A25_CMD_Shutdown", 
+    "A25_CMD_Startup",
+    "EM_SV"
+}
+
+
 TAGS_TO_READ = []
 live_data = {"status": "initializing", "tags": {}}
 live_data_lock = threading.Lock()
@@ -240,7 +252,7 @@ def plc_polling_task():
 
                     live_data["tags"] = temp_tags
 
-                time.sleep(0.5)
+                time.sleep(1)
                 
             except Exception as e:
                 # Handle read failures by closing and retrying connection
@@ -275,7 +287,7 @@ def historian_ingester_task():
     warned_tags = set() 
     
     while not stop_event.is_set():
-        time.sleep(0.5)
+        time.sleep(2)
         if historian_queue.empty() or not tag_map: continue
         
         batch = []
@@ -350,6 +362,49 @@ def sync_tags_with_db():
     global tag_map, TAGS_TO_READ
     print("🔵 Syncing tags...")
     conn = None
+    
+    # FIX: Temporarily hardcode the tags we want to read if DB connection fails 
+    # This list must be updated manually in your historian.tag_lookup table later!
+    NEW_TAG_LIST = [
+        {"name": "A25_CMD_Charge", "datatype": "bool"},
+        {"name": "A25_CMD_Discharge", "datatype": "bool"},
+        {"name": "A25_CMD_Shutdown", "datatype": "bool"},
+        {"name": "A25_CMD_Startup", "datatype": "bool"},
+        {"name": "A25_Cycles", "datatype": "int"},
+        {"name": "A25_En_Charge", "datatype": "bool"},
+        {"name": "A25_En_Dsicharge", "datatype": "bool"},
+        {"name": "A25_En_Shutdown", "datatype": "bool"},
+        {"name": "A25_Energy", "datatype": "float"},
+        {"name": "A25_Energy_Total", "datatype": "float"},
+        {"name": "A25_power", "datatype": "float"},
+        {"name": "A25_RunHours", "datatype": "int"},
+        {"name": "A25_SIM_Charge", "datatype": "bool"},
+        {"name": "A25_SIM_Discharge", "datatype": "bool"},
+        {"name": "A25_SIM_Shutdown", "datatype": "bool"},
+        {"name": "A25_SIM_Startup", "datatype": "bool"},
+        {"name": "A25_SoC", "datatype": "float"},
+        {"name": "A25_Speed", "datatype": "float"},
+        {"name": "A25_Power", "datatype": "float"},
+        {"name": "A25_Energy", "datatype": "float"},
+        {"name": "VT001.Scaled", "datatype": "float"},
+        {"name": "VT002.Scaled", "datatype": "float"},
+        {"name": "TT001.Scaled", "datatype": "float"},
+        {"name": "TT002.Scaled", "datatype": "float"},
+        {"name": "TT003.Scaled", "datatype": "float"},
+        {"name": "A25_Status", "datatype": "int"},
+        {"name": "WT001_Scaled", "datatype": "float"},
+        {"name": "PT001_Scaled", "datatype": "float"},
+        {"name": "EM_SV", "datatype": "float"},
+        {"name": "PT001_Healthy", "datatype": "bool"},
+        {"name": "WT001_Healthy", "datatype": "bool"},
+        {"name": "VT001_Healthy", "datatype": "bool"},
+        {"name": "VT002_Healthy", "datatype": "bool"},
+        {"name": "TT001_Healthy", "datatype": "bool"},
+        {"name": "TT002_Healthy", "datatype": "bool"},
+        {"name": "TT003_Healthy", "datatype": "bool"},
+    ]
+
+
     try:
         conn = get_db_conn()
         with conn.cursor() as cur:
@@ -357,11 +412,25 @@ def sync_tags_with_db():
             rows = cur.fetchall()
             tag_map = {row[1]: row[0] for row in rows}
             TAGS_TO_READ = [{"name": row[1], "datatype": row[2]} for row in rows if row[3]]
-            print(f"✅ Active Tags: {len(TAGS_TO_READ)}")
+            print(f"✅ Active Tags: {len(TAGS_TO_READ)} from DB")
+            
+            # CRITICAL FIX: IF NO TAGS CAME FROM DB, FORCE THE NEW LIST
+            if not TAGS_TO_READ:
+                print("⚠️ DB tag sync failed or returned no active tags. Forcing use of new hardcoded list.")
+                # We are forcing the PLC poller to read these names, but they won't be saved to DB historian
+                TAGS_TO_READ = [t for t in NEW_TAG_LIST] 
+                # Also ensure tag_map is populated so the live-data endpoint has the ID later for saving
+                # NOTE: This only works if you manually update the DB's tag_lookup with these tags and IDs later
+                # For now, we only care that the PLC Poller reads the names
+                tag_map = {t['name']: 9999 for t in TAGS_TO_READ} # Use a dummy ID for now
+
     except Exception as e:
-        print(f"🔴 Tag Sync Failed: {e}")
+        print(f"🔴 Tag Sync Failed: {e}. Forcing use of new hardcoded list.")
+        TAGS_TO_READ = [t for t in NEW_TAG_LIST] 
+        tag_map = {t['name']: 9999 for t in TAGS_TO_READ}
     finally:
         release_db_conn(conn)
+        print(f"✅ Poller will attempt to read {len(TAGS_TO_READ)} tags.")
 
 # --- LIFESPAN ---
 @asynccontextmanager
@@ -517,9 +586,9 @@ def get_historian(tags: List[str] = Query(None), start_time: Optional[str] = Non
                 
                 # Check for All Time (2 years in the frontend logic) and huge queries first
                 if dur > 86400 * 365 * 2: # > 2 years (This should catch the 'All Time' span)
-                    buck = "1 week" 
+                    buck = "1 month" 
                 elif dur > 86400 * 30: # > 1 month
-                    buck = "1 day" 
+                    buck = "1 week" 
                 elif dur > 86400 * 7: # > 1 week
                     buck = "6 hours" # 7 days * 4 per day = 28 points. Very fast.
                 elif dur > 86400 * 2: # > 2 days
@@ -531,7 +600,8 @@ def get_historian(tags: List[str] = Query(None), start_time: Optional[str] = Non
                     SELECT 
                         time_bucket(%s, h.ts) as b, 
                         tl.tag, 
-                        AVG(
+                        -- FIX: CHANGE AVG() to MAX() for more robust aggregation over long periods
+                        MAX( 
                             CASE
                                 WHEN h.value_float IS NOT NULL THEN h.value_float
                                 WHEN h.value_int IS NOT NULL THEN h.value_int::double precision
