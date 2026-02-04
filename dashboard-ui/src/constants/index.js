@@ -4,43 +4,56 @@ export const COLORS = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#
 
 export const chartDefinitions = [
     { 
-        title: "Power, Speed & Status", 
+        title: "Power", // Based on Picture 2 Top
         tags: [
             'A25_Power', 
             'A25_Speed', 
-            'A25_Status',
-            'A25_Energy',
-            'A25_SoC',
-            'A25_Energy_Total'
+            'A25_Energy', // Mapped to 'Energy' in diagram
         ] 
     },
     { 
-        title: "Vibration & Temperature", 
+        title: "Vibration", // Based on Picture 2 Middle
         tags: [
             'VT001.Scaled', 
-            'VT002.Scaled', 
-            'TT001.Scaled', 
-            'TT002.Scaled', 
-            'TT003.Scaled', 
-            'VT001_Healthy',
-            'VT002_Healthy',
-            'TT001_Healthy'
+            'VT002.Scaled',
+            'A25_Speed',
         ] 
     },
     { 
-        title: "Control & Fluid", 
+        title: "Temperature", 
         tags: [
-            'EM_SV', 
-            'WT001_Scaled', 
-            'PT001_Scaled', 
-            'PT001_Healthy',
-            'WT001_Healthy',
-            'A25_CMD_Charge', // Including command tags for monitoring
-            'A25_CMD_Discharge'
+            'A25_Speed',
+            'TT001.Scaled',
+            'TT002.Scaled',
+            'TT003.Scaled',
         ] 
+    },
+    { 
+        title: "Electromag", // Based on Picture 3 Top (Simplified)
+        tags: [
+            'A25_Speed',
+            'EM_SV',
+            'WT001.Scaled',
+        ] 
+    },
+    { 
+        title: "Pressure", // Based on Picture 3 Middle (Simplified)
+        tags: [
+            'PT001_Scaled'
+        ] 
+    },
+    {
+        title: "Custom", // Based on Picture 3 Bottom (Simplified / Custom)
+        tags: [
+            'A25_SoC',
+            'A25_Cycles',
+            'A25_RunHours',
+            'Test_InfiniteCounter' // Moved from Home page
+        ]
     }
 ];
 
+// All tags from all definitions
 export const allPossibleTags = [...new Set(chartDefinitions.flatMap(c => c.tags))];
 
 // The map is created once and exported for global use

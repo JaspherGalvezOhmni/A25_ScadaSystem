@@ -68,6 +68,34 @@ const getStartEndTime = (timeRangeKey) => {
 };
 
 // --- UPDATED: LiveSensorTable with Pop-out Logic ---
+const TELEMETRY_TAGS_TO_DISPLAY = [
+    { label: "Power", tag: "A25_Power", unit: "kW" },
+    { label: "Speed", tag: "A25_Speed", unit: "RPM" },
+    { label: "Flywheel Status", tag: "A25_Status", unit: "Status" }, // Handled specially
+    { label: "Upper Bearing Temp.", tag: "TT001.Scaled", unit: "°C" },
+    { label: "Lower Bearing Temp.", tag: "TT002.Scaled", unit: "°C" },
+    { label: "Motor Temp.", tag: "TT003.Scaled", unit: "°C" },
+    { label: "Upper Vibration", tag: "VT001.Scaled", unit: "" },
+    { label: "Lower Vibration", tag: "VT002.Scaled", unit: "" },
+    { label: "Load Cell", tag: "WT001_Scaled", unit: "kg" },
+    { label: "Pressure", tag: "PT001_Scaled", unit: "" },
+    { label: "Load Cell Target", tag: "EM_SV", unit: "kg" },
+    // Add boolean examples from Picture 3 for demo
+    { label: "Vib Health (U)", tag: "VT001_Healthy", unit: "Bool" },
+    { label: "Pressure Health", tag: "PT001_Healthy", unit: "Bool" },
+];
+
+const getFlywheelStatusText = (statusCode) => {
+    switch(statusCode) {
+        case 2: return 'Charging';
+        case 3: return 'Discharging';
+        case 1: return 'Idle';
+        case 0: return 'Shutdown';
+        case 4: return 'Fault';
+        default: return 'Unknown';
+    }
+}
+
 function LiveSensorTable({ tags }) {
     
     const handlePopout = () => {
@@ -85,17 +113,12 @@ function LiveSensorTable({ tags }) {
         );
     };
 
-    if (!tags) return <div className="sidebar sensor-sidebar">Loading...</div>;
-    const filteredTags = Object.entries(tags)
-        .filter(([tagName, value]) => {
-            return typeof value !== 'string' || !value.includes("Error");
-        })
-    const sortedTags = Object.entries(tags).sort((a, b) => a[0].localeCompare(b[0]));
+    if (!tags || Object.keys(tags).length === 0) return <div className="sidebar sensor-sidebar">Loading...</div>;
 
     return (
         <div className="sidebar sensor-sidebar">
             <div className="sidebar-header-row">
-                <h2>Live Values</h2>
+                <h2>Telemetry</h2> {/* <--- Updated Title */}
                 <button 
                     className="maximize-btn" 
                     onClick={handlePopout}
@@ -105,18 +128,30 @@ function LiveSensorTable({ tags }) {
             </div>
             
             <div className="sensor-list">
-                {sortedTags.length === 0 ? (
-                    <div style={{padding: '1rem', color: '#666'}}>No active tags found.</div>
-                ) : (
-                    sortedTags.map(([tagName, value]) => (
-                        <div className="sensor-item" key={tagName}>
-                            <span className="sensor-label">{tagName}</span>
+                {TELEMETRY_TAGS_TO_DISPLAY.map(({ label, tag, unit }) => {
+                    const value = tags[tag];
+                    let displayValue;
+                    
+                    if (tag === "A25_Status") {
+                        displayValue = getFlywheelStatusText(value);
+                    } else if (typeof value === 'number') {
+                        // All numeric values display to 2 decimal places (or just the number)
+                        displayValue = `${value.toFixed(value % 1 !== 0 ? 2 : 0)} ${unit}`;
+                    } else if (typeof value === 'boolean' || unit === 'Bool') {
+                         displayValue = value ? 'TRUE' : 'FALSE';
+                    } else {
+                        displayValue = String(value);
+                    }
+                    
+                    return (
+                        <div className="sensor-item" key={tag}>
+                            <span className="sensor-label">{label}</span>
                             <span className="sensor-value">
-                                {typeof value === 'number' ? value.toFixed(2) : String(value)}
+                                {displayValue}
                             </span>
                         </div>
-                    ))
-                )}
+                    );
+                })}
             </div>
         </div>
     );
