@@ -410,7 +410,7 @@ body { margin: 0; }
     border: 1px solid #ccc; 
     border-radius: 2px;
     padding: 5px 0;
-    font-size: 1em;
+    font-size: 1.3em;
     font-weight: bold;
     /* Use a custom dark blue/black color for the default text */
     color: black; 

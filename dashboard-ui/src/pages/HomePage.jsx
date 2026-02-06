@@ -25,6 +25,7 @@ function HomePage() {
   const statusCharge = tags['A25_En_Charge'];        // New boolean tag
   const statusDischarge = tags['A25_En_Discharge']; // New boolean tag (Note: It's 'Dsicharge' in main_api.py hardcoded list)
   const statusShutdown = tags['A25_En_Shutdown'];    // New boolean tag
+  const statusStartup = tags['A25_En_Startup'];    // New boolean tag (if needed for future logic)
 
   const power = tags['A25_Power'] || 0;
   const energy = tags['A25_Energy'] || 0;
