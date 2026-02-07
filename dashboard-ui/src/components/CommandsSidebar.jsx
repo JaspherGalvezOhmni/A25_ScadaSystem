@@ -35,7 +35,7 @@ function CommandsSidebar({ setpoints, liveData }) {
     try {
       // Send command as 1 (TRUE) for all actions.
       await apiClient.post('/api/write-tag', {
-        tag: tagName,
+        tag_name: tagName,
         value: valueToWrite
       });
       alert(`Command '${commandKey}' sent successfully!`);
