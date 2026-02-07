@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    container_name: a25scada_backend
+    container_name: flywheel_backend
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -29,7 +29,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
-    container_name: a25scada_frontend
+    container_name: flywheel_frontend
     restart: unless-stopped
     ports:
       - "80:80" 

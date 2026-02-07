@@ -2,14 +2,12 @@
 import axios from 'axios';
 
 // Set BASE_API_URL to the root path ('/') so Nginx handles proxying to http://backend:8000
-import { setGlobalLogout, getGlobalLogout } from './context/AuthContext';
-
 export const BASE_API_URL = '/'; 
 const API_KEY = import.meta.env.VITE_API_KEY;
 
 const apiClient = axios.create({
   baseURL: BASE_API_URL,
-  timeout: 30000, // CRITICAL: Fail requests after 5 seconds if server hangs
+  timeout: 5000, // CRITICAL: Fail requests after 5 seconds if server hangs
 });
 
 apiClient.interceptors.request.use(
@@ -21,29 +19,5 @@ apiClient.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
-
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      const isLoginAttempt = error.config.url.endsWith('/token');
-
-      if (!isLoginAttempt) {
-        console.log("Global Interceptor: Token expired/invalid. Clearing session.");
-        // 1. Clear the bad token immediately
-        localStorage.removeItem('authToken');
-        delete apiClient.defaults.headers.common['Authorization'];
-
-        // 2. Redirect to login page to reset the app state
-        // This will prevent 'unknown role" error on EnggPage
-        window.location.href = '/login';
-
-        // Reject the promise to stop subsequent .then() chains
-        return Promise.reject(error);
-      }
-    }
-    return Promise.reject(error);
-  }
-)
 
 export default apiClient;

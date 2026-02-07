@@ -39,19 +39,7 @@ DB_CONFIG = {
 }
 API_KEY = os.getenv("API_KEY")
 
-WRITEABLE_TAGS = {
-    "A25_SIM_Charge", 
-    "A25_SIM_Discharge", 
-    "A25_SIM_Shutdown", 
-    "A25_SIM_Startup",
-    "A25_CMD_Charge", 
-    "A25_CMD_Discharge", 
-    "A25_CMD_Shutdown", 
-    "A25_CMD_Startup",
-    "EM_SV"
-}
-
-
+WRITEABLE_TAGS = {"Test_OutputVal1", "EM_SV"}
 TAGS_TO_READ = []
 live_data = {"status": "initializing", "tags": {}}
 live_data_lock = threading.Lock()
@@ -252,7 +240,7 @@ def plc_polling_task():
 
                     live_data["tags"] = temp_tags
 
-                time.sleep(1)
+                time.sleep(0.25)
                 
             except Exception as e:
                 # Handle read failures by closing and retrying connection
@@ -284,10 +272,10 @@ def opcua_updater_task():
 def historian_ingester_task():
     print("🚀 Historian Ingester started.")
     batch_counter = 0
-    warned_tags = set() 
+    warned_tags = set() # To avoid spamming the same error
     
     while not stop_event.is_set():
-        time.sleep(2)
+        time.sleep(0.5)
         if historian_queue.empty() or not tag_map: continue
         
         batch = []
@@ -317,16 +305,11 @@ def historian_ingester_task():
                     raw_dtype = name_map.get(tn, 'float')
                     val = item['value']
                     ts = item['ts']
-
-                    # --- FIX: Force scaled/analog tags to FLOAT column (Structural Data Integrity) ---
-                    is_analog = any(
-                        s in tn.lower() for s in ['.scaled', '_rescaled', 'outpowerscaled', 'mtrspeedscaled']
-                    )
                     
                     # 2. Map DB datatype string to SQL Table
                     sql = None
-                    # If it's explicitly float/real OR if it's a scaled/analog tag, save as float
-                    if raw_dtype in ['float', 'real'] or is_analog:
+                    # Flexible matching for common PLC types
+                    if raw_dtype in ['float', 'real']:
                         sql = "INSERT INTO historian.historian (tag_id, value_float, ts) VALUES (%s, %s, %s)"
                         params = (tid, float(val), ts)
                     elif raw_dtype in ['int', 'integer', 'dint', 'sint']:
@@ -362,48 +345,6 @@ def sync_tags_with_db():
     global tag_map, TAGS_TO_READ
     print("🔵 Syncing tags...")
     conn = None
-    
-    # FIX: Temporarily hardcode the tags we want to read if DB connection fails 
-    # This list must be updated manually in your historian.tag_lookup table later!
-    NEW_TAG_LIST = [
-        {"name": "A25_CMD_Charge", "datatype": "bool"},
-        {"name": "A25_CMD_Discharge", "datatype": "bool"},
-        {"name": "A25_CMD_Shutdown", "datatype": "bool"},
-        {"name": "A25_CMD_Startup", "datatype": "bool"},
-        {"name": "A25_Cycles", "datatype": "int"},
-        {"name": "A25_En_Charge", "datatype": "bool"},
-        {"name": "A25_En_Discharge", "datatype": "bool"},
-        {"name": "A25_En_Shutdown", "datatype": "bool"},
-        {"name": "A25_Energy", "datatype": "float"},
-        {"name": "A25_Energy_Total", "datatype": "float"},
-        {"name": "A25_RunHours", "datatype": "int"},
-        {"name": "A25_SIM_Charge", "datatype": "bool"},
-        {"name": "A25_SIM_Discharge", "datatype": "bool"},
-        {"name": "A25_SIM_Shutdown", "datatype": "bool"},
-        {"name": "A25_SIM_Startup", "datatype": "bool"},
-        {"name": "A25_SoC", "datatype": "float"},
-        {"name": "A25_Speed", "datatype": "float"},
-        {"name": "A25_Power", "datatype": "float"},
-        {"name": "A25_Energy", "datatype": "float"},
-        {"name": "VT001.Scaled", "datatype": "float"},
-        {"name": "VT002.Scaled", "datatype": "float"},
-        {"name": "TT001.Scaled", "datatype": "float"},
-        {"name": "TT002.Scaled", "datatype": "float"},
-        {"name": "TT003.Scaled", "datatype": "float"},
-        {"name": "A25_Status", "datatype": "int"},
-        {"name": "WT001.Scaled", "datatype": "float"},
-        {"name": "PT001.Scaled", "datatype": "float"},
-        {"name": "EM_SV", "datatype": "float"},
-        {"name": "PT001_Healthy", "datatype": "bool"},
-        {"name": "WT001_Healthy", "datatype": "bool"},
-        {"name": "VT001_Healthy", "datatype": "bool"},
-        {"name": "VT002_Healthy", "datatype": "bool"},
-        {"name": "TT001_Healthy", "datatype": "bool"},
-        {"name": "TT002_Healthy", "datatype": "bool"},
-        {"name": "TT003_Healthy", "datatype": "bool"},
-    ]
-
-
     try:
         conn = get_db_conn()
         with conn.cursor() as cur:
@@ -411,25 +352,11 @@ def sync_tags_with_db():
             rows = cur.fetchall()
             tag_map = {row[1]: row[0] for row in rows}
             TAGS_TO_READ = [{"name": row[1], "datatype": row[2]} for row in rows if row[3]]
-            print(f"✅ Active Tags: {len(TAGS_TO_READ)} from DB")
-            
-            # CRITICAL FIX: IF NO TAGS CAME FROM DB, FORCE THE NEW LIST
-            if not TAGS_TO_READ:
-                print("⚠️ DB tag sync failed or returned no active tags. Forcing use of new hardcoded list.")
-                # We are forcing the PLC poller to read these names, but they won't be saved to DB historian
-                TAGS_TO_READ = [t for t in NEW_TAG_LIST] 
-                # Also ensure tag_map is populated so the live-data endpoint has the ID later for saving
-                # NOTE: This only works if you manually update the DB's tag_lookup with these tags and IDs later
-                # For now, we only care that the PLC Poller reads the names
-                tag_map = {t['name']: 9999 for t in TAGS_TO_READ} # Use a dummy ID for now
-
+            print(f"✅ Active Tags: {len(TAGS_TO_READ)}")
     except Exception as e:
-        print(f"🔴 Tag Sync Failed: {e}. Forcing use of new hardcoded list.")
-        TAGS_TO_READ = [t for t in NEW_TAG_LIST] 
-        tag_map = {t['name']: 9999 for t in TAGS_TO_READ}
+        print(f"🔴 Tag Sync Failed: {e}")
     finally:
         release_db_conn(conn)
-        print(f"✅ Poller will attempt to read {len(TAGS_TO_READ)} tags.")
 
 # --- LIFESPAN ---
 @asynccontextmanager
@@ -553,78 +480,36 @@ def update_tag(tag_id: int, u: TagUpdate, user: User = Depends(get_current_activ
 
 @app.get("/api/historian")
 def get_historian(tags: List[str] = Query(None), start_time: Optional[str] = None, end_time: Optional[str] = None):
-    
     if not tags: return {}
     st = start_time or "1970-01-01T00:00:00Z"
     et = end_time or datetime.utcnow().isoformat()
-    
-    dur = 9999999
     try:
         st_obj = datetime.fromisoformat(st.replace('Z', '+00:00'))
         et_obj = datetime.fromisoformat(et.replace('Z', '+00:00'))
         dur = (et_obj - st_obj).total_seconds()
     except:
+        dur = 9999999
         st_obj = datetime(1970, 1, 1, tzinfo=timezone.utc)
         et_obj = datetime.now(timezone.utc)
 
-    # RAW/AGGREGATION SWITCH (1800 seconds = 30 minutes)
-    raw = dur <= 1800 
+    raw = dur <= 1800
     conn = None
-    
     try:
         conn = get_db_conn()
         with conn.cursor() as cur:
             if raw:
-                # RAW QUERY block (unchanged)
                 sql = """SELECT h.ts, tl.tag, COALESCE(h.value_float, h.value_int::double precision, h.value_bool::int::double precision) 
                          FROM historian.historian h JOIN historian.tag_lookup tl ON h.tag_id = tl.id 
                          WHERE tl.tag = ANY(%s) AND h.ts >= %s AND h.ts <= %s ORDER BY h.ts ASC"""
                 params = (tags, st_obj, et_obj)
             else:
-                # AGGREGATED QUERY block - FIX: Aggressive Hierarchical Time Buckets
-                
-                # Check for All Time (2 years in the frontend logic) and huge queries first
-                if dur > 86400 * 365 * 2: # > 2 years (This should catch the 'All Time' span)
-                    buck = "1 month" 
-                elif dur > 86400 * 30: # > 1 month
-                    buck = "1 week" 
-                elif dur > 86400 * 7: # > 1 week
-                    buck = "6 hours" # 7 days * 4 per day = 28 points. Very fast.
-                elif dur > 86400 * 2: # > 2 days
-                    buck = "1 hour" # 2 days * 24 per day = 48 points. Fast.
-                else:
-                    buck = "5 minutes" # Default for > 30 minutes up to 2 days. 
-                
-                sql = """
-                    SELECT 
-                        time_bucket(%s, h.ts) as b, 
-                        tl.tag, 
-                        -- FIX: CHANGE AVG() to MAX() for more robust aggregation over long periods
-                        MAX( 
-                            CASE
-                                WHEN h.value_float IS NOT NULL THEN h.value_float
-                                WHEN h.value_int IS NOT NULL THEN h.value_int::double precision
-                                WHEN h.value_bool IS NOT NULL THEN h.value_bool::int::double precision
-                                ELSE NULL
-                            END
-                        )
-                    FROM historian.historian h 
-                    JOIN historian.tag_lookup tl ON h.tag_id = tl.id
-                    WHERE tl.tag = ANY(%s) 
-                      AND h.ts >= %s 
-                      AND h.ts <= %s 
-                    GROUP BY b, tl.tag 
-                    ORDER BY b ASC
-                """
-                # Trust the original parameter order for safety:
-                params = (buck, tags, st_obj, et_obj) 
-            
-            # --- DEBUG FIX: LOG THE EXECUTED QUERY ---
-            print("\n--- DEBUG: HISTORIAN QUERY ---")
-            print(cur.mogrify(sql, params).decode('utf-8'))
-            print("------------------------------\n")
-            # --- END DEBUG FIX ---
-
+                buck = "1 minute"
+                if dur > 86400*2: buck = "15 minutes"
+                elif dur > 86400: buck = "5 minutes"
+                sql = """SELECT time_bucket(%s, h.ts) as b, tl.tag, AVG(COALESCE(h.value_float, h.value_int::double precision, h.value_bool::int::double precision))
+                         FROM historian.historian h JOIN historian.tag_lookup tl ON h.tag_id = tl.id
+                         WHERE tl.tag = ANY(%s) AND h.ts >= %s AND h.ts <= %s GROUP BY b, tl.tag ORDER BY b ASC"""
+                params = (buck, tags, st_obj, et_obj)
             cur.execute(sql, params)
             res = {t: [] for t in tags}
             for r in cur.fetchall():
@@ -647,32 +532,13 @@ def write_tag_endpoint(req: TagWriteRequest):
     c = PLC()
     c.IPAddress = PLC_IP
     c.ProcessorSlot = 0
-    
-    status = "error"
-    message = "Unknown error"
-    
     try:
         ret = c.Write(req.tag_name, req.value)
-        if getattr(ret, "Status", None) == 'Success': 
-            status = "success"
-            message = "Success"
-        else:
-            message = str(getattr(ret, "Status", "Unknown Status"))
+        c.Close()
+        if getattr(ret, "Status", None) == 'Success': return {"status": "success"}
+        return {"status": "error", "message": str(getattr(ret, "Status", "Unknown"))}
     except Exception as e:
-        message = str(e)
-    finally:
-        # FIX 2.3: Ensure the PLC connection is closed regardless of success/fail
-        try:
-            c.Close()
-        except:
-            # If close fails, we just ignore it and return the original error.
-            pass 
-            
-    if status == 'success':
-        return {"status": "success"}
-    
-    # If the write failed, raise a detailed error to the client
-    raise HTTPException(status_code=500, detail={"status": status, "message": message})
+        return {"status": "error", "message": str(e)}
 
 @app.get("/api/settings", response_model=List[Setting])
 def get_settings_endpoint(user: User = Depends(get_current_active_engineer)):

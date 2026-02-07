@@ -22,7 +22,7 @@ function SensorWallPage() {
     return () => clearInterval(intervalId);
   }, []);
 
-  const sortedTags = Object.entries(liveTags).sort((a, b) => a[0].localeCompare(b[0])); 
+  const sortedTags = Object.entries(liveTags).sort((a, b) => a[0].localeCompare(b[0]));
 
   return (
     <div style={{
