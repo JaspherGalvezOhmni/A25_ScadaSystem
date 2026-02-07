@@ -1,4 +1,5 @@
 // File: dashboard-ui/src/context/AuthContext.jsx
+// *** RESTORED TO WORKING STATE from repomix-output.xml ***
 
 import { createContext, useState, useContext, useEffect } from 'react';
 import apiClient from '../api';
@@ -22,14 +23,37 @@ function decodeJwtPayload(token) {
 
 const AuthContext = createContext(null);
 
+// Non-hook way to access the logout function for the global interceptor in api.js
+let globalLogout = () => {};
+
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(localStorage.getItem('authToken'));
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true); 
+  const initialToken = localStorage.getItem('authToken');
+  const [token, setToken] = useState(initialToken);
+
+  // Synchronous User Initialisation from jwt payload.
+  const [user, setUser] = useState(() => {
+    if (!initialToken) return null;
+    const payload = decodeJwtPayload(initialToken);
+    // CRITICAL FIX: Ensure payload.role is checked. The broken version had a bug here.
+    return (payload && payload.sub && payload.role) ? 
+    { username : payload.sub, role: payload.role} : null;
+  });
+
+  // Load only if there is a token to validate over the network
+  const [isLoading, setIsLoading] = useState(
+    // CRITICAL FIX: Use the logic that checks if the initial token didn't provide user.role
+    initialToken && (!user || !user.role) ? true : false
+  );
   
   const { connectionStatus } = useSystemStatus(); 
 
   const fetchUser = async (currentToken) => {
+    // FIX: Corrected variable name currenToken -> currentToken
+      if (!currentToken || connectionStatus.state === 'OFFLINE') {
+        setIsLoading(false);
+        return null;
+      }
+
       try {
         apiClient.defaults.headers.common['Authorization'] = `Bearer ${currentToken}`;
         const userResponse = await apiClient.get('/users/me', { timeout: 2000 }); 
@@ -41,28 +65,18 @@ export const AuthProvider = ({ children }) => {
         } 
         return null; 
       } finally {
-        // === FIX 1: CRITICAL: Unconditionally set isLoading to false ===
-        // This ensures the application starts even if the network fails but a token exists.
         setIsLoading(false); 
       }
   };
 
-  // Initial check useEffect: Call fetchUser only if token exists and user is null
   useEffect(() => {
-    if (token && !user) {
-        fetchUser(token); 
-    } else if (!token) {
+      // Only fetch user if we have a token but no valid user data yet
+      if (token && !user?.role && connectionStatus.state === 'ONLINE') {
+        fetchUser(token);
+      } else if (!token) {
         setIsLoading(false);
-    }
-  }, [token, user]); 
-
-  // AUTO-RECOVERY LOGIC
-  useEffect(() => {
-      if (token && !user && connectionStatus.state === 'ONLINE') {
-          console.log("AuthContext: System back online - Retrying User Auth...");
-          fetchUser(token); 
       }
-  }, [connectionStatus.state, token, user]);
+  }, [token, connectionStatus.state]);
 
     const login = async (username, password) => {
     setIsLoading(true); 
@@ -105,18 +119,24 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('authToken');
     delete apiClient.defaults.headers.common['Authorization'];
     setIsLoading(false); // Reset loading state when logging out
+    window.location.href = '/login'; // Force a full page reload after clearing state to ensure all components reset.
   };
-  
+
+  useEffect(() => {
+    globalLogout = logout;
+  }, []);
+
   const value = { token, user, login, logout, isLoading };
 
   return (
     <AuthContext.Provider value={value}>
-      {isLoading ? (
+    {/* Show loading screen only if actively validating a token */}
+      {isLoading && token ? (
           <div style={{
               height: '100vh', display: 'flex', alignItems: 'center', 
               justifyContent: 'center', backgroundColor: '#1e1e1e', color: '#888'
           }}>
-              Initializing System...
+              Verifying Session...
           </div>
       ) : (
           children
@@ -126,3 +146,8 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
+
+export const setGlobalLogout = (logoutFn) => {
+  globalLogout = logoutFn;
+};
+export const getGlobalLogout = () => globalLogout;

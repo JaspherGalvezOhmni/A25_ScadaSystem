@@ -51,43 +51,12 @@ body { margin: 0; }
 .status-item span:first-child { color: #a0a0a0; }
 .status-item span:last-child { font-weight: bold; font-size: 1.1em; font-variant-numeric: tabular-nums; }
 .debug-item span:first-child { color: #f0a !important; font-style: italic; }
-
-/* --- IMPROVED FLYWHEEL VISUAL --- */
-.flywheel-container { 
-  display: flex; flex-direction: column; align-items: center; justify-content: center; 
-  gap: 1.5rem; padding: 2rem; position: relative; color: #a0a0a0; 
-  overflow: hidden;
+.status-compact-value {
+  font-weight: bold; 
+  font-size: 1em !important; /* Slightly reduced from 1.1em */
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap; /* CRITICAL: Prevents wrapping */
 }
-.flywheel-visual { 
-  width: 200px; height: 200px; /* Made square for rotation */
-  border: 6px solid #555; border-radius: 50%; /* Circular */
-  position: relative; display: flex; align-items: center; justify-content: center; 
-  overflow: hidden; 
-  background: radial-gradient(circle at center, #333 0%, #1a1a1a 100%);
-  box-shadow: 0 0 20px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.8); 
-  transition: border-color 0.3s;
-}
-
-/* The spinning content */
-.flywheel-fill { 
-  position: absolute; width: 100%; height: 100%; top: 0; left: 0;
-  background: conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
-  border-radius: 50%;
-  opacity: 0.5;
-}
-
-/* Animations for spinning */
-@keyframes spin { 100% { transform: rotate(360deg); } }
-.spinning-charge { animation: spin 0.5s linear infinite; border-color: #2ecc71; }
-.spinning-discharge { animation: spin 0.5s linear infinite reverse; border-color: #3498db; }
-
-/* Text overlaid on top */
-.flywheel-text { 
-  position: absolute; z-index: 10; 
-  display: flex; flex-direction: column; align-items: center;
-  color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.9); font-size: 1.5em; font-weight: 600; 
-}
-.power-flow-arrow { font-size: 3em; font-weight: bold; line-height: 1; min-height: 1em; }
 
 /* --------------------------------------------------------- */
 
@@ -403,4 +372,62 @@ body { margin: 0; }
   0% { box-shadow: 0 0 10px rgba(231, 76, 60, 0.2); }
   50% { box-shadow: 0 0 25px rgba(231, 76, 60, 0.6); }
   100% { box-shadow: 0 0 10px rgba(231, 76, 60, 0.2); }
+}
+
+.schematic-health-card {
+    position: absolute;
+    width: 180px; /* Fixed width to prevent title wrapping */
+    background-color: white; 
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+    z-index: 100;
+    text-align: center;
+    overflow: hidden; /* Ensure nothing spills out */
+}
+
+.schematic-card-title {
+    /* Black text, middle-center-top */
+    color: black;
+    font-size: 0.8em;
+    font-weight: 500;
+    padding: 4px 0;
+    /* The line in the image appears to be a bottom border */
+    border-bottom: 1px solid #eee; 
+    white-space: nowrap; /* CRITICAL: Ensures text stays on one line */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.schematic-status-container {
+    padding: 5px;
+    background-color: white; /* Outer container is white */
+}
+
+.schematic-health-indicator {
+    /* Inner rectangle where the boolean result sits */
+    background-color: white; /* Inner rectangle is also white */
+    border: 1px solid #ccc; 
+    border-radius: 2px;
+    padding: 5px 0;
+    font-size: 1.3em;
+    font-weight: bold;
+    /* Use a custom dark blue/black color for the default text */
+    color: black; 
+}
+
+/* Overrides for Health Status colors */
+.schematic-health-indicator.healthy {
+    color: #2ecc71 !important; /* Green text for Healthy */
+}
+.schematic-health-indicator.unhealthy {
+    color: #e74c3c !important; /* Red text for Fault */
+}
+.schematic-health-indicator.unknown {
+    color: #888 !important; /* Gray text for N/A */
+}
+
+/* Ensure old dark theme classes are neutralized */
+.flywheel-data-card, .flywheel-card-title, .flywheel-card-value {
+    display: none !important;
 }
