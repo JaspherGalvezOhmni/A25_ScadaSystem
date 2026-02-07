@@ -24,7 +24,7 @@ function StreamingChart({ selectedTags, displayRangeSec, tagColorMap }) {
   const [isLoading, setIsLoading] = useState(true);
   const pollingRef = useRef(null);
   
-  const pollInterval = 1000; // 10Hz
+  const pollInterval = 100; // 10Hz
 
   // --- DUAL MODE CONFIGURATION ---
   // "Safe Mode" (<= 5 mins): Standard rendering. Reliable.
@@ -163,7 +163,7 @@ function StreamingChart({ selectedTags, displayRangeSec, tagColorMap }) {
       const poll = async () => {
         if (!isMounted) return;
         const loopNow = new Date();
-        const loopStart = subSeconds(loopNow, 10); // Fetch last 10 seconds to avoid gaps 
+        const loopStart = subSeconds(loopNow, 60); 
 
         try {
           const params = new URLSearchParams();
