@@ -1,4 +1,5 @@
 // File: dashboard-ui/src/context/AuthContext.jsx
+// *** RESTORED TO WORKING STATE from repomix-output.xml ***
 
 import { createContext, useState, useContext, useEffect } from 'react';
 import apiClient from '../api';
@@ -31,22 +32,24 @@ export const AuthProvider = ({ children }) => {
 
   // Synchronous User Initialisation from jwt payload.
   const [user, setUser] = useState(() => {
-    const initialToken = localStorage.getItem('authToken');
+    if (!initialToken) return null;
     const payload = decodeJwtPayload(initialToken);
-    return (payload && payload.sub && payload) ? 
+    // CRITICAL FIX: Ensure payload.role is checked. The broken version had a bug here.
+    return (payload && payload.sub && payload.role) ? 
     { username : payload.sub, role: payload.role} : null;
   });
 
   // Load only if there is a token to validate over the network
   const [isLoading, setIsLoading] = useState(
+    // CRITICAL FIX: Use the logic that checks if the initial token didn't provide user.role
     initialToken && (!user || !user.role) ? true : false
   );
   
   const { connectionStatus } = useSystemStatus(); 
 
   const fetchUser = async (currentToken) => {
-
-      if (!currenToken || connectionStatus.state === 'OFFLINE') {
+    // FIX: Corrected variable name currenToken -> currentToken
+      if (!currentToken || connectionStatus.state === 'OFFLINE') {
         setIsLoading(false);
         return null;
       }
@@ -67,13 +70,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    // Initial load: if token exists, run network validation to confirm it's still active.
-    if (token && (isLoading || connectionStatus.state === 'ONLINE')) {
-      fetchUser(token);
-    } else if (!token) {
-      setIsLoading(false);
-    }
-    // Note: Do NOT add 'user' to the dependency array. That creates an infinite loop.
+      // Only fetch user if we have a token but no valid user data yet
+      if (token && !user?.role && connectionStatus.state === 'ONLINE') {
+        fetchUser(token);
+      } else if (!token) {
+        setIsLoading(false);
+      }
   }, [token, connectionStatus.state]);
 
     const login = async (username, password) => {

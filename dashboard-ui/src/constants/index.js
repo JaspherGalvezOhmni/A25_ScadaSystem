@@ -39,7 +39,7 @@ export const chartDefinitions = [
     { 
         title: "Pressure", // Based on Picture 3 Middle (Simplified)
         tags: [
-            'PT001_Scaled'
+            'PT001.Scaled'
         ] 
     },
     {

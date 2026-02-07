@@ -85,7 +85,7 @@ function HomePage() {
         position: 'relative' 
     }}>
 
-      <CommandsSidebar setpoints={setpoints} />
+      <CommandsSidebar setpoints={setpoints} liveData={liveData}/>
       
       <div className="flywheel-section" style={{position: 'relative', backgroundColor: '#1e1e1e'}}>
         {isFlywheelPopped && !isDashboardPopped ? (

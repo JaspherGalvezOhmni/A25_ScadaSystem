@@ -67,6 +67,23 @@ const getStartEndTime = (timeRangeKey) => {
     return { startTime, endTime: now };
 };
 
+
+const getFlywheelStatusFromBooleans = (tags) => {
+    // Note: The tag name is 'A25_En_Dsicharge' in main_api.py's hardcoded list.
+    const isCharging = tags['A25_En_Charge']; 
+    const isDischarging = tags['A25_En_Discharge']; 
+    const isShutdown = tags['A25_En_Shutdown']; 
+
+    if (isShutdown === true) return "Shutdown";
+    if (isCharging === true) return "Charging";
+    if (isDischarging === true) return "Discharging";
+    
+    // If none of the primary status bits are active, we'll assume Idle or Unknown.
+    if ((tags['A25_Speed'] || 0) > 10) return "Idle (Spinning)";
+
+    return "Unknown/Fault";
+};
+
 // --- UPDATED: LiveSensorTable with Pop-out Logic ---
 const TELEMETRY_TAGS_TO_DISPLAY = [
     { label: "Power", tag: "A25_Power", unit: "kW" },
@@ -77,24 +94,13 @@ const TELEMETRY_TAGS_TO_DISPLAY = [
     { label: "Motor Temp.", tag: "TT003.Scaled", unit: "°C" },
     { label: "Upper Vibration", tag: "VT001.Scaled", unit: "" },
     { label: "Lower Vibration", tag: "VT002.Scaled", unit: "" },
-    { label: "Load Cell", tag: "WT001_Scaled", unit: "kg" },
-    { label: "Pressure", tag: "PT001_Scaled", unit: "" },
+    { label: "Load Cell", tag: "WT001.Scaled", unit: "kg" },
+    { label: "Pressure", tag: "PT001.Scaled", unit: "" },
     { label: "Load Cell Target", tag: "EM_SV", unit: "kg" },
     // Add boolean examples from Picture 3 for demo
     { label: "Vib Health (U)", tag: "VT001_Healthy", unit: "Bool" },
     { label: "Pressure Health", tag: "PT001_Healthy", unit: "Bool" },
 ];
-
-const getFlywheelStatusText = (statusCode) => {
-    switch(statusCode) {
-        case 2: return 'Charging';
-        case 3: return 'Discharging';
-        case 1: return 'Idle';
-        case 0: return 'Shutdown';
-        case 4: return 'Fault';
-        default: return 'Unknown';
-    }
-}
 
 function LiveSensorTable({ tags }) {
     
@@ -115,6 +121,8 @@ function LiveSensorTable({ tags }) {
 
     if (!tags || Object.keys(tags).length === 0) return <div className="sidebar sensor-sidebar">Loading...</div>;
 
+    const derivedFlywheelStatus = getFlywheelStatusFromBooleans(tags);
+
     return (
         <div className="sidebar sensor-sidebar">
             <div className="sidebar-header-row">
@@ -133,7 +141,7 @@ function LiveSensorTable({ tags }) {
                     let displayValue;
                     
                     if (tag === "A25_Status") {
-                        displayValue = getFlywheelStatusText(value);
+                        displayValue = derivedFlywheelStatus;
                     } else if (typeof value === 'number') {
                         // All numeric values display to 2 decimal places (or just the number)
                         displayValue = `${value.toFixed(value % 1 !== 0 ? 2 : 0)} ${unit}`;

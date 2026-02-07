@@ -42,6 +42,7 @@ The content is organized as follows:
 <directory_structure>
 dashboard-ui/
   public/
+    A25+Leaders.svg
     Ohmni Logo.png
     Ohmni_Logo_RGB_Blue_WhiteBG.svg
     Ohmni_Logo_RGB_Blue.svg
@@ -94,6 +95,135 @@ test_db_read.py
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="dashboard-ui/public/A25+Leaders.svg">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 407 471" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+    <g transform="matrix(1,0,0,1,-1037.697027,-253.046242)">
+        <g transform="matrix(0.552882,0,0,0.101637,668.764626,244.027688)">
+            <rect x="997" y="252" width="132" height="208" style="fill:rgb(149,145,140);"/>
+        </g>
+        <g transform="matrix(0.276441,0,0,0.101637,980.866342,244.027688)">
+            <rect x="997" y="252" width="132" height="208" style="fill:rgb(140,136,130);"/>
+        </g>
+        <g transform="matrix(0.218282,0,0,0.453978,907.70138,493.485148)">
+            <rect x="997" y="252" width="132" height="208" style="fill:rgb(137,131,131);"/>
+        </g>
+        <g transform="matrix(0.109141,0,0,0.391399,1030.921387,520.529984)">
+            <rect x="997" y="252" width="132" height="208" style="fill-opacity:0.05;"/>
+        </g>
+        <g transform="matrix(0.218282,0,0,0.453978,1141.187505,493.485148)">
+            <rect x="997" y="252" width="132" height="208" style="fill:rgb(137,131,131);"/>
+        </g>
+        <g transform="matrix(0.109141,0,0,0.391399,1264.407512,520.529984)">
+            <rect x="997" y="252" width="132" height="208" style="fill-opacity:0.05;"/>
+        </g>
+        <g transform="matrix(1.55303,0,0,1.475962,-394.229818,-81.161673)">
+            <rect x="997" y="252" width="132" height="208" style="fill:rgb(220,213,205);"/>
+        </g>
+        <g transform="matrix(1,0,0,1,230.124349,57.30312)">
+            <g transform="matrix(0.695977,0,0,0.229939,286.530081,502.982097)">
+                <rect x="997" y="252" width="132" height="208" style="fill:rgb(223,218,212);"/>
+            </g>
+            <g transform="matrix(0.089916,0,0,0.229939,970.772505,502.982097)">
+                <rect x="997" y="252" width="132" height="208" style="fill-opacity:0.05;"/>
+            </g>
+            <g transform="matrix(0.236961,0,0,0.229939,758.77837,502.982097)">
+                <rect x="997" y="252" width="132" height="208" style="fill-opacity:0.05;"/>
+            </g>
+        </g>
+        <g transform="matrix(2.423679,0,0,0.108413,-1319.893243,569.29268)">
+            <rect x="997" y="252" width="132" height="208" style="fill:rgb(70,71,74);"/>
+        </g>
+        <g transform="matrix(2.423679,0,0,0.108413,-1319.893243,673.253463)">
+            <rect x="997" y="252" width="132" height="208" style="fill:rgb(137,131,131);"/>
+        </g>
+        <g transform="matrix(0.775276,0,0,1.470346,483.527393,-79.746629)">
+            <rect x="997" y="252" width="132" height="208" style="fill-opacity:0.05;"/>
+        </g>
+        <g transform="matrix(0.078307,0,0,1.470346,1101.716193,-79.746629)">
+            <rect x="997" y="252" width="132" height="208" style="fill-opacity:0.05;"/>
+        </g>
+        <g transform="matrix(0.032852,0,0,0.398231,1092.574709,516.983873)">
+            <rect x="997" y="252" width="132" height="208" style="fill-opacity:0.05;"/>
+        </g>
+        <g transform="matrix(0.032852,0,0,0.398231,1326.060834,516.983873)">
+            <rect x="997" y="252" width="132" height="208" style="fill-opacity:0.05;"/>
+        </g>
+        <g transform="matrix(2.424386,0,0,0.054228,-1320.691178,698.182886)">
+            <rect x="997" y="252" width="132" height="208" style="fill-opacity:0.05;"/>
+        </g>
+        <g transform="matrix(2.424386,0,0,0.054228,-1320.691178,593.284995)">
+            <rect x="997" y="252" width="132" height="208" style="fill-opacity:0.19;"/>
+        </g>
+        <g transform="matrix(1.552578,0,0,0.108413,-393.735716,262.983137)">
+            <rect x="997" y="252" width="132" height="208" style="fill:rgb(166,163,158);"/>
+        </g>
+        <g transform="matrix(1.55303,0,0,0.054228,-394.246863,286.975452)">
+            <rect x="997" y="252" width="132" height="208" style="fill-opacity:0.05;"/>
+        </g>
+        <g>
+            <g transform="matrix(1,0,0,1,230.124349,57.30312)">
+                <g transform="matrix(0.110402,0,0,0.110402,956.716297,212.303523)">
+                    <circle cx="1131.752" cy="238.089" r="25.752" style="fill:rgb(70,71,74);"/>
+                </g>
+                <g transform="matrix(1,0,0,1,-57.291429,-143.662948)">
+                    <path d="M1138.955,382.252L1138.955,356L1271,356" style="fill:none;stroke:rgb(70,71,74);stroke-width:1.25px;"/>
+                </g>
+            </g>
+            <g transform="matrix(1,0,0,1,230.124349,344.819278)">
+                <g transform="matrix(0.110402,0,0,0.110402,956.716297,212.303523)">
+                    <circle cx="1131.752" cy="238.089" r="25.752" style="fill:rgb(70,71,74);"/>
+                </g>
+                <g transform="matrix(1,0,0,1,-57.291429,-143.662948)">
+                    <path d="M1138.955,382.252L1138.955,356L1271,356" style="fill:none;stroke:rgb(70,71,74);stroke-width:1.25px;"/>
+                </g>
+            </g>
+            <g transform="matrix(1,0,0,-1,202.124349,890.708408)">
+                <g transform="matrix(0.110402,0,0,0.110402,956.716297,212.303523)">
+                    <circle cx="1131.752" cy="238.089" r="25.752" style="fill:rgb(70,71,74);"/>
+                </g>
+                <g transform="matrix(1,0,0,1,-57.291429,-143.662948)">
+                    <path d="M1138.955,382.252L1138.955,356L1298.363,356" style="fill:none;stroke:rgb(70,71,74);stroke-width:1.25px;"/>
+                </g>
+            </g>
+            <g transform="matrix(-1,0,0,1,2311.474666,41.334189)">
+                <g transform="matrix(0.110402,0,0,0.110402,956.716297,212.303523)">
+                    <circle cx="1131.752" cy="238.089" r="25.752" style="fill:rgb(70,71,74);"/>
+                </g>
+                <g transform="matrix(1,0,0,1,-57.291429,-143.662948)">
+                    <path d="M1138.955,382.252L1138.955,356L1329.07,356" style="fill:none;stroke:rgb(70,71,74);stroke-width:1.25px;"/>
+                </g>
+            </g>
+            <g transform="matrix(-1,0,0,1,2252.030598,109.711934)">
+                <g transform="matrix(0.110402,0,0,0.110402,956.716297,212.303523)">
+                    <circle cx="1131.752" cy="238.089" r="25.752" style="fill:rgb(70,71,74);"/>
+                </g>
+                <g transform="matrix(1,0,0,1,-57.291429,-143.662948)">
+                    <path d="M1138.955,382.252L1138.955,356L1271,356" style="fill:none;stroke:rgb(70,71,74);stroke-width:1.25px;"/>
+                </g>
+            </g>
+            <g transform="matrix(-1,0,0,1,2252.030598,206.8664)">
+                <g transform="matrix(0.110402,0,0,0.110402,956.716297,212.303523)">
+                    <circle cx="1131.752" cy="238.089" r="25.752" style="fill:rgb(70,71,74);"/>
+                </g>
+                <g transform="matrix(1,0,0,1,-57.291429,-143.662948)">
+                    <path d="M1138.955,382.252L1138.955,356L1271,356" style="fill:none;stroke:rgb(70,71,74);stroke-width:1.25px;"/>
+                </g>
+            </g>
+            <g transform="matrix(-1,0,0,1,2252.030598,346.330316)">
+                <g transform="matrix(0.110402,0,0,0.110402,956.716297,212.303523)">
+                    <circle cx="1131.752" cy="238.089" r="25.752" style="fill:rgb(70,71,74);"/>
+                </g>
+                <g transform="matrix(1,0,0,1,-57.291429,-143.662948)">
+                    <path d="M1138.955,382.252L1138.955,356L1271,356" style="fill:none;stroke:rgb(70,71,74);stroke-width:1.25px;"/>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>
+</file>
 
 <file path="dashboard-ui/public/Ohmni_Logo_RGB_Blue_WhiteBG.svg">
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -186,184 +316,6 @@ l-135 -124 -97 -3 c-143 -3 -138 -8 -138 158 0 76 3 141 7 144 10 11 521 8
 
 <file path="dashboard-ui/src/assets/react.svg">
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
-</file>
-
-<file path="dashboard-ui/src/components/FlywheelVisual.jsx">
-// src/components/FlywheelSystemVisual.jsx
-
-import React from 'react';
-import HealthStatus from './HealthStatus';
-
-// Tag mapping from your Picture 1 layout
-const TAG_MAP = {
-  // Command Status
-  chargeStatus: 'A25_CMD_Charge',
-  dischargeStatus: 'A25_CMD_Discharge',
-  shutdownStatus: 'A25_CMD_Shutdown',
-  startupStatus: 'A25_CMD_Startup',
-  
-  // Power/Energy
-  power: 'A25_Power',
-  speed: 'A25_Speed',
-  energy: 'A25_Energy', // Energy Stored / State of Charge source
-  soc: 'A25_SoC',
-  energyTotal: 'A25_Energy_Total',
-  cycles: 'A25_Cycles',
-  runHours: 'A25_RunHours',
-  status: 'A25_Status',
-  
-  // Health/Vibration/Temp
-  tempUpper: 'TT001.Scaled',
-  tempLower: 'TT002.Scaled',
-  tempMotor: 'TT003.Scaled',
-  vibUpper: 'VT001.Scaled',
-  vibLower: 'VT002.Scaled',
-  loadCell: 'WT001_Scaled',
-  pressure: 'PT001_Scaled',
-  
-  // Health Status (Boolean)
-  healthLoadCell: 'WT001_Healthy',
-  healthVibUpper: 'VT001_Healthy',
-  healthVibLower: 'VT002_Healthy',
-  healthPressure: 'PT001_Healthy',
-  healthTempUpper: 'TT001_Healthy',
-  healthTempLower: 'TT002_Healthy',
-  healthTempMotor: 'TT003_Healthy',
-};
-
-// Map status number to descriptive text
-const getFlywheelStatusText = (statusCode) => {
-    switch(statusCode) {
-        case 0: return 'Shutdown';
-        case 1: return 'Idle (Standby)';
-        case 2: return 'Charging';
-        case 3: return 'Discharging';
-        case 4: return 'Fault';
-        default: return 'Unknown';
-    }
-}
-
-// Function to render the flywheel graphic with embedded tags
-function FlywheelGraphic({ tags }) {
-    
-    // NOTE: 'tags' is already defaulted to {} in the parent component
-    const currentPower = tags[TAG_MAP.power] || 0;
-    const isCharging = currentPower > 0.5;
-    const isDischarging = currentPower < -0.5;
-
-    // Arrow visual logic
-    let arrowDirection = '—'; // Idle/Brake/Shutdown
-    let arrowClass = 'flow-idle';
-    if (isCharging) {
-        arrowDirection = '↓'; 
-        arrowClass = 'flow-charge'; // Grid -> AC Network -> Flywheel
-    } else if (isDischarging) {
-        arrowDirection = '↑';
-        arrowClass = 'flow-discharge'; // Flywheel -> AC Network -> Grid
-    }
-
-    return (
-        <div className="flywheel-system-visual-container">
-            {/* The main diagram using CSS Grid for structure */}
-            <div className="flywheel-diagram">
-
-                {/* Left Command Side */}
-                <div className="command-indicators">
-                    {/* The tags object is safe (guaranteed by parent) */}
-                    <span className={`tag-label tag-charge ${tags[TAG_MAP.chargeStatus] ? 'active' : ''}`}>{TAG_MAP.chargeStatus}</span>
-                    <span className={`tag-label tag-discharge ${tags[TAG_MAP.dischargeStatus] ? 'active' : ''}`}>{TAG_MAP.dischargeStatus}</span>
-                    <span className={`tag-label tag-shutdown ${tags[TAG_MAP.shutdownStatus] ? 'active' : ''}`}>{TAG_MAP.shutdownStatus}</span>
-                    <span className={`tag-label tag-startup ${tags[TAG_MAP.startupStatus] ? 'active' : ''}`}>{TAG_MAP.startupStatus}</span>
-                </div>
-
-                {/* Center Flywheel Stack */}
-                <div className="flywheel-stack">
-                    
-                    {/* Top Section */}
-                    <div className="flywheel-section-top">
-                        <div className="ac-network-box">AC Network</div>
-                        <div className={`power-flow-arrow ${arrowClass}`}>{arrowDirection}</div>
-                        <div className="power-readout">
-                            {/* Power Readout */}
-                            <span className="power-value">{currentPower.toFixed(2)} kW</span>
-                            <span className="power-tag-label">{TAG_MAP.power}</span>
-                        </div>
-                    </div>
-                    
-                    {/* The Flywheel Body (Visual) */}
-                    <div className="flywheel-body">
-                        {/* Internal Sensors & Health */}
-                        <div className="sensor-zone-left">
-                            <div className="sensor-group-item">
-                                <span className="tag-label">{TAG_MAP.loadCell}</span>
-                                <HealthStatus value={tags[TAG_MAP.healthLoadCell]} healthyText="Healthy" unhealthyText="FAULT" />
-                            </div>
-                            <div className="sensor-group-item">
-                                <span className="tag-label">{TAG_MAP.vibUpper}</span>
-                                <HealthStatus value={tags[TAG_MAP.healthVibUpper]} healthyText="Healthy" unhealthyText="FAULT" />
-                            </div>
-                            <div className="sensor-group-item">
-                                <span className="tag-label">{TAG_MAP.pressure}</span>
-                                <HealthStatus value={tags[TAG_MAP.healthPressure]} healthyText="Healthy" unhealthyText="FAULT" />
-                            </div>
-                            <div className="sensor-group-item bottom-left">
-                                <span className="tag-label">{TAG_MAP.vibLower}</span>
-                                <HealthStatus value={tags[TAG_MAP.healthVibLower]} healthyText="Healthy" unhealthyText="FAULT" />
-                            </div>
-                        </div>
-
-                        <div className="rotor-fill">
-                           <span className="rotor-text">Flywheel Rotor</span>
-                        </div>
-
-                        <div className="sensor-zone-right">
-                            <div className="sensor-group-item">
-                                <span className="tag-label">{TAG_MAP.tempUpper}</span>
-                                <HealthStatus value={tags[TAG_MAP.healthTempUpper]} healthyText="Healthy" unhealthyText="FAULT" />
-                            </div>
-                            <div className="sensor-group-item">
-                                <span className="tag-label">{TAG_MAP.tempLower}</span>
-                                <HealthStatus value={tags[TAG_MAP.healthTempLower]} healthyText="Healthy" unhealthyText="FAULT" />
-                            </div>
-                            <div className="sensor-group-item bottom-right">
-                                <span className="tag-label">{TAG_MAP.tempMotor}</span>
-                                <HealthStatus value={tags[TAG_MAP.healthTempMotor]} healthyText="Healthy" unhealthyText="FAULT" />
-                            </div>
-                        </div>
-                    </div>
-                    {/* Flywheel Base/Stand */}
-                    <div className="flywheel-base"></div>
-                </div>
-
-                {/* Right Status Overview Indicators */}
-                <div className="status-indicators">
-                    <span className="tag-label tag-status">{TAG_MAP.status}</span>
-                    <span className="tag-label tag-power">{TAG_MAP.power}</span>
-                    <span className="tag-label tag-energy">{TAG_MAP.energy}</span>
-                    <span className="tag-label tag-soc">{TAG_MAP.soc}</span>
-                    <span className="tag-label tag-speed">{TAG_MAP.speed}</span>
-                    <span className="tag-label tag-energy-total">{TAG_MAP.energyTotal}</span>
-                    <span className="tag-label tag-cycles">{TAG_MAP.cycles}</span>
-                    <span className="tag-label tag-runhours">{TAG_MAP.runHours}</span>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-// Main component, replacing FlywheelVisual
-function FlywheelVisual({ liveData }) {
-    // FIX: Add optional chaining to safely access liveData.tags
-    const tags = liveData?.tags || {};
-
-    return (
-        <div className="flywheel-main-visual">
-            <FlywheelGraphic tags={tags} />
-        </div>
-    );
-}
-
-export default FlywheelVisual;
 </file>
 
 <file path="dashboard-ui/src/components/HealthStatus.jsx">
@@ -516,6 +468,7 @@ export default PopoutWindow;
 </file>
 
 <file path="dashboard-ui/src/components/ProtectedRoute.jsx">
+// dashboard-ui/src/components/ProtectedRoute.jsx
 import { useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -523,16 +476,33 @@ function ProtectedRoute({ children, adminOnly = false }) {
   const { user, token, isLoading } = useAuth();
   const location = useLocation();
 
+  // 1. If AuthContext says it's loading, show loading screen.
   if (isLoading) {
-    return <div style={{padding: '2rem'}}>Loading authentication...</div>;
+    // Show a more friendly message now that you removed the original loading screen
+    return <div style={{padding: '2rem'}}>Verifying session or loading user details...</div>;
   }
 
+  // 2. If loading is false, but we still have no token (unauthenticated flow completed)
   if (!token) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
-  if (adminOnly && user?.role !== 'Admin') {
-    return <Navigate to="/" replace />; // Not an admin, send to home
+  // 3. CRITICAL FINAL GUARD: If we have a token, loading is false, but role is missing.
+  // This means re-validation FAILED on the network (e.g. 401, server down, etc.) 
+  // and the final state is bad. If we can't get the role, we should force a log out.
+  if (!user || !user.role) {
+    console.warn("ProtectedRoute: Token found but user/role missing. Forcing logout.");
+    // We should log out here to clear the bad token and redirect to login/App.jsx redirect logic.
+    // This is the only safe exit from the bad state.
+    // NOTE: This relies on AuthContext's `logout` redirecting.
+    const { logout } = useAuth(); 
+    logout(); 
+    return <div style={{padding: '2rem'}}>Session verification failed. Redirecting to login...</div>;
+  }
+  
+  // 4. Role-based restriction
+  if (adminOnly && user.role !== 'Admin') {
+    return <Navigate to="/" replace />; 
   }
 
   return children;
@@ -619,764 +589,6 @@ export const SystemStatusProvider = ({ children }) => {
 };
 
 export const useSystemStatus = () => useContext(SystemStatusContext);
-</file>
-
-<file path="dashboard-ui/src/pages/HomePage.jsx">
-import { useState } from 'react';
-import { useOutletContext } from "react-router-dom";
-import { useSystemStatus } from '../context/SystemStatusContext'; // <--- USE CONTEXT
-import CommandsSidebar from '../components/CommandsSidebar';
-import FlywheelVisual from '../components/FlywheelVisual';
-import HealthStatus from '../components/HealthStatus';
-import PopoutWindow from '../components/PopoutWindow'; 
-
-function HomePage() {
-  const { setpoints } = useOutletContext();
-  
-  // Consuming Global State instead of local fetching
-  const { liveData, connectionStatus, formatTime } = useSystemStatus();
-
-  // Popout States
-  const [isFlywheelPopped, setIsFlywheelPopped] = useState(false);
-  const [isDashboardPopped, setIsDashboardPopped] = useState(false);
-
-  // --- DERIVED VALUES ---
-  const tags = liveData.tags || {};
-  const maxSpeed = 1800;
-  const currentSpeed = tags['VFD_Sts_MtrSpeedScaled'] || 0;
-  const powerOutput = tags['VFD_Sts_OutPowerScaled'] || 0;
-  const dcVolts = tags['VFD_Sts_DCVolts'] || 0;
-  const temp1 = tags['TT001.Scaled'];
-  const temp2 = tags['TT002.Scaled'];
-  const totalEnergy = tags['Test_InfiniteCounter'] || 0;
-  const setpointSent = tags['Test_OutputVal1'];
-  const setpointReadback = tags['Test_InputVal1'];
-  const isTripped = tags['VFD_Sts_Tripped'];
-  const hasWarning = tags['VFD_Sts_Warning'];
-  const psu1Healthy = tags['PSU001_HLTY'];
-  const psu2Healthy = tags['PSU002_HLTY'];
-  const flywheelPercentage = (currentSpeed / maxSpeed) * 100;
-  
-  let flywheelStatus = "Idle";
-  if (powerOutput > 0.5) flywheelStatus = "Charging";
-  else if (powerOutput < -0.5) flywheelStatus = "Discharging";
-
-  // --- COMPONENT CHUNKS ---
-
-  // 2. The Flywheel Visual Wrapper
-  const flywheelVisualContent = (
-    <div style={{position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-        <FlywheelVisual 
-            percentage={flywheelPercentage}
-            status={flywheelStatus}
-        />
-        {!isDashboardPopped && (
-            <button 
-                className="maximize-btn" 
-                style={{position: 'absolute', top: 10, right: 10}}
-                onClick={() => setIsFlywheelPopped(!isFlywheelPopped)}
-            >
-                {isFlywheelPopped ? 'Dock' : '❐ Pop Widget'}
-            </button>
-        )}
-    </div>
-  );
-
-  // 3. The Full Dashboard Layout
-  const dashboardContent = (
-    <div className="home-layout" style={{
-        height: isDashboardPopped ? '100vh' : 'calc(100vh - 100px)',
-        backgroundColor: '#1e1e1e',
-        position: 'relative' 
-    }}>
-
-      <CommandsSidebar setpoints={setpoints} />
-      
-      <div className="flywheel-section" style={{position: 'relative', backgroundColor: '#1e1e1e'}}>
-        {isFlywheelPopped && !isDashboardPopped ? (
-            <>
-                <div style={{height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #444', color: '#666'}}>
-                    Flywheel Visual is popped out.
-                    <button className="maximize-btn" style={{marginLeft:'10px'}} onClick={() => setIsFlywheelPopped(false)}>Return</button>
-                </div>
-                <PopoutWindow title="Flywheel Visualization" onClose={() => setIsFlywheelPopped(false)}>
-                    <div style={{height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e1e1e'}}>
-                        {flywheelVisualContent}
-                    </div>
-                </PopoutWindow>
-            </>
-        ) : (
-            flywheelVisualContent
-        )}
-      </div>
-
-      <div className="sidebar status-sidebar">
-        <div className="status-group">
-          <h2>Overview</h2>
-          <div className="status-item"><span>Flywheel Status</span><span>{flywheelStatus}</span></div>
-          <div className="status-item"><span>Power</span><span>{powerOutput.toFixed(2)} kW</span></div>
-          <div className="status-item"><span>Speed</span><span>{currentSpeed} RPM</span></div>
-          <div className="status-item"><span>DC Voltage</span><span>{dcVolts} V</span></div>
-          <div className="status-item"><span>Total Energy</span><span>{(totalEnergy / 1000).toFixed(1)} kWh</span></div>
-        </div>
-        <div className="status-group">
-          <h2>Temperatures</h2>
-          <div className="status-item"><span>Bearing 1</span><span>{typeof temp1 === 'number' ? temp1.toFixed(1) + ' °C' : 'N/A'}</span></div>
-          <div className="status-item"><span>Bearing 2</span><span>{typeof temp2 === 'number' ? temp2.toFixed(1) + ' °C' : 'N/A'}</span></div>
-        </div>
-        <div className="status-group">
-          <h2>System Health</h2>
-          <HealthStatus title="VFD Tripped" value={isTripped} isHealthy={!isTripped} unhealthyText="TRIPPED" />
-          <HealthStatus title="VFD Warning" value={hasWarning} isHealthy={!hasWarning} unhealthyText="WARNING" />
-          <HealthStatus title="PSU 1" value={psu1Healthy} />
-          <HealthStatus title="PSU 2" value={psu2Healthy} />
-        </div>
-        <div className="status-group">
-          <h2>Setpoint Feedback</h2>
-          <div className="status-item debug-item">
-            <span>Setpoint Sent:</span>
-            <span>{typeof setpointSent === 'number' ? setpointSent.toFixed(2) : 'N/A'}</span>
-          </div>
-          <div className="status-item debug-item" style={{ color: '#00c4ff' }}>
-            <span>Setpoint Readback (2x):</span>
-            <span>{typeof setpointReadback === 'number' ? setpointReadback.toFixed(2) : 'N/A'}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // --- RENDER RETURN ---
-
-  if (isDashboardPopped) {
-      return (
-          <>
-            <div style={{
-                height: 'calc(100vh - 60px)', 
-                display: 'flex', 
-                flexDirection: 'column',
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                backgroundColor: '#1a1a1a',
-                color: '#888'
-            }}>
-                <div style={{fontSize: '2em', marginBottom: '1rem'}}>Main Dashboard is Popped Out</div>
-                <div style={{marginBottom: '2rem'}}>Use the external window to control the system.</div>
-                <button 
-                    className="maximize-btn" 
-                    style={{fontSize: '1.2em', padding: '10px 20px'}}
-                    onClick={() => setIsDashboardPopped(false)}
-                >
-                    Return Dashboard to Main Window
-                </button>
-            </div>
-
-            <PopoutWindow title="SCADA Main Dashboard" onClose={() => setIsDashboardPopped(false)}>
-                {dashboardContent}
-            </PopoutWindow>
-          </>
-      );
-  }
-
-  return (
-    <div style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
-        {/* Header Bar */}
-        <div style={{
-            padding: '10px 20px', 
-            backgroundColor: '#252525', 
-            borderBottom: '1px solid #333', 
-            display: 'flex', 
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            gap: '15px'
-        }}>
-            <div style={{
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '8px',
-                fontSize: '0.9em',
-                fontWeight: 'bold',
-                color: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c'
-            }}>
-                <div style={{
-                    width: '10px', 
-                    height: '10px', 
-                    borderRadius: '50%', 
-                    backgroundColor: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c',
-                    boxShadow: connectionStatus.state === 'ONLINE' ? '0 0 8px #2ecc71' : 'none'
-                }}></div>
-                {connectionStatus.state === 'ONLINE' 
-                    ? 'SYSTEM ONLINE' 
-                    : `OFFLINE (Last: ${formatTime(connectionStatus.lastSeen)})`
-                }
-            </div>
-
-            <button 
-                className="maximize-btn" 
-                onClick={() => setIsDashboardPopped(true)}
-            >
-                ❐ Pop Out Dashboard
-            </button>
-        </div>
-
-        {dashboardContent}
-    </div>
-  );
-}
-
-export default HomePage;
-</file>
-
-<file path="dashboard-ui/src/App.css">
-/* --- GLOBAL STYLES & DARK THEME --- */
-:root {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: #1e1e1e;
-  color: #dcdcdc;
-}
-body { margin: 0; }
-.App { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
-.main-content { flex-grow: 1; overflow-y: auto; }
-
-/* Custom Scrollbar for Dark Theme */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: #2d2d2d; }
-::-webkit-scrollbar-thumb { background: #555; border-radius: 5px; }
-::-webkit-scrollbar-thumb:hover { background: #777; }
-
-/* --- HEADER & NAVIGATION --- */
-.App-header { display: flex; align-items: center; background-color: #2d2d2d; padding: 0 2rem; height: 60px; border-bottom: 1px solid #444; flex-shrink: 0; }
-.logo-container img { height: 40px; }
-.navigation { flex-grow: 1; display: flex; justify-content: center; gap: 1rem; }
-.navigation a { color: #a0a0a0; text-decoration: none; font-size: 1.1em; padding: 0.5rem 1rem; border-radius: 6px; transition: background-color 0.2s; }
-.navigation a.active, .navigation a:hover { color: #ffffff; background-color: #444; }
-.header-right-side { display: flex; align-items: center; gap: 1.5rem; margin-left: auto; }
-.status-time { color: #a0a0a0; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.logout-button { background-color: #3a3a3a; color: #a0a0a0; border: 1px solid #555; border-radius: 6px; padding: 0.5rem 1rem; font-size: 1em; cursor: pointer; transition: all 0.2s; }
-.logout-button:hover { background-color: #c0392b; color: white; border-color: #e74c3c; }
-
-/* --- GENERIC COMPONENTS --- */
-.sidebar { background-color: #2d2d2d; border-radius: 8px; overflow-y: auto; }
-.card { background-color: #2d2d2d; border-radius: 8px; padding: 1.5rem; }
-
-/* --- HOME PAGE --- */
-.home-layout { 
-  display: grid; 
-  grid-template-columns: 300px 1fr 350px; 
-  height: calc(100vh - 60px); 
-  overflow: hidden; 
-}
-
-.commands-sidebar { padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
-.commands-sidebar h2 { margin: 0 0 1rem 0; font-size: 1.5em; font-weight: 600; border-bottom: 1px solid #444; padding-bottom: 1rem; }
-.commands-sidebar button { width: 100%; padding: 1.2rem; font-size: 1.5em; border-radius: 8px; border: 1px solid #555; background-color: #3a3a3a; color: #dcdcdc; cursor: pointer; transition: background-color 0.2s; }
-.commands-sidebar button:hover { background-color: #4a4a4a; }
-.commands-sidebar button:disabled { background-color: #2a2a2a; color: #666; cursor: not-allowed; border-color: #444; }
-
-.status-sidebar { padding: 2rem; }
-.status-group { margin-bottom: 2rem; }
-.status-group h2 { margin: 0 0 1rem 0; font-size: 1.5em; font-weight: 600; border-bottom: 1px solid #444; padding-bottom: 1rem; }
-.status-item { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 0; border-bottom: 1px solid #444; font-size: 1.1em; }
-.status-item:last-child { border-bottom: none; }
-.status-item span:first-child { color: #a0a0a0; }
-.status-item span:last-child { font-weight: bold; font-size: 1.1em; font-variant-numeric: tabular-nums; }
-.debug-item span:first-child { color: #f0a !important; font-style: italic; }
-
-/* --------------------------------------------------------- */
-
-.health-item { display: flex; justify-content: space-between; align-items: center; font-size: 1.1em; margin-bottom: 0.8rem; }
-.health-indicator { font-weight: bold; padding: 0.2rem 0.6rem; border-radius: 5px; }
-.health-item.healthy .health-indicator { background-color: #27ae60; color: white; }
-.health-item.unhealthy .health-indicator { background-color: #c0392b; color: white; }
-.health-item.unknown .health-indicator { background-color: #7f8c8d; color: white; }
-
-/* --- OPERATIONAL DETAILS PAGE --- */
-.details-layout-final { 
-  display: grid; grid-template-columns: 250px 1fr 350px; 
-  height: calc(100vh - 60px); 
-  gap: 1rem; padding: 1rem; box-sizing: border-box;
-}
-
-.charts-container-final { display: flex; flex-direction: column; gap: 1.5rem; overflow-y: auto; padding-right: 0.5rem; }
-.pens-sidebar { padding: 1rem; }
-.pen-group h4 { margin: 0 0 1rem 0; border-bottom: 1px solid #555; padding-bottom: 0.5rem; }
-.pen-item { display: flex; align-items: center; margin-bottom: 0.75rem; font-size: 0.9em; }
-.pen-color-swatch { width: 15px; height: 15px; margin-right: 0.75rem; border: 1px solid #555; border-radius: 3px; }
-.pen-item input { margin-right: 0.5rem; }
-.pen-item label { cursor: pointer; user-select: none; }
-
-.chart-card-container { display: grid; grid-template-columns: 220px 1fr; gap: 1rem; background-color: #2d2d2d; padding: 1rem; border-radius: 8px; height: 350px; }
-.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; height: 40px; }
-.chart-header h3 { margin: 0; font-size: 1.2em; display: flex; align-items: center; gap: 0.5rem; }
-.live-badge { background-color: #c0392b; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 4px; animation: pulse 2s infinite; }
-@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-
-.individual-time-selector { display: flex; align-items: center; gap: 0.5rem; }
-.individual-time-selector select { padding: 0.3rem; border-radius: 4px; background-color: #3a3a3a; color: #dcdcdc; border: 1px solid #555; }
-.chart-wrapper { height: calc(100% - 45px); position: relative; width: 100%; }
-
-.sensor-sidebar { padding: 1rem; }
-.sensor-list { display: flex; flex-direction: column; gap: 0.8rem; }
-.sensor-item { display: flex; justify-content: space-between; align-items: center; font-size: 1em; border-bottom: 1px solid #444; padding-bottom: 0.8rem; }
-.sensor-item:last-child { border-bottom: none; }
-.sensor-value { font-variant-numeric: tabular-nums; font-family: monospace; font-size: 1.1em; color: #41D1FF; }
-
-/* --- ENGINEERING & LOGIN PAGES --- */
-.engineering-layout, .login-container { padding: 2rem; display: flex; justify-content: center; width: 100%; box-sizing: border-box; }
-.engineering-layout > div, .login-container form { width: 100%; max-width: 600px; }
-.form-group { display: flex; flex-direction: column; margin-bottom: 1.5rem; }
-.form-group label { margin-bottom: 0.5rem; color: #a0a0a0; }
-.form-group input { padding: 0.8rem; border-radius: 6px; background-color: #1e1e1e; color: #dcdcdc; border: 1px solid #555; font-size: 1.1em; }
-.form-group-with-button { display: grid; grid-template-columns: 1fr 120px 80px; gap: 1rem; align-items: center; margin-bottom: 1rem; }
-.tag-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-.tag-table th, .tag-table td { padding: 0.8rem; text-align: left; border-bottom: 1px solid #444; }
-.tag-table th { background-color: #3a3a3a; }
-.status-toggle { border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 5px; font-weight: bold; width: 100%; }
-.status-toggle.active { background-color: #27ae60; color: white; }
-.status-toggle.inactive { background-color: #7f8c8d; color: #ddd; }
-.error-message { color: #e74c3c; font-weight: bold; margin-bottom: 1rem; }
-
-/* --- RESPONSIVE MEDIA QUERIES --- */
-@media (max-width: 1200px) {
-  .home-layout, .details-layout-final {
-    grid-template-columns: 1fr; /* Stack vertically */
-    height: auto;
-    overflow-y: auto;
-  }
-  .sidebar, .chart-card-container {
-    height: auto;
-    min-height: 400px;
-  }
-  .flywheel-container {
-    padding: 3rem 0;
-  }
-  /* On mobile/tablet, stack the specific chart sidebar */
-  .chart-card-container {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 400px;
-  }
-  .App-header {
-    flex-wrap: wrap;
-    height: auto;
-    padding: 1rem;
-    gap: 1rem;
-  }
-  .header-right-side {
-    margin-left: 0;
-    width: 100%;
-    justify-content: space-between;
-  }
-}
-
-/* --- OPERATIONAL DETAILS PAGE LAYOUT --- */
-.details-layout-final { 
-  display: grid; 
-  /* Fixed Width Sidebar | Flexible Charts | Fixed Width Sidebar */
-  grid-template-columns: 250px 1fr 300px; 
-  height: calc(100vh - 60px); 
-  gap: 1rem; 
-  padding: 1rem; 
-  box-sizing: border-box;
-  overflow: hidden; /* Prevent the whole page from scrolling */
-}
-
-/* Middle Column: The Scrollable Chart Area */
-.charts-container-final { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 1.5rem; 
-  overflow-y: auto; /* Only this middle part scrolls */
-  padding-right: 0.5rem; 
-  min-height: 0; /* Crucial for nested flex scrolling */
-}
-
-/* Individual Chart Card */
-.chart-card-container { 
-  display: flex; 
-  flex-direction: column; 
-  background-color: #2d2d2d; 
-  padding: 1rem; 
-  border-radius: 8px; 
-  /* Fixed height for each chart card ensures they don't collapse or explode */
-  height: 400px; 
-  flex-shrink: 0; /* Don't let them shrink smaller than 400px */
-}
-
-.chart-header { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  margin-bottom: 1rem; 
-  height: 40px; 
-}
-
-/* The wrapper around the Canvas */
-.chart-wrapper { 
-  flex-grow: 1; 
-  position: relative; 
-  width: 100%; 
-  min-height: 0; /* CRITICAL FIX: Stops chart from growing infinitely */
-}
-
-/* Message styling for Loading / No Data */
-.no-data-message, .loading-message {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  color: #666;
-  font-style: italic;
-}
-
-/* Sidebars */
-.sidebar { 
-  background-color: #2d2d2d; 
-  border-radius: 8px; 
-  overflow-y: auto; 
-  height: 100%; /* Fill the grid cell */
-}
-
-/* Right Sidebar specific */
-.sensor-list {
-  padding-bottom: 2rem;
-}
-
-/* --- SENSOR SIDEBAR IMPROVEMENTS --- */
-
-/* 1. Header with Maximize Button */
-.sidebar-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid #444;
-  padding-bottom: 0.5rem;
-}
-
-.sidebar-header-row h2 {
-  margin: 0;
-  font-size: 1.2em;
-}
-
-.maximize-btn {
-  background-color: #333;
-  color: #a0a0a0;
-  border: 1px solid #555;
-  padding: 0.3rem 0.6rem;
-  font-size: 0.8em;
-  border-radius: 4px;
-}
-.maximize-btn:hover {
-  background-color: #41D1FF;
-  color: #000;
-  border-color: #41D1FF;
-}
-
-/* 2. Stacked Items (Label Top, Value Bottom) for readability */
-.sensor-item {
-  display: flex;
-  flex-direction: column; /* Stack vertically */
-  align-items: flex-start; /* Align left */
-  border-bottom: 1px solid #444;
-  padding: 0.8rem 0;
-}
-
-.sensor-label {
-  font-size: 0.85em;
-  color: #888;
-  margin-bottom: 0.2rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.sensor-value {
-  font-size: 1.3em; /* Larger font for value */
-  font-family: 'Courier New', monospace; /* Monospace for alignment */
-  color: #41D1FF;
-  font-weight: 600;
-}
-
-/* 3. MAXIMIZED MODE (The "Sensor Wall") */
-.sensor-sidebar.maximized {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 9999;
-  background-color: #1a1a1a;
-  padding: 2rem;
-  box-sizing: border-box;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-/* When maximized, switch list to a Grid */
-.sensor-sidebar.maximized .sensor-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Auto-fit grid */
-  gap: 1.5rem;
-  padding-top: 1rem;
-}
-
-.sensor-sidebar.maximized .sensor-item {
-  background-color: #2d2d2d;
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid #444;
-  border-bottom: 1px solid #444; /* Reset border */
-}
-
-.sensor-sidebar.maximized .sensor-label {
-  color: #aaa;
-}
-
-.sensor-sidebar.maximized .sensor-value {
-  font-size: 1.8em; /* Even bigger on big screen */
-  margin-top: 0.5rem;
-}
-
-/* Scrollbar within sidebar */
-.sensor-sidebar::-webkit-scrollbar { width: 6px; }
-.sensor-sidebar::-webkit-scrollbar-thumb { background-color: #555; border-radius: 3px; }
-
-/* --- SCADA ALARM OVERLAYS --- */
-.connection-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.75); /* Dim the background */
-  backdrop-filter: blur(3px); /* Blur the dashboard */
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.connection-box {
-  background-color: #1a1a1a;
-  padding: 2.5rem;
-  border-radius: 12px;
-  border: 2px solid #e74c3c; /* Red Border */
-  text-align: center;
-  box-shadow: 0 0 30px rgba(231, 76, 60, 0.3);
-  animation: pulse-border 2s infinite;
-  max-width: 500px;
-}
-
-.connection-box h2 {
-  margin: 0 0 1rem 0;
-  color: #e74c3c;
-  font-size: 2em;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-}
-
-.connection-box p {
-  color: #dcdcdc;
-  font-size: 1.2em;
-  margin-bottom: 1.5rem;
-}
-
-.retry-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #333;
-  border-top: 4px solid #e74c3c;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto;
-}
-
-@keyframes pulse-border {
-  0% { box-shadow: 0 0 10px rgba(231, 76, 60, 0.2); }
-  50% { box-shadow: 0 0 25px rgba(231, 76, 60, 0.6); }
-  100% { box-shadow: 0 0 10px rgba(231, 76, 60, 0.2); }
-}
-
-.flywheel-system-visual-container {
-    width: 600px; 
-    height: 100%; /* Take full height of parent flex container */
-    max-height: 800px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-}
-
-.flywheel-diagram {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: grid;
-    /* 1. Command Labels | 2. Flywheel Stack | 3. Status Labels */
-    grid-template-columns: 150px 1fr 150px; 
-    grid-template-rows: 1fr;
-    align-items: center;
-    padding: 20px 0;
-}
-
-/* Common style for the tag labels pointing to the graphic */
-.tag-label {
-    position: absolute;
-    color: #f0a; /* Pink color from your diagram */
-    font-size: 0.75em;
-    font-family: monospace;
-    white-space: nowrap;
-}
-
-/* --- COMMAND INDICATORS (Left Column) --- */
-.command-indicators {
-    height: 100%;
-    position: relative;
-}
-.command-indicators .tag-charge { top: 10%; right: 0; }
-.command-indicators .tag-discharge { top: 20%; right: 0; }
-.command-indicators .tag-shutdown { top: 35%; right: 0; }
-.command-indicators .tag-startup { top: 45%; right: 0; }
-.command-indicators .active { font-weight: bold; color: #41D1FF; }
-
-/* --- STATUS INDICATORS (Right Column) --- */
-.status-indicators {
-    height: 100%;
-    position: relative;
-    /* Positions on the right side of the diagram */
-}
-.status-indicators .tag-status { top: 10%; left: 0; }
-.status-indicators .tag-power { top: 20%; left: 0; }
-.status-indicators .tag-energy { top: 30%; left: 0; }
-.status-indicators .tag-soc { top: 40%; left: 0; }
-.status-indicators .tag-speed { top: 50%; left: 0; }
-.status-indicators .tag-energy-total { top: 60%; left: 0; }
-.status-indicators .tag-cycles { top: 70%; left: 0; }
-.status-indicators .tag-runhours { top: 80%; left: 0; }
-
-
-/* --- FLYWHEEL STACK (Center Column) --- */
-.flywheel-stack {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    height: 100%;
-    padding-top: 50px; /* Space for AC Network box */
-    position: relative;
-}
-.flywheel-section-top {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.ac-network-box {
-    border: 2px solid #555;
-    padding: 5px 15px;
-    background-color: #333;
-    color: #fff;
-    font-size: 0.9em;
-}
-
-.power-flow-arrow {
-    font-size: 3em;
-    font-weight: bold;
-    margin: 5px 0;
-    animation: flow-pulse 2s infinite ease-in-out;
-}
-.flow-charge { color: #2ecc71; }
-.flow-discharge { color: #e74c3c; }
-.flow-idle { color: #888; }
-
-.power-readout {
-    text-align: center;
-    margin-top: 5px;
-}
-.power-value { font-size: 1.5em; font-weight: bold; color: #41D1FF; }
-.power-tag-label { color: #f0a; font-size: 0.6em; }
-
-.flywheel-body {
-    width: 250px;
-    height: 450px;
-    background-color: #555;
-    border: 5px solid #888;
-    border-radius: 10px;
-    position: relative;
-    display: flex;
-    justify-content: space-between;
-}
-
-.rotor-fill {
-    position: absolute;
-    top: 10%;
-    left: 10%;
-    width: 80%;
-    height: 80%;
-    background: linear-gradient(to right, #444, #333, #444);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
-}
-.rotor-text { color: #aaa; font-size: 1.1em; font-style: italic; }
-
-.flywheel-base {
-    width: 300px;
-    height: 50px;
-    background-color: #444;
-    border-radius: 0 0 5px 5px;
-    border-top: 5px solid #888;
-}
-
-/* Sensor Zones within the Flywheel Body */
-.sensor-zone-left, .sensor-zone-right {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-around;
-    padding: 10px 0;
-    width: 40%; /* To position them near the edges */
-}
-
-.sensor-group-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 5px;
-    margin: 10px 0;
-}
-.sensor-group-item .tag-label { position: static; color: #f0a; }
-
-.sensor-zone-left .sensor-group-item { align-items: flex-start; margin-left: -40px; }
-.sensor-zone-right .sensor-group-item { align-items: flex-end; margin-right: -40px; }
-
-/* Styles for HealthStatus in the visual (must be minimal) */
-.sensor-group-item .health-item {
-    font-size: 0.8em;
-    padding: 0;
-    margin: 0;
-}
-.sensor-group-item .health-indicator {
-    padding: 2px 4px;
-    font-size: 0.9em;
-}
-
-/* Animations */
-@keyframes flow-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-}
-
-/* Remove old flywheel visual styles to prevent conflict */
-.flywheel-visual, .flywheel-text, .flywheel-fill, .spinning-charge, .spinning-discharge {
-    display: none; /* Hide the old component styles */
-}
 </file>
 
 <file path="dashboard-ui/src/App.jsx">
@@ -1912,54 +1124,86 @@ finally:
 import apiClient from '../api';
 import { useAuth } from '../context/AuthContext'; // Import the auth hook to check token
 
-const COMMAND_TAG_BASE = 'A25_SIM_';
+const COMMAND_TAG_BASE = 'A25_CMD_';
 
 // FIX 1: Change parameter name from 'value' to 'commandKey'
-function CommandsSidebar({ setpoints }) {
-  const { token } = useAuth(); // Get the current token status
+function CommandsSidebar({ setpoints, liveData }) {
+  const { token, user } = useAuth(); // Get the current token status
 
-  const handleSetpointCommand = async (commandKey) => { // <-- FIXED PARAM NAME
-    // SECURITY FIX: If there is no token, prevent the command from running immediately.
-    if (!token) {
-        alert("Action Restricted: Please log in to send control commands.");
-        return;
-    }
-    
-    // FIX 2: Construct tagName and get setpoint value based on commandKey
-    const tagName = COMMAND_TAG_BASE + commandKey.charAt(0).toUpperCase() + commandKey.slice(1);
-    const setpointValue = setpoints[commandKey]; // <-- Use a different variable name to avoid confusion
-    
-    // FIX 3: Parse the setpointValue
-    const numericValue = parseFloat(setpointValue); 
-    
-    if (isNaN(numericValue)) {
-      alert(`Setpoint value for ${commandKey} is not a valid number.`);
+  const currentSpeed = liveData?.tags?.['A25_Speed'] || 0;
+
+  const RPM_UNLOCK_CHARGE = 4000; // Example threshold for allowing charge command
+  const RPM_UNLOCK_DISCHARGE = 5000; // Example threshold for allowing discharge command
+  const RPM_MAX_SPEED = 8200; // Example maximum speed for safety
+
+  // 1. Base check: Must be logged in/ token should exist.
+  const isUserAuthenticated = !!token && (user?.role === 'Engineer' || user?.role === 'Admin');
+
+  // 2. Button specific logic.
+  const canCharge = isUserAuthenticated && currentSpeed >= RPM_UNLOCK_CHARGE && currentSpeed < RPM_MAX_SPEED;
+  const canDischarge = isUserAuthenticated && currentSpeed >= RPM_UNLOCK_DISCHARGE && currentSpeed < RPM_MAX_SPEED;
+  const canShutdown = isUserAuthenticated;
+  const canStartup = isUserAuthenticated;
+
+  const handleCommand = async (commandKey) => {
+    if (!isUserAuthenticated) {
+      alert("You must be logged in with sufficient permissions to send commands.");
       return;
     }
 
+    const tagName = COMMAND_TAG_BASE + commandKey.charAt(0).toUpperCase() + commandKey.slice(1);
+    const valueToWrite = true;
+
     try {
-      await apiClient.post('/api/write-tag', { 
-        tag_name: tagName, // <-- Use tagName here
-        value: numericValue // <-- Use numericValue here
+      // Send command as 1 (TRUE) for all actions.
+      await apiClient.post('/api/write-tag', {
+        tag: tagName,
+        value: valueToWrite
       });
-      alert(`Simulation Command sent: Set ${tagName} to ${numericValue}`);
+      alert(`Command '${commandKey}' sent successfully!`);
     } catch (error) {
       console.error(`Error writing to ${tagName}:`, error);
-      alert(`Failed to send command. Server may require re-login. Check WRITEABLE_TAGS list in backend.`);
+      alert(`Failed to send command '${commandKey}'. Please try again.`);
     }
-  };
+  }
 
-  // The component is DISABLED if setpoints haven't loaded OR if the user is logged out
-  const isDisabled = !setpoints || Object.keys(setpoints).length === 0 || !token;
+  const baseDisabled = !isUserAuthenticated;
 
   return (
     <div className="sidebar commands-sidebar">
       <h2>Commands (SIM)</h2>
-      <button onClick={() => handleSetpointCommand('charge')} disabled={isDisabled}>Charge</button>
-      <button onClick={() => handleSetpointCommand('discharge')} disabled={isDisabled}>Discharge</button>
-      <button onClick={() => handleSetpointCommand('shutdown')} disabled={isDisabled}>Shutdown</button>
-      {/* FIX: Use 'startup' key for the 'Set Idle' button command */}
-      <button onClick={() => handleSetpointCommand('startup')} disabled={isDisabled}>Set Idle</button> 
+      {/* 1. Charge Button */}
+      <button 
+        onClick={() => handleCommand('Charge')} 
+        disabled={baseDisabled || !canCharge}
+      >
+        Charge
+      </button>
+      
+      {/* 2. Discharge Button */}
+      <button 
+        onClick={() => handleCommand('Discharge')} 
+        disabled={baseDisabled || !canDischarge}
+      >
+        Discharge
+      </button>
+
+      {/* 3. Startup Button (Always enabled if authenticated) */}
+      <button 
+        onClick={() => handleCommand('Startup')} 
+        disabled={baseDisabled || !canStartup}
+      >
+        Startup
+      </button>
+      
+      {/* 4. Shutdown Button (Always enabled if authenticated) */}
+      <button 
+        onClick={() => handleCommand('Shutdown')} 
+        disabled={baseDisabled || !canShutdown}
+      >
+        Shutdown
+      </button> 
+      
     </div>
   );
 }
@@ -2182,70 +1426,6 @@ function StreamingChart({ selectedTags, displayRangeSec, tagColorMap }) {
 };
 
 export default StreamingChart;
-</file>
-
-<file path="dashboard-ui/src/constants/index.js">
-// src/constants/index.js
-
-export const COLORS = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
-
-export const chartDefinitions = [
-    { 
-        title: "Power", // Based on Picture 2 Top
-        tags: [
-            'A25_Power', 
-            'A25_Speed', 
-            'A25_Energy', // Mapped to 'Energy' in diagram
-        ] 
-    },
-    { 
-        title: "Vibration", // Based on Picture 2 Middle
-        tags: [
-            'VT001.Scaled', 
-            'VT002.Scaled',
-            'A25_Speed',
-        ] 
-    },
-    { 
-        title: "Temperature", 
-        tags: [
-            'A25_Speed',
-            'VT001.Scaled',
-            'VT002.Scaled',
-        ] 
-    },
-    { 
-        title: "Electromag", // Based on Picture 3 Top (Simplified)
-        tags: [
-            'A25_Speed',
-            'EM_SV',
-            'Wt001.Scaled',
-        ] 
-    },
-    { 
-        title: "Pressure", // Based on Picture 3 Middle (Simplified)
-        tags: [
-            'PT001_Scaled'
-        ] 
-    },
-    {
-        title: "Custom", // Based on Picture 3 Bottom (Simplified / Custom)
-        tags: [
-            'A25_SoC',
-            'A25_Cycles',
-            'A25_RunHours',
-            'Test_InfiniteCounter' // Moved from Home page
-        ]
-    }
-];
-
-// All tags from all definitions
-export const allPossibleTags = [...new Set(chartDefinitions.flatMap(c => c.tags))];
-
-// The map is created once and exported for global use
-export const tagColorMap = Object.fromEntries(
-    allPossibleTags.map((tag, index) => [tag, COLORS[index % COLORS.length]])
-);
 </file>
 
 <file path="dashboard-ui/src/pages/LoginPage.jsx">
@@ -2599,6 +1779,311 @@ watchfiles==1.1.1
 websockets==15.0.1
 </file>
 
+<file path="dashboard-ui/src/components/FlywheelVisual.jsx">
+// src/components/FlywheelVisual.jsx
+
+import React from 'react';
+// We'll keep HealthStatus imported in case we add it inside this component later
+import HealthStatus from './HealthStatus'; 
+
+// Component for the new base visual
+function FlywheelVisual({ liveData }) {
+    // FIX: Safely extract tags
+    const tags = liveData?.tags || {};
+
+    // For the schematic health cards, we can directly use the boolean tags to determine status.
+    const UBT_Tag = 'TT001_Healthy';
+    const UBT_Value = tags[UBT_Tag];
+    const UBT_Text = UBT_Value === true ? 'Healthy' : (UBT_Value === false ? 'Fault' : 'N/A');
+    const UBT_Class = UBT_Value === true ? 'healthy' : (UBT_Value === false ? 'unhealthy' : 'unknown');
+
+    const LC_Tag = 'WT001_Healthy';
+    const LC_Value = tags[LC_Tag];
+    const LC_Text = LC_Value === true ? 'Healthy' : (LC_Value === false ? 'Fault' : 'N/A');
+    const LC_Class = LC_Value === true ? 'healthy' : (LC_Value === false ? 'unhealthy' : 'unknown');
+
+    const UV_Tag = 'VT001_Healthy';
+    const UV_Value = tags[UV_Tag];
+    const UV_Text = UV_Value === true ? 'Healthy' : (UV_Value === false ? 'Fault' : 'N/A');
+    const UV_Class = UV_Value === true ? 'healthy' : (UV_Value === false ? 'unhealthy' : 'unknown');
+
+    const PR_Tag = 'PT001_Healthy';
+    const PR_Value = tags[PR_Tag];
+    const PR_Text = PR_Value === true ? 'Healthy' : (PR_Value === false ? 'Fault' : 'N/A');
+    const PR_Class = PR_Value === true ? 'healthy' : (PR_Value === false ? 'unhealthy' : 'unknown');
+
+    const LV_Tag = 'VT002_Healthy';
+    const LV_Value = tags[LV_Tag];
+    const LV_Text = LV_Value === true ? 'Healthy' : (LV_Value === false ? 'Fault' : 'N/A');
+    const LV_Class = LV_Value === true ? 'healthy' : (LV_Value === false ? 'unhealthy' : 'unknown');
+
+    const LBT_Tag = 'TT002_Healthy';
+    const LBT_Value = tags[LBT_Tag];
+    const LBT_Text = LBT_Value === true ? 'Healthy' : (LBT_Value === false ? 'Fault' : 'N/A');
+    const LBT_Class = LBT_Value === true ? 'healthy' : (LBT_Value === false ? 'unhealthy' : 'unknown');
+
+    const MT_Tag = 'TT003_Healthy';
+    const MT_Value = tags[MT_Tag];
+    const MT_Text = MT_Value === true ? 'Healthy' : (MT_Value === false ? 'Fault' : 'N/A');
+    const MT_Class = MT_Value === true ? 'healthy' : (MT_Value === false ? 'unhealthy' : 'unknown');
+
+    const isCharging = tags['A25_En_Charge'] === true;
+    const isDischarging = tags['A25_En_Discharge'] === true;
+    const isShutdown = tags['A25_En_Shutdown'] === true;
+
+    let arrowChar = '';
+    let arrowColor = '#dcdcdc';
+    
+    // Arrow logic
+    if (isCharging) {
+        arrowChar = '↓';
+        arrowColor = '#2ecc71';
+    } else if (isDischarging) {
+        arrowChar = '↑';
+        arrowColor = '#e74c3c';
+    } else if (isShutdown) {
+        arrowChar = '';
+    } else {
+        arrowChar = '⚠️';
+        arrowColor = '#f39c12';
+    }
+
+    // --- Arrow Style ---
+    const arrowStyle = {
+        position: 'absolute',
+        // --- CALIBRATION POINTS ---
+        top: '20%',  // Adjust to be above the flywheel graphic
+        left: '55%', // Adjust to be centered on the graphic
+        // --- END CALIBRATION ---
+        transform: 'translateX(-50%)',
+        fontSize: '8em', // Large arrow
+        fontWeight: 'bold',
+        color: arrowColor,
+        lineHeight: '1',
+        zIndex: 101, // Ensure it's above everything else
+        visibility: arrowChar ? 'visible' : 'hidden', // Hide if arrowChar is empty
+    };
+
+    return (
+        // The container needs to be relative so we can place absolute elements on top
+        // The size of this container should match the available space on the Home Page
+        <div style={{
+            position: 'relative',
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            overflow: 'hidden'
+        }}>
+            {/* 
+                This is the static SVG background.
+                We use an <img> tag for best display, but we can't edit it.
+                You can replace this with the full SVG code if you want to edit the path/fill later.
+            */}
+            <img 
+                src="/A25+Leaders.svg" // SVG path
+                alt="Flywheel Energy Storage Schematic"
+                style={{
+                    maxWidth: '50%', 
+                    maxHeight: '50%',
+                    objectFit: 'contain',
+                    position: 'absolute',
+                    bottom: '80px', // changed this padding to adjust flywheel vertically
+                }}
+            />
+
+            <div
+                style={{
+                    position: 'absolute',
+                    top: '5%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    fontSize: '3em',
+                    fontWeight: 'bold',
+                    color: '#dcdcdc',
+                    zIndex: 102,
+                    whiteSpace: 'nowrap'
+                }}>
+                AC Network
+            </div>
+            
+                {/* ========================================================= */}
+                {/* *** BOOLEAN SCHEMATIC CARD TEMPLATE (DUPLICATABLE BLOCK) *** */}
+                {/* ========================================================= */}
+                
+                {/* 1. UPPER BEARING Temp */}
+                {/* ------------------------------ */}
+
+                <div 
+                    className="schematic-health-card" 
+                    style={{ position: 'absolute', top: '38%', left: '75%', transform: 'translateX(-50%)' }} // adjust top and left as needed for all cards.
+                >
+                    <div className="schematic-card-title">Upper Bearing Temp.</div>
+                    <div className="schematic-status-container">
+                        <div className={`schematic-health-indicator ${UBT_Class}`}>
+                            {UBT_Text}
+                        </div>
+                    </div>
+                </div>
+                {/* 2. Load Cell */}
+                <div 
+                    className="schematic-health-card" 
+                    style={{ position: 'absolute', top: '32%', left: '25%', transform: 'translateX(-50%)' }} 
+                >
+                    <div className="schematic-card-title">Load Cell</div>
+                    <div className="schematic-status-container">
+                        <div className={`schematic-health-indicator ${LC_Class}`}>
+                            {LC_Text}
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Upper Vibration */}
+                <div 
+                    className="schematic-health-card" 
+                    style={{ position: 'absolute', top: '42%', left: '25%', transform: 'translateX(-50%)' }} 
+                >
+                    <div className="schematic-card-title">Upper Vibration</div>
+                    <div className="schematic-status-container">
+                        <div className={`schematic-health-indicator ${UV_Class}`}>
+                            {UV_Text}
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Pressure */}
+                <div 
+                    className="schematic-health-card" 
+                    style={{ position: 'absolute', top: '52%', left: '25%', transform: 'translateX(-50%)' }} 
+                >
+                    <div className="schematic-card-title">Pressure</div>
+                    <div className="schematic-status-container">
+                        <div className={`schematic-health-indicator ${PR_Class}`}>
+                            {PR_Text}
+                        </div>
+                    </div>
+                </div>
+
+                {/* 4. Pressure */}
+                <div 
+                    className="schematic-health-card" 
+                    style={{ position: 'absolute', top: '67%', left: '25%', transform: 'translateX(-50%)' }} 
+                >
+                    <div className="schematic-card-title">Lower Vibration</div>
+                    <div className="schematic-status-container">
+                        <div className={`schematic-health-indicator ${LV_Class}`}>
+                            {LV_Text}
+                        </div>
+                    </div>
+                </div>
+
+                {/* 4. Lower Bearing Vibration */}
+                <div 
+                    className="schematic-health-card" 
+                    style={{ position: 'absolute', top: '67%', left: '75%', transform: 'translateX(-50%)' }} 
+                >
+                    <div className="schematic-card-title">Lower Bearting Temp</div>
+                    <div className="schematic-status-container">
+                        <div className={`schematic-health-indicator ${LBT_Class}`}>
+                            {LBT_Text}
+                        </div>
+                    </div>
+                </div>
+
+                {/* 5. Motor Temp */}
+                <div 
+                    className="schematic-health-card" 
+                    style={{ position: 'absolute', top: '80%', left: '75%', transform: 'translateX(-50%)' }} 
+                >
+                    <div className="schematic-card-title">Motor Temp.</div>
+                    <div className="schematic-status-container">
+                        <div className={`schematic-health-indicator ${MT_Class}`}>
+                            {MT_Text}
+                        </div>
+                    </div>
+                </div>
+                
+                {/* ========================================================= */}
+                {/* *** END BLOCKS *** */}
+                {/* ========================================================= */}
+
+                {/* ARROW */}
+                <div style={arrowStyle}>
+                    {arrowChar}
+                </div>
+        </div>
+    );
+}
+
+export default FlywheelVisual;
+</file>
+
+<file path="dashboard-ui/src/constants/index.js">
+// src/constants/index.js
+
+export const COLORS = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
+
+export const chartDefinitions = [
+    { 
+        title: "Power", // Based on Picture 2 Top
+        tags: [
+            'A25_Power', 
+            'A25_Speed', 
+            'A25_Energy', // Mapped to 'Energy' in diagram
+        ] 
+    },
+    { 
+        title: "Vibration", // Based on Picture 2 Middle
+        tags: [
+            'VT001.Scaled', 
+            'VT002.Scaled',
+            'A25_Speed',
+        ] 
+    },
+    { 
+        title: "Temperature", 
+        tags: [
+            'A25_Speed',
+            'TT001.Scaled',
+            'TT002.Scaled',
+            'TT003.Scaled',
+        ] 
+    },
+    { 
+        title: "Electromag", // Based on Picture 3 Top (Simplified)
+        tags: [
+            'A25_Speed',
+            'EM_SV',
+            'WT001.Scaled',
+        ] 
+    },
+    { 
+        title: "Pressure", // Based on Picture 3 Middle (Simplified)
+        tags: [
+            'PT001.Scaled'
+        ] 
+    },
+    {
+        title: "Custom", // Based on Picture 3 Bottom (Simplified / Custom)
+        tags: [
+            'A25_SoC',
+            'A25_Cycles',
+            'A25_RunHours',
+            'Test_InfiniteCounter' // Moved from Home page
+        ]
+    }
+];
+
+// All tags from all definitions
+export const allPossibleTags = [...new Set(chartDefinitions.flatMap(c => c.tags))];
+
+// The map is created once and exported for global use
+export const tagColorMap = Object.fromEntries(
+    allPossibleTags.map((tag, index) => [tag, COLORS[index % COLORS.length]])
+);
+</file>
+
 <file path="dashboard-ui/src/context/AuthContext.jsx">
 // File: dashboard-ui/src/context/AuthContext.jsx
 
@@ -2633,9 +2118,9 @@ export const AuthProvider = ({ children }) => {
 
   // Synchronous User Initialisation from jwt payload.
   const [user, setUser] = useState(() => {
-    const initialToken = localStorage.getItem('authToken');
+    if (!initialToken) return null;
     const payload = decodeJwtPayload(initialToken);
-    return (payload && payload.sub && payload) ? 
+    return (payload && payload.sub && payload.role) ? 
     { username : payload.sub, role: payload.role} : null;
   });
 
@@ -2648,7 +2133,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async (currentToken) => {
 
-      if (!currenToken || connectionStatus.state === 'OFFLINE') {
+      if (!currentToken || connectionStatus.state === 'OFFLINE') {
         setIsLoading(false);
         return null;
       }
@@ -2920,6 +2405,732 @@ function EngineeringPage() {
 export default EngineeringPage;
 </file>
 
+<file path="dashboard-ui/src/pages/HomePage.jsx">
+// dashboard-ui/src/pages/HomePage.jsx
+
+import { useState } from 'react';
+import { useOutletContext } from "react-router-dom";
+import { useSystemStatus } from '../context/SystemStatusContext';
+import CommandsSidebar from '../components/CommandsSidebar';
+import FlywheelVisual from '../components/FlywheelVisual'; 
+import HealthStatus from '../components/HealthStatus';
+import PopoutWindow from '../components/PopoutWindow'; 
+
+function HomePage() {
+  const { setpoints } = useOutletContext();
+  
+  // Consuming Global State instead of local fetching
+  const { liveData, connectionStatus, formatTime } = useSystemStatus();
+
+  // Popout States
+  const [isFlywheelPopped, setIsFlywheelPopped] = useState(false);
+  const [isDashboardPopped, setIsDashboardPopped] = useState(false);
+
+  // --- DERIVED VALUES (Updated to use NEW A25_ tags and new status logic) ---
+  const tags = liveData.tags || {};
+  
+  // Tags for Status Overview
+  const statusCharge = tags['A25_En_Charge'];        // New boolean tag
+  const statusDischarge = tags['A25_En_Discharge']; // New boolean tag (Note: It's 'Dsicharge' in main_api.py hardcoded list)
+  const statusShutdown = tags['A25_En_Shutdown'];    // New boolean tag
+  const statusStartup = tags['A25_En_Startup'];    // New boolean tag (if needed for future logic)
+
+  const power = tags['A25_Power'] || 0;
+  const energy = tags['A25_Energy'] || 0;
+  const soc = tags['A25_SoC'] || 0;
+  const speed = tags['A25_Speed'] || 0;
+  const totalEnergy = tags['A25_Energy_Total'] || 0;
+  const cycles = tags['A25_Cycles'] || 0;
+  const runHours = tags['A25_RunHours'] || 0;
+  
+  // New logic to determine status based on boolean tags
+  const getFlywheelStatusFromBooleans = (tags) => {
+    // Note: The tag name is 'A25_En_Dsicharge' in main_api.py's hardcoded list.
+    const isCharging = tags['A25_En_Charge']; 
+    const isDischarging = tags['A25_En_Discharge']; 
+    const isShutdown = tags['A25_En_Shutdown']; 
+
+    if (isShutdown === true) return "Shutdown";
+    if (isCharging === true) return "Charging";
+    if (isDischarging === true) return "Discharging";
+    
+    // If none of the primary status bits are active, we'll assume Idle or Unknown.
+    // If speed > 0, we can infer it's running but not actively charging/discharging
+    if ((tags['A25_Speed'] || 0) > 10) return "Idle (Spinning)";
+
+    return "Unknown/Fault";
+  };
+  
+  // Use the new logic to get the final status text
+  const flywheelStatusText = getFlywheelStatusFromBooleans(tags);
+
+  // --- COMPONENT CHUNKS ---
+
+  // 2. The Flywheel Visual Wrapper
+  const flywheelVisualContent = (
+    <div style={{position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+        {/* Pass the entire liveData object as required by the new FlywheelVisual */}
+        <FlywheelVisual 
+            liveData={liveData} 
+        />
+        {!isDashboardPopped && (
+            <button 
+                className="maximize-btn" 
+                style={{position: 'absolute', top: 10, right: 10}}
+                onClick={() => setIsFlywheelPopped(!isFlywheelPopped)}
+            >
+                {isFlywheelPopped ? 'Dock' : '❐ Pop Widget'}
+            </button>
+        )}
+    </div>
+  );
+
+  // 3. The Full Dashboard Layout
+  const dashboardContent = (
+    <div className="home-layout" style={{
+        height: isDashboardPopped ? '100vh' : 'calc(100vh - 100px)',
+        backgroundColor: '#1e1e1e',
+        position: 'relative' 
+    }}>
+
+      <CommandsSidebar setpoints={setpoints} liveData={liveData}/>
+      
+      <div className="flywheel-section" style={{position: 'relative', backgroundColor: '#1e1e1e'}}>
+        {isFlywheelPopped && !isDashboardPopped ? (
+            <>
+                <div style={{height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #444', color: '#666'}}>
+                    Flywheel Visual is popped out.
+                    <button className="maximize-btn" style={{marginLeft:'10px'}} onClick={() => setIsFlywheelPopped(false)}>Return</button>
+                </div>
+                <PopoutWindow title="Flywheel Visualization" onClose={() => setIsFlywheelPopped(false)}>
+                    <div style={{height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e1e1e'}}>
+                        {flywheelVisualContent}
+                    </div>
+                </PopoutWindow>
+            </>
+        ) : (
+            flywheelVisualContent
+        )}
+      </div>
+
+      <div className="sidebar status-sidebar">
+        <div className="status-group">
+          <h2>Status Overview</h2>
+          
+          <div className="status-item">
+            <span>Flywheel Status</span>
+            <span className="status-compact-value">{flywheelStatusText}</span>
+          </div>
+          
+          <div className="status-item">
+            <span>Power</span>
+            <span className="status-compact-value">{power.toFixed(2)} kW</span>
+          </div>
+          
+          <div className="status-item">
+            <span>Energy Stored</span>
+            <span className="status-compact-value">{energy.toFixed(1)} kWh</span>
+          </div>
+          
+          <div className="status-item">
+            <span>State of Charge</span>
+            <span className="status-compact-value">{soc.toFixed(0)} %</span>
+          </div>
+          
+          <div className="status-item">
+            <span>Speed</span>
+            <span className="status-compact-value">{speed.toFixed(0)} RPM</span>
+          </div>
+          
+          <div className="status-item">
+            <span>Total Energy Transferred</span>
+            <span className="status-compact-value">{totalEnergy.toFixed(1)} kWh</span>
+          </div>
+          
+          <div className="status-item">
+            <span>Total Cycles</span>
+            <span className="status-compact-value">{cycles}</span>
+          </div>
+          
+          <div className="status-item">
+            <span>Run Hours</span>
+            <span className="status-compact-value">{runHours.toFixed(1)} h</span>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+  );
+
+  // --- RENDER RETURN (Unchanged Popout/Header Logic) ---
+
+  if (isDashboardPopped) {
+      return (
+          <>
+            <div style={{
+                height: 'calc(100vh - 60px)', 
+                display: 'flex', 
+                flexDirection: 'column',
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                backgroundColor: '#1a1a1a',
+                color: '#888'
+            }}>
+                <div style={{fontSize: '2em', marginBottom: '1rem'}}>Main Dashboard is Popped Out</div>
+                <div style={{marginBottom: '2rem'}}>Use the external window to control the system.</div>
+                <button 
+                    className="maximize-btn" 
+                    style={{fontSize: '1.2em', padding: '10px 20px'}}
+                    onClick={() => setIsDashboardPopped(false)}
+                >
+                    Return Dashboard to Main Window
+                </button>
+            </div>
+
+            <PopoutWindow title="SCADA Main Dashboard" onClose={() => setIsDashboardPopped(false)}>
+                {dashboardContent}
+            </PopoutWindow>
+          </>
+      );
+  }
+
+  return (
+    <div style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
+        {/* Header Bar is Unchanged */}
+        <div style={{
+            padding: '10px 20px', 
+            backgroundColor: '#252525', 
+            borderBottom: '1px solid #333', 
+            display: 'flex', 
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: '15px'
+        }}>
+            <div style={{
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                fontSize: '0.9em',
+                fontWeight: 'bold',
+                color: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c'
+            }}>
+                <div style={{
+                    width: '10px', 
+                    height: '10px', 
+                    borderRadius: '50%', 
+                    backgroundColor: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c',
+                    boxShadow: connectionStatus.state === 'ONLINE' ? '0 0 8px #2ecc71' : 'none'
+                }}></div>
+                {connectionStatus.state === 'ONLINE' 
+                    ? 'SYSTEM ONLINE' 
+                    : `OFFLINE (Last: ${formatTime(connectionStatus.lastSeen)})`
+                }
+            </div>
+
+            <button 
+                className="maximize-btn" 
+                onClick={() => setIsDashboardPopped(true)}
+            >
+                ❐ Pop Out Dashboard
+            </button>
+        </div>
+
+        {dashboardContent}
+    </div>
+  );
+}
+
+export default HomePage;
+</file>
+
+<file path="dashboard-ui/src/api.js">
+// src/api.js
+import axios from 'axios';
+
+// Set BASE_API_URL to the root path ('/') so Nginx handles proxying to http://backend:8000
+import { setGlobalLogoutt, getGlobalLogout } from './context/AuthContext';
+
+export const BASE_API_URL = '/'; 
+const API_KEY = import.meta.env.VITE_API_KEY;
+
+const apiClient = axios.create({
+  baseURL: BASE_API_URL,
+  timeout: 30000, // CRITICAL: Fail requests after 5 seconds if server hangs
+});
+
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) config.headers['Authorization'] = `Bearer ${token}`;
+    if (API_KEY) config.headers['x-api-key'] = API_KEY;
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      const isLoginAttempt = error.config.url.endsWith('/token');
+
+      if (!isLoginAttempt) {
+        console.log("Global Interceptor: Token expired/invalid. Clearing session.");
+        // 1. Clear the bad token immediately
+        localStorage.removeItem('authToken');
+        delete apiClient.defaults.headers.common['Authorization'];
+
+        // 2. Redirect to login page to reset the app state
+        // This will prevent 'unknown role" error on EnggPage
+        window.location.href = '/login';
+
+        // Reject the promise to stop subsequent .then() chains
+        return Promise.reject(error);
+      }
+    }
+    return Promise.reject(error);
+  }
+)
+
+export default apiClient;
+</file>
+
+<file path="dashboard-ui/src/App.css">
+/* --- GLOBAL STYLES & DARK THEME --- */
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #1e1e1e;
+  color: #dcdcdc;
+}
+body { margin: 0; }
+.App { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+.main-content { flex-grow: 1; overflow-y: auto; }
+
+/* Custom Scrollbar for Dark Theme */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #2d2d2d; }
+::-webkit-scrollbar-thumb { background: #555; border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: #777; }
+
+/* --- HEADER & NAVIGATION --- */
+.App-header { display: flex; align-items: center; background-color: #2d2d2d; padding: 0 2rem; height: 60px; border-bottom: 1px solid #444; flex-shrink: 0; }
+.logo-container img { height: 40px; }
+.navigation { flex-grow: 1; display: flex; justify-content: center; gap: 1rem; }
+.navigation a { color: #a0a0a0; text-decoration: none; font-size: 1.1em; padding: 0.5rem 1rem; border-radius: 6px; transition: background-color 0.2s; }
+.navigation a.active, .navigation a:hover { color: #ffffff; background-color: #444; }
+.header-right-side { display: flex; align-items: center; gap: 1.5rem; margin-left: auto; }
+.status-time { color: #a0a0a0; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.logout-button { background-color: #3a3a3a; color: #a0a0a0; border: 1px solid #555; border-radius: 6px; padding: 0.5rem 1rem; font-size: 1em; cursor: pointer; transition: all 0.2s; }
+.logout-button:hover { background-color: #c0392b; color: white; border-color: #e74c3c; }
+
+/* --- GENERIC COMPONENTS --- */
+.sidebar { background-color: #2d2d2d; border-radius: 8px; overflow-y: auto; }
+.card { background-color: #2d2d2d; border-radius: 8px; padding: 1.5rem; }
+
+/* --- HOME PAGE --- */
+.home-layout { 
+  display: grid; 
+  grid-template-columns: 300px 1fr 350px; 
+  height: calc(100vh - 60px); 
+  overflow: hidden; 
+}
+
+.commands-sidebar { padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+.commands-sidebar h2 { margin: 0 0 1rem 0; font-size: 1.5em; font-weight: 600; border-bottom: 1px solid #444; padding-bottom: 1rem; }
+.commands-sidebar button { width: 100%; padding: 1.2rem; font-size: 1.5em; border-radius: 8px; border: 1px solid #555; background-color: #3a3a3a; color: #dcdcdc; cursor: pointer; transition: background-color 0.2s; }
+.commands-sidebar button:hover { background-color: #4a4a4a; }
+.commands-sidebar button:disabled { background-color: #2a2a2a; color: #666; cursor: not-allowed; border-color: #444; }
+
+.status-sidebar { padding: 2rem; }
+.status-group { margin-bottom: 2rem; }
+.status-group h2 { margin: 0 0 1rem 0; font-size: 1.5em; font-weight: 600; border-bottom: 1px solid #444; padding-bottom: 1rem; }
+.status-item { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 0; border-bottom: 1px solid #444; font-size: 1.1em; }
+.status-item:last-child { border-bottom: none; }
+.status-item span:first-child { color: #a0a0a0; }
+.status-item span:last-child { font-weight: bold; font-size: 1.1em; font-variant-numeric: tabular-nums; }
+.debug-item span:first-child { color: #f0a !important; font-style: italic; }
+.status-compact-value {
+  font-weight: bold; 
+  font-size: 1em !important; /* Slightly reduced from 1.1em */
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap; /* CRITICAL: Prevents wrapping */
+}
+
+/* --------------------------------------------------------- */
+
+.health-item { display: flex; justify-content: space-between; align-items: center; font-size: 1.1em; margin-bottom: 0.8rem; }
+.health-indicator { font-weight: bold; padding: 0.2rem 0.6rem; border-radius: 5px; }
+.health-item.healthy .health-indicator { background-color: #27ae60; color: white; }
+.health-item.unhealthy .health-indicator { background-color: #c0392b; color: white; }
+.health-item.unknown .health-indicator { background-color: #7f8c8d; color: white; }
+
+/* --- OPERATIONAL DETAILS PAGE --- */
+.details-layout-final { 
+  display: grid; grid-template-columns: 250px 1fr 350px; 
+  height: calc(100vh - 60px); 
+  gap: 1rem; padding: 1rem; box-sizing: border-box;
+}
+
+.charts-container-final { display: flex; flex-direction: column; gap: 1.5rem; overflow-y: auto; padding-right: 0.5rem; }
+.pens-sidebar { padding: 1rem; }
+.pen-group h4 { margin: 0 0 1rem 0; border-bottom: 1px solid #555; padding-bottom: 0.5rem; }
+.pen-item { display: flex; align-items: center; margin-bottom: 0.75rem; font-size: 0.9em; }
+.pen-color-swatch { width: 15px; height: 15px; margin-right: 0.75rem; border: 1px solid #555; border-radius: 3px; }
+.pen-item input { margin-right: 0.5rem; }
+.pen-item label { cursor: pointer; user-select: none; }
+
+.chart-card-container { display: grid; grid-template-columns: 220px 1fr; gap: 1rem; background-color: #2d2d2d; padding: 1rem; border-radius: 8px; height: 350px; }
+.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; height: 40px; }
+.chart-header h3 { margin: 0; font-size: 1.2em; display: flex; align-items: center; gap: 0.5rem; }
+.live-badge { background-color: #c0392b; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 4px; animation: pulse 2s infinite; }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+.individual-time-selector { display: flex; align-items: center; gap: 0.5rem; }
+.individual-time-selector select { padding: 0.3rem; border-radius: 4px; background-color: #3a3a3a; color: #dcdcdc; border: 1px solid #555; }
+.chart-wrapper { height: calc(100% - 45px); position: relative; width: 100%; }
+
+.sensor-sidebar { padding: 1rem; }
+.sensor-list { display: flex; flex-direction: column; gap: 0.8rem; }
+.sensor-item { display: flex; justify-content: space-between; align-items: center; font-size: 1em; border-bottom: 1px solid #444; padding-bottom: 0.8rem; }
+.sensor-item:last-child { border-bottom: none; }
+.sensor-value { font-variant-numeric: tabular-nums; font-family: monospace; font-size: 1.1em; color: #41D1FF; }
+
+/* --- ENGINEERING & LOGIN PAGES --- */
+.engineering-layout, .login-container { padding: 2rem; display: flex; justify-content: center; width: 100%; box-sizing: border-box; }
+.engineering-layout > div, .login-container form { width: 100%; max-width: 600px; }
+.form-group { display: flex; flex-direction: column; margin-bottom: 1.5rem; }
+.form-group label { margin-bottom: 0.5rem; color: #a0a0a0; }
+.form-group input { padding: 0.8rem; border-radius: 6px; background-color: #1e1e1e; color: #dcdcdc; border: 1px solid #555; font-size: 1.1em; }
+.form-group-with-button { display: grid; grid-template-columns: 1fr 120px 80px; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+.tag-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.tag-table th, .tag-table td { padding: 0.8rem; text-align: left; border-bottom: 1px solid #444; }
+.tag-table th { background-color: #3a3a3a; }
+.status-toggle { border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 5px; font-weight: bold; width: 100%; }
+.status-toggle.active { background-color: #27ae60; color: white; }
+.status-toggle.inactive { background-color: #7f8c8d; color: #ddd; }
+.error-message { color: #e74c3c; font-weight: bold; margin-bottom: 1rem; }
+
+/* --- RESPONSIVE MEDIA QUERIES --- */
+@media (max-width: 1200px) {
+  .home-layout, .details-layout-final {
+    grid-template-columns: 1fr; /* Stack vertically */
+    height: auto;
+    overflow-y: auto;
+  }
+  .sidebar, .chart-card-container {
+    height: auto;
+    min-height: 400px;
+  }
+  .flywheel-container {
+    padding: 3rem 0;
+  }
+  /* On mobile/tablet, stack the specific chart sidebar */
+  .chart-card-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 400px;
+  }
+  .App-header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 1rem;
+    gap: 1rem;
+  }
+  .header-right-side {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* --- OPERATIONAL DETAILS PAGE LAYOUT --- */
+.details-layout-final { 
+  display: grid; 
+  /* Fixed Width Sidebar | Flexible Charts | Fixed Width Sidebar */
+  grid-template-columns: 250px 1fr 300px; 
+  height: calc(100vh - 60px); 
+  gap: 1rem; 
+  padding: 1rem; 
+  box-sizing: border-box;
+  overflow: hidden; /* Prevent the whole page from scrolling */
+}
+
+/* Middle Column: The Scrollable Chart Area */
+.charts-container-final { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 1.5rem; 
+  overflow-y: auto; /* Only this middle part scrolls */
+  padding-right: 0.5rem; 
+  min-height: 0; /* Crucial for nested flex scrolling */
+}
+
+/* Individual Chart Card */
+.chart-card-container { 
+  display: flex; 
+  flex-direction: column; 
+  background-color: #2d2d2d; 
+  padding: 1rem; 
+  border-radius: 8px; 
+  /* Fixed height for each chart card ensures they don't collapse or explode */
+  height: 400px; 
+  flex-shrink: 0; /* Don't let them shrink smaller than 400px */
+}
+
+.chart-header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 1rem; 
+  height: 40px; 
+}
+
+/* The wrapper around the Canvas */
+.chart-wrapper { 
+  flex-grow: 1; 
+  position: relative; 
+  width: 100%; 
+  min-height: 0; /* CRITICAL FIX: Stops chart from growing infinitely */
+}
+
+/* Message styling for Loading / No Data */
+.no-data-message, .loading-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #666;
+  font-style: italic;
+}
+
+/* Sidebars */
+.sidebar { 
+  background-color: #2d2d2d; 
+  border-radius: 8px; 
+  overflow-y: auto; 
+  height: 100%; /* Fill the grid cell */
+}
+
+/* Right Sidebar specific */
+.sensor-list {
+  padding-bottom: 2rem;
+}
+
+/* --- SENSOR SIDEBAR IMPROVEMENTS --- */
+
+/* 1. Header with Maximize Button */
+.sidebar-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #444;
+  padding-bottom: 0.5rem;
+}
+
+.sidebar-header-row h2 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.maximize-btn {
+  background-color: #333;
+  color: #a0a0a0;
+  border: 1px solid #555;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8em;
+  border-radius: 4px;
+}
+.maximize-btn:hover {
+  background-color: #41D1FF;
+  color: #000;
+  border-color: #41D1FF;
+}
+
+/* 2. Stacked Items (Label Top, Value Bottom) for readability */
+.sensor-item {
+  display: flex;
+  flex-direction: column; /* Stack vertically */
+  align-items: flex-start; /* Align left */
+  border-bottom: 1px solid #444;
+  padding: 0.8rem 0;
+}
+
+.sensor-label {
+  font-size: 0.85em;
+  color: #888;
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sensor-value {
+  font-size: 1.3em; /* Larger font for value */
+  font-family: 'Courier New', monospace; /* Monospace for alignment */
+  color: #41D1FF;
+  font-weight: 600;
+}
+
+/* 3. MAXIMIZED MODE (The "Sensor Wall") */
+.sensor-sidebar.maximized {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  background-color: #1a1a1a;
+  padding: 2rem;
+  box-sizing: border-box;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* When maximized, switch list to a Grid */
+.sensor-sidebar.maximized .sensor-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Auto-fit grid */
+  gap: 1.5rem;
+  padding-top: 1rem;
+}
+
+.sensor-sidebar.maximized .sensor-item {
+  background-color: #2d2d2d;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #444;
+  border-bottom: 1px solid #444; /* Reset border */
+}
+
+.sensor-sidebar.maximized .sensor-label {
+  color: #aaa;
+}
+
+.sensor-sidebar.maximized .sensor-value {
+  font-size: 1.8em; /* Even bigger on big screen */
+  margin-top: 0.5rem;
+}
+
+/* Scrollbar within sidebar */
+.sensor-sidebar::-webkit-scrollbar { width: 6px; }
+.sensor-sidebar::-webkit-scrollbar-thumb { background-color: #555; border-radius: 3px; }
+
+/* --- SCADA ALARM OVERLAYS --- */
+.connection-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.75); /* Dim the background */
+  backdrop-filter: blur(3px); /* Blur the dashboard */
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.connection-box {
+  background-color: #1a1a1a;
+  padding: 2.5rem;
+  border-radius: 12px;
+  border: 2px solid #e74c3c; /* Red Border */
+  text-align: center;
+  box-shadow: 0 0 30px rgba(231, 76, 60, 0.3);
+  animation: pulse-border 2s infinite;
+  max-width: 500px;
+}
+
+.connection-box h2 {
+  margin: 0 0 1rem 0;
+  color: #e74c3c;
+  font-size: 2em;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.connection-box p {
+  color: #dcdcdc;
+  font-size: 1.2em;
+  margin-bottom: 1.5rem;
+}
+
+.retry-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #333;
+  border-top: 4px solid #e74c3c;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes pulse-border {
+  0% { box-shadow: 0 0 10px rgba(231, 76, 60, 0.2); }
+  50% { box-shadow: 0 0 25px rgba(231, 76, 60, 0.6); }
+  100% { box-shadow: 0 0 10px rgba(231, 76, 60, 0.2); }
+}
+
+.schematic-health-card {
+    position: absolute;
+    width: 180px; /* Fixed width to prevent title wrapping */
+    background-color: white; 
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+    z-index: 100;
+    text-align: center;
+    overflow: hidden; /* Ensure nothing spills out */
+}
+
+.schematic-card-title {
+    /* Black text, middle-center-top */
+    color: black;
+    font-size: 0.8em;
+    font-weight: 500;
+    padding: 4px 0;
+    /* The line in the image appears to be a bottom border */
+    border-bottom: 1px solid #eee; 
+    white-space: nowrap; /* CRITICAL: Ensures text stays on one line */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.schematic-status-container {
+    padding: 5px;
+    background-color: white; /* Outer container is white */
+}
+
+.schematic-health-indicator {
+    /* Inner rectangle where the boolean result sits */
+    background-color: white; /* Inner rectangle is also white */
+    border: 1px solid #ccc; 
+    border-radius: 2px;
+    padding: 5px 0;
+    font-size: 1.3em;
+    font-weight: bold;
+    /* Use a custom dark blue/black color for the default text */
+    color: black; 
+}
+
+/* Overrides for Health Status colors */
+.schematic-health-indicator.healthy {
+    color: #2ecc71 !important; /* Green text for Healthy */
+}
+.schematic-health-indicator.unhealthy {
+    color: #e74c3c !important; /* Red text for Fault */
+}
+.schematic-health-indicator.unknown {
+    color: #888 !important; /* Gray text for N/A */
+}
+
+/* Ensure old dark theme classes are neutralized */
+.flywheel-data-card, .flywheel-card-title, .flywheel-card-value {
+    display: none !important;
+}
+</file>
+
 <file path="dashboard-ui/src/pages/OperationalDetailsPage.jsx">
 import { useState, useEffect, useCallback } from 'react';
 import { Line } from 'react-chartjs-2';
@@ -2990,6 +3201,23 @@ const getStartEndTime = (timeRangeKey) => {
     return { startTime, endTime: now };
 };
 
+
+const getFlywheelStatusFromBooleans = (tags) => {
+    // Note: The tag name is 'A25_En_Dsicharge' in main_api.py's hardcoded list.
+    const isCharging = tags['A25_En_Charge']; 
+    const isDischarging = tags['A25_En_Discharge']; 
+    const isShutdown = tags['A25_En_Shutdown']; 
+
+    if (isShutdown === true) return "Shutdown";
+    if (isCharging === true) return "Charging";
+    if (isDischarging === true) return "Discharging";
+    
+    // If none of the primary status bits are active, we'll assume Idle or Unknown.
+    if ((tags['A25_Speed'] || 0) > 10) return "Idle (Spinning)";
+
+    return "Unknown/Fault";
+};
+
 // --- UPDATED: LiveSensorTable with Pop-out Logic ---
 const TELEMETRY_TAGS_TO_DISPLAY = [
     { label: "Power", tag: "A25_Power", unit: "kW" },
@@ -3000,24 +3228,13 @@ const TELEMETRY_TAGS_TO_DISPLAY = [
     { label: "Motor Temp.", tag: "TT003.Scaled", unit: "°C" },
     { label: "Upper Vibration", tag: "VT001.Scaled", unit: "" },
     { label: "Lower Vibration", tag: "VT002.Scaled", unit: "" },
-    { label: "Load Cell", tag: "WT001_Scaled", unit: "kg" },
-    { label: "Pressure", tag: "PT001_Scaled", unit: "" },
+    { label: "Load Cell", tag: "WT001.Scaled", unit: "kg" },
+    { label: "Pressure", tag: "PT001.Scaled", unit: "" },
     { label: "Load Cell Target", tag: "EM_SV", unit: "kg" },
     // Add boolean examples from Picture 3 for demo
     { label: "Vib Health (U)", tag: "VT001_Healthy", unit: "Bool" },
     { label: "Pressure Health", tag: "PT001_Healthy", unit: "Bool" },
 ];
-
-const getFlywheelStatusText = (statusCode) => {
-    switch(statusCode) {
-        case 2: return 'Charging';
-        case 3: return 'Discharging';
-        case 1: return 'Idle';
-        case 0: return 'Shutdown';
-        case 4: return 'Fault';
-        default: return 'Unknown';
-    }
-}
 
 function LiveSensorTable({ tags }) {
     
@@ -3038,6 +3255,8 @@ function LiveSensorTable({ tags }) {
 
     if (!tags || Object.keys(tags).length === 0) return <div className="sidebar sensor-sidebar">Loading...</div>;
 
+    const derivedFlywheelStatus = getFlywheelStatusFromBooleans(tags);
+
     return (
         <div className="sidebar sensor-sidebar">
             <div className="sidebar-header-row">
@@ -3056,7 +3275,7 @@ function LiveSensorTable({ tags }) {
                     let displayValue;
                     
                     if (tag === "A25_Status") {
-                        displayValue = getFlywheelStatusText(value);
+                        displayValue = derivedFlywheelStatus;
                     } else if (typeof value === 'number') {
                         // All numeric values display to 2 decimal places (or just the number)
                         displayValue = `${value.toFixed(value % 1 !== 0 ? 2 : 0)} ${unit}`;
@@ -3292,58 +3511,6 @@ function OperationalDetailsPage() {
 }
 
 export default OperationalDetailsPage;
-</file>
-
-<file path="dashboard-ui/src/api.js">
-// src/api.js
-import axios from 'axios';
-
-// Set BASE_API_URL to the root path ('/') so Nginx handles proxying to http://backend:8000
-import { setGlobalLogoutt, getGlobalLogout } from './context/AuthContext';
-
-export const BASE_API_URL = '/'; 
-const API_KEY = import.meta.env.VITE_API_KEY;
-
-const apiClient = axios.create({
-  baseURL: BASE_API_URL,
-  timeout: 30000, // CRITICAL: Fail requests after 5 seconds if server hangs
-});
-
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) config.headers['Authorization'] = `Bearer ${token}`;
-    if (API_KEY) config.headers['x-api-key'] = API_KEY;
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      const isLoginAttempt = error.config.url.endsWith('/token');
-
-      if (!isLoginAttempt) {
-        console.log("Global Interceptor: Token expired/invalid. Clearing session.");
-        // 1. Clear the bad token immediately
-        localStorage.removeItem('authToken');
-        delete apiClient.defaults.headers.common['Authorisation'];
-
-        // 2. Redirect to login page to reset the app state
-        // This will prevent 'unknown role" error on EnggPage
-        window.locaiton.href = '/login';
-
-        // Reject the promise to stop subsequent .then() chains
-        return Promise.reject(error);
-      }
-    }
-    return Promise.reject(error);
-  }
-)
-
-export default apiClient;
 </file>
 
 <file path="main_api.py">
@@ -3721,11 +3888,10 @@ def sync_tags_with_db():
         {"name": "A25_CMD_Startup", "datatype": "bool"},
         {"name": "A25_Cycles", "datatype": "int"},
         {"name": "A25_En_Charge", "datatype": "bool"},
-        {"name": "A25_En_Dsicharge", "datatype": "bool"},
+        {"name": "A25_En_Discharge", "datatype": "bool"},
         {"name": "A25_En_Shutdown", "datatype": "bool"},
         {"name": "A25_Energy", "datatype": "float"},
         {"name": "A25_Energy_Total", "datatype": "float"},
-        {"name": "A25_power", "datatype": "float"},
         {"name": "A25_RunHours", "datatype": "int"},
         {"name": "A25_SIM_Charge", "datatype": "bool"},
         {"name": "A25_SIM_Discharge", "datatype": "bool"},
@@ -3741,8 +3907,8 @@ def sync_tags_with_db():
         {"name": "TT002.Scaled", "datatype": "float"},
         {"name": "TT003.Scaled", "datatype": "float"},
         {"name": "A25_Status", "datatype": "int"},
-        {"name": "WT001_Scaled", "datatype": "float"},
-        {"name": "PT001_Scaled", "datatype": "float"},
+        {"name": "WT001.Scaled", "datatype": "float"},
+        {"name": "PT001.Scaled", "datatype": "float"},
         {"name": "EM_SV", "datatype": "float"},
         {"name": "PT001_Healthy", "datatype": "bool"},
         {"name": "WT001_Healthy", "datatype": "bool"},

@@ -70,8 +70,8 @@ function FlywheelVisual({ liveData }) {
     const arrowStyle = {
         position: 'absolute',
         // --- CALIBRATION POINTS ---
-        top: '25%',  // Adjust to be above the flywheel graphic
-        left: '50%', // Adjust to be centered on the graphic
+        top: '20%',  // Adjust to be above the flywheel graphic
+        left: '55%', // Adjust to be centered on the graphic
         // --- END CALIBRATION ---
         transform: 'translateX(-50%)',
         fontSize: '8em', // Large arrow
@@ -110,6 +110,21 @@ function FlywheelVisual({ liveData }) {
                     bottom: '80px', // changed this padding to adjust flywheel vertically
                 }}
             />
+
+            <div
+                style={{
+                    position: 'absolute',
+                    top: '5%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    fontSize: '3em',
+                    fontWeight: 'bold',
+                    color: '#dcdcdc',
+                    zIndex: 102,
+                    whiteSpace: 'nowrap'
+                }}>
+                AC Network
+            </div>
             
                 {/* ========================================================= */}
                 {/* *** BOOLEAN SCHEMATIC CARD TEMPLATE (DUPLICATABLE BLOCK) *** */}
