@@ -1,15 +1,12 @@
 // src/components/FlywheelVisual.jsx
 
 import React from 'react';
-// We'll keep HealthStatus imported in case we add it inside this component later
 import HealthStatus from './HealthStatus'; 
 
-// Component for the new base visual
 function FlywheelVisual({ liveData }) {
-    // FIX: Safely extract tags
     const tags = liveData?.tags || {};
 
-    // For the schematic health cards, we can directly use the boolean tags to determine status.
+    // --- ALL YOUR TAG LOGIC (UBT, LC, UV, etc.) stays exactly as you have it ---
     const UBT_Tag = 'TT001_Healthy';
     const UBT_Value = tags[UBT_Tag];
     const UBT_Text = UBT_Value === true ? 'Healthy' : (UBT_Value === false ? 'Fault' : 'N/A');
@@ -51,42 +48,26 @@ function FlywheelVisual({ liveData }) {
 
     let arrowChar = '';
     let arrowColor = '#dcdcdc';
-    
-    // Arrow logic
-    if (isCharging) {
-        arrowChar = '↓';
-        arrowColor = '#2ecc71';
-    } else if (isDischarging) {
-        arrowChar = '↑';
-        arrowColor = '#e74c3c';
-    } else if (isShutdown) {
-        arrowChar = '';
-    } else {
-        arrowChar = '⚠️';
-        arrowColor = '#f39c12';
-    }
+    if (isCharging) { arrowChar = '↓'; arrowColor = '#2ecc71'; }
+    else if (isDischarging) { arrowChar = '↑'; arrowColor = '#e74c3c'; }
+    else if (isShutdown) { arrowChar = ''; }
+    else { arrowChar = '⚠️'; arrowColor = '#f39c12'; }
 
-    // --- Arrow Style ---
     const arrowStyle = {
         position: 'absolute',
-        // --- CALIBRATION POINTS ---
-        top: '20%',  // Adjust to be above the flywheel graphic
-        left: '55%', // Adjust to be centered on the graphic
-        // --- END CALIBRATION ---
+        top: '18%',
+        left: '53%',
         transform: 'translateX(-50%)',
-        fontSize: '8em', // Large arrow
+        fontSize: '8em',
         fontWeight: 'bold',
         color: arrowColor,
         lineHeight: '1',
-        zIndex: 101, // Ensure it's above everything else
-        visibility: arrowChar ? 'visible' : 'hidden', // Hide if arrowChar is empty
+        zIndex: 101,
+        visibility: arrowChar ? 'visible' : 'hidden',
     };
 
     return (
-        // The container needs to be relative so we can place absolute elements on top
-        // The size of this container should match the available space on the Home Page
         <div style={{
-            position: 'relative',
             width: '100%',
             height: '100%',
             display: 'flex',
@@ -95,141 +76,103 @@ function FlywheelVisual({ liveData }) {
             overflow: 'hidden'
         }}>
             {/* 
-                This is the static SVG background.
-                We use an <img> tag for best display, but we can't edit it.
-                You can replace this with the full SVG code if you want to edit the path/fill later.
+                SCALING BOX: 
+                This maintains the same proportions (407x471 from your SVG) 
+                so the cards stay exactly on the leader lines regardless of screen size.
             */}
-            <img 
-                src="/A25+Leaders.svg" // SVG path
-                alt="Flywheel Energy Storage Schematic"
-                style={{
-                    maxWidth: '50%', 
-                    maxHeight: '50%',
-                    objectFit: 'contain',
-                    position: 'absolute',
-                    bottom: '80px', // changed this padding to adjust flywheel vertically
-                }}
-            />
+            <div style={{
+                position: 'relative',
+                height: '90%', // Uses most of the vertical space
+                aspectRatio: '407 / 471', // Matches your SVG dimensions
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+            }}>
+                
+                <img 
+                    src="/A25+Leaders.svg" 
+                    alt="Schematic"
+                    style={{
+                        width: '60%',
+                        height: '60%',
+                        objectFit: 'contain',
+                        position: 'absolute',
+                        top: '40%',
+                    }}
+                />
 
-            <div
-                style={{
+                <div style={{
                     position: 'absolute',
                     top: '5%',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    fontSize: '3em',
+                    fontSize: '2.5em',
                     fontWeight: 'bold',
                     color: '#dcdcdc',
                     zIndex: 102,
                     whiteSpace: 'nowrap'
                 }}>
-                AC Network
-            </div>
+                    AC Network
+                </div>
             
-                {/* ========================================================= */}
-                {/* *** BOOLEAN SCHEMATIC CARD TEMPLATE (DUPLICATABLE BLOCK) *** */}
-                {/* ========================================================= */}
-                
-                {/* 1. UPPER BEARING Temp */}
-                {/* ------------------------------ */}
-
-                <div 
-                    className="schematic-health-card" 
-                    style={{ position: 'absolute', top: '38%', left: '75%', transform: 'translateX(-50%)' }} // adjust top and left as needed for all cards.
-                >
+                {/* 1. UPPER BEARING */}
+                <div className="schematic-health-card" style={{ position: 'absolute', top: '38%', left: '93%', transform: 'translateX(-50%)' }}>
                     <div className="schematic-card-title">Upper Bearing Temp.</div>
                     <div className="schematic-status-container">
-                        <div className={`schematic-health-indicator ${UBT_Class}`}>
-                            {UBT_Text}
-                        </div>
+                        <div className={`schematic-health-indicator ${UBT_Class}`}>{UBT_Text}</div>
                     </div>
                 </div>
+
                 {/* 2. Load Cell */}
-                <div 
-                    className="schematic-health-card" 
-                    style={{ position: 'absolute', top: '32%', left: '25%', transform: 'translateX(-50%)' }} 
-                >
+                <div className="schematic-health-card" style={{ position: 'absolute', top: '32%', left: '8%', transform: 'translateX(-50%)' }}>
                     <div className="schematic-card-title">Load Cell</div>
                     <div className="schematic-status-container">
-                        <div className={`schematic-health-indicator ${LC_Class}`}>
-                            {LC_Text}
-                        </div>
+                        <div className={`schematic-health-indicator ${LC_Class}`}>{LC_Text}</div>
                     </div>
                 </div>
 
                 {/* 3. Upper Vibration */}
-                <div 
-                    className="schematic-health-card" 
-                    style={{ position: 'absolute', top: '42%', left: '25%', transform: 'translateX(-50%)' }} 
-                >
+                <div className="schematic-health-card" style={{ position: 'absolute', top: '45%', left: '8%', transform: 'translateX(-50%)' }}>
                     <div className="schematic-card-title">Upper Vibration</div>
                     <div className="schematic-status-container">
-                        <div className={`schematic-health-indicator ${UV_Class}`}>
-                            {UV_Text}
-                        </div>
-                    </div>
-                </div>
-
-                {/* 3. Pressure */}
-                <div 
-                    className="schematic-health-card" 
-                    style={{ position: 'absolute', top: '52%', left: '25%', transform: 'translateX(-50%)' }} 
-                >
-                    <div className="schematic-card-title">Pressure</div>
-                    <div className="schematic-status-container">
-                        <div className={`schematic-health-indicator ${PR_Class}`}>
-                            {PR_Text}
-                        </div>
+                        <div className={`schematic-health-indicator ${UV_Class}`}>{UV_Text}</div>
                     </div>
                 </div>
 
                 {/* 4. Pressure */}
-                <div 
-                    className="schematic-health-card" 
-                    style={{ position: 'absolute', top: '67%', left: '25%', transform: 'translateX(-50%)' }} 
-                >
+                <div className="schematic-health-card" style={{ position: 'absolute', top: '75%', left: '8%', transform: 'translateX(-50%)' }}>
+                    <div className="schematic-card-title">Pressure</div>
+                    <div className="schematic-status-container">
+                        <div className={`schematic-health-indicator ${PR_Class}`}>{PR_Text}</div>
+                    </div>
+                </div>
+
+                {/* 5. Lower Vibration */}
+                <div className="schematic-health-card" style={{ position: 'absolute', top: '60%', left: '8%', transform: 'translateX(-50%)' }}>
                     <div className="schematic-card-title">Lower Vibration</div>
                     <div className="schematic-status-container">
-                        <div className={`schematic-health-indicator ${LV_Class}`}>
-                            {LV_Text}
-                        </div>
+                        <div className={`schematic-health-indicator ${LV_Class}`}>{LV_Text}</div>
                     </div>
                 </div>
 
-                {/* 4. Lower Bearing Vibration */}
-                <div 
-                    className="schematic-health-card" 
-                    style={{ position: 'absolute', top: '67%', left: '75%', transform: 'translateX(-50%)' }} 
-                >
-                    <div className="schematic-card-title">Lower Bearting Temp</div>
+                {/* 6. Lower Bearing Temp */}
+                <div className="schematic-health-card" style={{ position: 'absolute', top: '75%', left: '93%', transform: 'translateX(-50%)' }}>
+                    <div className="schematic-card-title">Lower Bearing Temp.</div>
                     <div className="schematic-status-container">
-                        <div className={`schematic-health-indicator ${LBT_Class}`}>
-                            {LBT_Text}
-                        </div>
+                        <div className={`schematic-health-indicator ${LBT_Class}`}>{LBT_Text}</div>
                     </div>
                 </div>
 
-                {/* 5. Motor Temp */}
-                <div 
-                    className="schematic-health-card" 
-                    style={{ position: 'absolute', top: '80%', left: '75%', transform: 'translateX(-50%)' }} 
-                >
+                {/* 7. Motor Temp */}
+                <div className="schematic-health-card" style={{ position: 'absolute', top: '90%', left: '93%', transform: 'translateX(-50%)' }}>
                     <div className="schematic-card-title">Motor Temp.</div>
                     <div className="schematic-status-container">
-                        <div className={`schematic-health-indicator ${MT_Class}`}>
-                            {MT_Text}
-                        </div>
+                        <div className={`schematic-health-indicator ${MT_Class}`}>{MT_Text}</div>
                     </div>
                 </div>
-                
-                {/* ========================================================= */}
-                {/* *** END BLOCKS *** */}
-                {/* ========================================================= */}
 
-                {/* ARROW */}
-                <div style={arrowStyle}>
-                    {arrowChar}
-                </div>
+                <div style={arrowStyle}>{arrowChar}</div>
+            </div>
         </div>
     );
 }

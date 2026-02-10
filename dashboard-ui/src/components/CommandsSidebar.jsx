@@ -20,7 +20,7 @@ function CommandsSidebar({ setpoints, liveData }) {
   const canCharge = isUserAuthenticated && currentSpeed >= RPM_UNLOCK_CHARGE && currentSpeed < RPM_MAX_SPEED;
   const canDischarge = isUserAuthenticated && currentSpeed >= RPM_UNLOCK_DISCHARGE && currentSpeed < RPM_MAX_SPEED;
   const canShutdown = isUserAuthenticated;
-  const canStartup = isUserAuthenticated;
+  const canStartup = isUserAuthenticated && currentSpeed < RPM_UNLOCK_CHARGE;
 
   const handleCommand = async (commandKey) => {
     if (!isUserAuthenticated) {
