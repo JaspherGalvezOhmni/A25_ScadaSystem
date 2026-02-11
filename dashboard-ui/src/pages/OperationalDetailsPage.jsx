@@ -33,13 +33,36 @@ const staticChartOptions = {
     scales: {
         x: { 
             type: 'time', 
-            time: { tooltipFormat: 'PP pp' }, 
-            ticks: { color: '#a0a0a0', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, 
+            time: { tooltipFormat: 'PP pp' },
+            displayFormats: {
+                hour: 'MMM d, h a',
+                day: 'MMM d',
+                week: 'MMM d',
+                month: 'MMM yyyy'
+            },
+            ticks: { color: '#a0a0a0', maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, 
             grid: { color: '#333' } 
         },
-        y: { 
+        y: {
+            type: 'linear',
+            display: true,
+            position: 'left', // Main axis for Temp, Vibration, Power, etc.
+            ticks: { color: '#a0a0a0' },
+            grid: { color: '#333' }
+        },
+        y1: { 
+            type: 'linear',
+            display: true,
+            position: 'right',
+            min: 0,
+            max: 9000,
+            title: {
+                display: true,
+                text: 'Speed (RPM)',
+                color: '#a0a0a0'
+            },
             ticks: { color: '#a0a0a0' }, 
-            grid: { color: '#333' } 
+            grid: { drawOnChartArea: false } 
         }
     },
     animation: { duration: 0 }
@@ -313,6 +336,7 @@ function OperationalDetailsPage() {
                 data: data[tagName]?.map(p => ({ x: new Date(p.ts).getTime(), y: p.value })) || [],
                 borderColor: tagColorMap[tagName] || '#888',
                 backgroundColor: (tagColorMap[tagName] || '#888') + '80',
+                yAxisID: tagName === 'A25_Speed' ? 'y1' : 'y',
                 tension: 0.2, 
                 pointRadius: 0, 
                 borderWidth: 2,
