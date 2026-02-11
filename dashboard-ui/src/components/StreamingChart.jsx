@@ -46,10 +46,30 @@ function StreamingChart({ selectedTags, displayRangeSec, tagColorMap }) {
             x: {
                 type: "time",
                 time: { unit: "second", tooltipFormat: "HH:mm:ss.SSS" },
+                displayFormats: {
+                  second: 'HH:mm:ss',
+                  minute: 'HH:mm',
+                  hour: 'MMM d, HH"mm',
+                },
                 ticks: { color: '#a0a0a0', maxRotation: 0, autoSkip: true, maxTicksLimit: 10, source: 'auto' },
                 grid: { color: '#333' }
             },
-            y: { ticks: { color: '#a0a0a0' }, grid: { color: '#333' } },
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              ticks: { color: '#a0a0a0' },
+              grid: { color: '#333' }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              min: 0,
+              max: 9000,
+              ticks: { color: '#a0a0a0' },
+              grid: { drawOnChartArea: false }
+            }
         },
         elements: {
             line: { tension: 0, borderWidth: 2 },
@@ -126,6 +146,7 @@ function StreamingChart({ selectedTags, displayRangeSec, tagColorMap }) {
             data: dataPoints,
             borderColor: tagColorMap[tag],
             backgroundColor: tagColorMap[tag] + '80',
+            yAxisID: tag === 'A25_Speed' ? 'y1' : 'y',
         };
     });
 
