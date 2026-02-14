@@ -374,6 +374,7 @@ def sync_tags_with_db():
         {"name": "A25_En_Charge", "datatype": "bool"},
         {"name": "A25_En_Discharge", "datatype": "bool"},
         {"name": "A25_En_Shutdown", "datatype": "bool"},
+        {"name": "A25_En_Startup", "datatype": "bool"},
         {"name": "A25_Energy", "datatype": "float"},
         {"name": "A25_Energy_Total", "datatype": "float"},
         {"name": "A25_RunHours", "datatype": "int"},

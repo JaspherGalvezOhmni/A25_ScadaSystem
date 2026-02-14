@@ -22,6 +22,16 @@ import apiClient from '../api';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, TimeScale);
 
+const STATUS_MAP = {
+    3: "Idle",
+    6: "Idle",
+    7: "Idle",
+    1: "Stopped",
+    2: "Starting Up",
+    4: "Charging",
+    5: "Discharging"
+};
+
 const staticChartOptions = {
     responsive: true, 
     maintainAspectRatio: false, 
@@ -92,19 +102,8 @@ const getStartEndTime = (timeRangeKey) => {
 
 
 const getFlywheelStatusFromBooleans = (tags) => {
-    // Note: The tag name is 'A25_En_Dsicharge' in main_api.py's hardcoded list.
-    const isCharging = tags['A25_En_Charge']; 
-    const isDischarging = tags['A25_En_Discharge']; 
-    const isShutdown = tags['A25_En_Shutdown']; 
-
-    if (isShutdown === true) return "Shutdown";
-    if (isCharging === true) return "Charging";
-    if (isDischarging === true) return "Discharging";
-    
-    // If none of the primary status bits are active, we'll assume Idle or Unknown.
-    if ((tags['A25_Speed'] || 0) > 10) return "Idle (Spinning)";
-
-    return "Unknown/Fault";
+    const status = tags?.['A25_Status'] ?? 0;
+    return STATUS_MAP[status] ?? "Unkown";
 };
 
 // --- UPDATED: LiveSensorTable with Pop-out Logic ---
@@ -120,9 +119,6 @@ const TELEMETRY_TAGS_TO_DISPLAY = [
     { label: "Load Cell", tag: "WT001.Scaled", unit: "kg" },
     { label: "Pressure", tag: "PT001.Scaled", unit: "" },
     { label: "Load Cell Target", tag: "EM_SV", unit: "kg" },
-    // Add boolean examples from Picture 3 for demo
-    { label: "Vib Health (U)", tag: "VT001_Healthy", unit: "Bool" },
-    { label: "Pressure Health", tag: "PT001_Healthy", unit: "Bool" },
 ];
 
 function LiveSensorTable({ tags }) {
@@ -154,7 +150,7 @@ function LiveSensorTable({ tags }) {
                     className="maximize-btn" 
                     onClick={handlePopout}
                 >
-                    ❐ Pop Out Wall
+                    ❐ View All Tags
                 </button>
             </div>
             

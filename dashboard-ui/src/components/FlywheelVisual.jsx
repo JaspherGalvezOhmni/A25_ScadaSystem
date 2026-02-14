@@ -5,7 +5,15 @@ import HealthStatus from './HealthStatus';
 
 function FlywheelVisual({ liveData }) {
     const tags = liveData?.tags || {};
-
+    const STATUS_MAP = {   // Status map for A25_Status
+        3: "Idle",
+        6: "Idle",
+        7: "Idle",
+        1: "Stopped",
+        2: "Starting Up",
+        4: "Charging",
+        5: "Discharging"
+    };
     // --- ALL YOUR TAG LOGIC (UBT, LC, UV, etc.) stays exactly as you have it ---
     const UBT_Tag = 'TT001_Healthy';
     const UBT_Value = tags[UBT_Tag];
@@ -42,15 +50,15 @@ function FlywheelVisual({ liveData }) {
     const MT_Text = MT_Value === true ? 'Healthy' : (MT_Value === false ? 'Fault' : 'N/A');
     const MT_Class = MT_Value === true ? 'healthy' : (MT_Value === false ? 'unhealthy' : 'unknown');
 
-    const isCharging = tags['A25_En_Charge'] === true;
-    const isDischarging = tags['A25_En_Discharge'] === true;
-    const isShutdown = tags['A25_En_Shutdown'] === true;
+    const status = tags?.['A25_Status'] ?? 0;
+    const statusText = STATUS_MAP[status] ?? "Unknown";
 
     let arrowChar = '';
     let arrowColor = '#dcdcdc';
-    if (isCharging) { arrowChar = '↓'; arrowColor = '#2ecc71'; }
-    else if (isDischarging) { arrowChar = '↑'; arrowColor = '#e74c3c'; }
-    else if (isShutdown) { arrowChar = ''; }
+    if (statusText === "Charging" || statusText === "Starting Up") { arrowChar = '↓'; arrowColor = '#2ecc71'; }
+    else if (statusText === "Discharging") { arrowChar = '↑'; arrowColor = '#e74c3c'; }
+    else if (statusText === "Stopped") { arrowChar = '-'; }
+    else if (statusText === "Idle") { arrowChar = '-'; }
     else { arrowChar = '⚠️'; arrowColor = '#f39c12'; }
 
     const arrowStyle = {
@@ -104,7 +112,7 @@ function FlywheelVisual({ liveData }) {
                 <div style={{
                     position: 'absolute',
                     top: '5%',
-                    left: '50%',
+                    left: '53%',
                     transform: 'translateX(-50%)',
                     fontSize: '2.5em',
                     fontWeight: 'bold',

@@ -7,20 +7,20 @@ const COMMAND_TAG_BASE = 'A25_SIM_';
 function CommandsSidebar({ setpoints, liveData }) {
   const { token, user } = useAuth(); // Get the current token status
 
-  const currentSpeed = liveData?.tags?.['A25_Speed'] || 0;
-
-  const RPM_UNLOCK_CHARGE = 4000; // Example threshold for allowing charge command
-  const RPM_UNLOCK_DISCHARGE = 5000; // Example threshold for allowing discharge command
-  const RPM_MAX_SPEED = 8200; // Example maximum speed for safety
+  const currentSpeed = liveData?.tags?.['A25_Speed'] || 0; // placeholder for now just in case we want to use speed as reference in future?
+  const En_Charge = liveData?.tags?.['A25_En_Charge'] || 0;
+  const En_Discharge = liveData?.tags?.['A25_En_Discharge'] || 0;
+  const En_Shutdown = liveData?.tags?.['A25_En_Shutdown'] || 0;
+  const En_Startup = liveData?.tags?.['A25_En_Startup'] || 0;
 
   // 1. Base check: Must be logged in/ token should exist.
   const isUserAuthenticated = !!token && (user?.role === 'Engineer' || user?.role === 'Admin');
 
   // 2. Button specific logic.
-  const canCharge = isUserAuthenticated && currentSpeed >= RPM_UNLOCK_CHARGE && currentSpeed < RPM_MAX_SPEED;
-  const canDischarge = isUserAuthenticated && currentSpeed >= RPM_UNLOCK_DISCHARGE && currentSpeed < RPM_MAX_SPEED;
-  const canShutdown = isUserAuthenticated;
-  const canStartup = isUserAuthenticated && currentSpeed < RPM_UNLOCK_CHARGE;
+  const canCharge = isUserAuthenticated && En_Charge == 1;
+  const canDischarge = isUserAuthenticated && En_Discharge == 1;
+  const canShutdown = isUserAuthenticated && En_Shutdown == 1;
+  const canStartup = isUserAuthenticated && En_Startup == 1;
 
   const handleCommand = async (commandKey) => {
     if (!isUserAuthenticated) {
@@ -50,6 +50,14 @@ function CommandsSidebar({ setpoints, liveData }) {
   return (
     <div className="sidebar commands-sidebar">
       <h2>Commands (SIM)</h2>
+
+      {/* Guest access warning */}
+      {!isUserAuthenticated && (
+        <p className="auth-warning">
+          Please log in with an Engineer or Admin account to send commands.
+        </p>
+      )}
+
       {/* 1. Charge Button */}
       <button 
         onClick={() => handleCommand('Charge')} 

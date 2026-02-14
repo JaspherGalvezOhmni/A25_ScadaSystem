@@ -22,10 +22,15 @@ function HomePage() {
   const tags = liveData.tags || {};
   
   // Tags for Status Overview
-  const statusCharge = tags['A25_En_Charge'];        // New boolean tag
-  const statusDischarge = tags['A25_En_Discharge']; // New boolean tag (Note: It's 'Dsicharge' in main_api.py hardcoded list)
-  const statusShutdown = tags['A25_En_Shutdown'];    // New boolean tag
-  const statusStartup = tags['A25_En_Startup'];    // New boolean tag (if needed for future logic)
+  const STATUS_MAP = {
+    3: "Idle",
+    6: "Idle",
+    7: "Idle",
+    1: "Stopped",
+    2: "Starting Up",
+    4: "Charging",
+    5: "Discharging"
+  };
 
   const power = tags['A25_Power'] || 0;
   const energy = tags['A25_Energy'] || 0;
@@ -34,23 +39,11 @@ function HomePage() {
   const totalEnergy = tags['A25_Energy_Total'] || 0;
   const cycles = tags['A25_Cycles'] || 0;
   const runHours = tags['A25_RunHours'] || 0;
+  const status = tags?.['A25_Status'] ?? 0;
   
   // New logic to determine status based on boolean tags
   const getFlywheelStatusFromBooleans = (tags) => {
-    // Note: The tag name is 'A25_En_Dsicharge' in main_api.py's hardcoded list.
-    const isCharging = tags['A25_En_Charge']; 
-    const isDischarging = tags['A25_En_Discharge']; 
-    const isShutdown = tags['A25_En_Shutdown']; 
-
-    if (isShutdown === true) return "Shutdown";
-    if (isCharging === true) return "Charging";
-    if (isDischarging === true) return "Discharging";
-    
-    // If none of the primary status bits are active, we'll assume Idle or Unknown.
-    // If speed > 0, we can infer it's running but not actively charging/discharging
-    if ((tags['A25_Speed'] || 0) > 10) return "Idle (Spinning)";
-
-    return "Unknown/Fault";
+    return STATUS_MAP[status] ?? "Unknown";
   };
   
   // Use the new logic to get the final status text
@@ -214,7 +207,7 @@ function HomePage() {
                     boxShadow: connectionStatus.state === 'ONLINE' ? '0 0 8px #2ecc71' : 'none'
                 }}></div>
                 {connectionStatus.state === 'ONLINE' 
-                    ? 'SYSTEM ONLINE' 
+                    ? 'PLC ONLINE' 
                     : `OFFLINE (Last: ${formatTime(connectionStatus.lastSeen)})`
                 }
             </div>
