@@ -5,12 +5,17 @@ function PopoutWindow({ title, onClose, children }) {
   const [container, setContainer] = useState(null);
   const externalWindowRef = useRef(null);
 
-  useEffect(() => {
-    // 1. Open the window
+useEffect(() => {
+    // Calculate a good size: 80% of the screen width/height
+    const w = window.screen.width * 0.8;
+    const h = window.screen.height * 0.8;
+    const left = (window.screen.width / 2) - (w / 2);
+    const top = (window.screen.height / 2) - (h / 2);
+
     const externalWindow = window.open(
       '', 
       '', 
-      `width=800,height=600,left=200,top=200,resizable,scrollbars,status`
+      `width=${w},height=${h},left=${left},top=${top},resizable,scrollbars,status`
     );
 
     if (!externalWindow) {

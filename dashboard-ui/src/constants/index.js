@@ -48,7 +48,6 @@ export const chartDefinitions = [
             'A25_SoC',
             'A25_Cycles',
             'A25_RunHours',
-            'Test_InfiniteCounter' // Moved from Home page
         ]
     }
 ];

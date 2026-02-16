@@ -39,8 +39,28 @@ function StreamingChart({ selectedTags, displayRangeSec, tagColorMap }) {
         animation: false, 
         spanGaps: false,
         plugins: { 
-            legend: { display: false },
-            decimation: { enabled: false } // Default disabled
+            legend: { display: true },
+            position: 'top',
+            align: 'end',
+            labels: {
+              color: '#a0a0a0',
+              boxWidth: 12,
+              usePointStyle: 'circle',
+              padding: 10,
+              font: { size: 11 }
+            },
+            onClick: (e, legendItem, legend) => {
+              const index = legendItem.datasetIndex;
+              const ci = legend.chart;
+              if (ci.isDatasetVisible(index)) {
+                ci.hide(index);
+                legendItem.hidden = true;
+              } else {
+                ci.show(index);
+                legendItem.hidden = false;
+              }
+            },
+            decimation: { enabled : false }
         },
         scales: {
             x: {

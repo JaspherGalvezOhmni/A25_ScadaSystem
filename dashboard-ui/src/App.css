@@ -431,3 +431,8 @@ body { margin: 0; }
 .flywheel-data-card, .flywheel-card-title, .flywheel-card-value {
     display: none !important;
 }
+
+#popout-root canvas {
+  width: 100% !important;
+  height: 100% !important;
+}

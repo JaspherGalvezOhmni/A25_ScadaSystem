@@ -15,8 +15,8 @@ function HomePage() {
   const { liveData, connectionStatus, formatTime } = useSystemStatus();
 
   // Popout States
-  const [isFlywheelPopped, setIsFlywheelPopped] = useState(false);
-  const [isDashboardPopped, setIsDashboardPopped] = useState(false);
+  // const [isFlywheelPopped, setIsFlywheelPopped] = useState(false);  staging removal
+  // const [isDashboardPopped, setIsDashboardPopped] = useState(false); staging removal
 
   // --- DERIVED VALUES (Updated to use NEW A25_ tags and new status logic) ---
   const tags = liveData.tags || {};
@@ -49,139 +49,9 @@ function HomePage() {
   // Use the new logic to get the final status text
   const flywheelStatusText = getFlywheelStatusFromBooleans(tags);
 
-  // --- COMPONENT CHUNKS ---
-
-  // 2. The Flywheel Visual Wrapper
-  const flywheelVisualContent = (
-    <div style={{position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-        {/* Pass the entire liveData object as required by the new FlywheelVisual */}
-        <FlywheelVisual 
-            liveData={liveData} 
-        />
-        {!isDashboardPopped && (
-            <button 
-                className="maximize-btn" 
-                style={{position: 'absolute', top: 10, right: 10}}
-                onClick={() => setIsFlywheelPopped(!isFlywheelPopped)}
-            >
-                {isFlywheelPopped ? 'Dock' : '❐ Pop Widget'}
-            </button>
-        )}
-    </div>
-  );
-
-  // 3. The Full Dashboard Layout
-  const dashboardContent = (
-    <div className="home-layout" style={{
-        height: isDashboardPopped ? '100vh' : 'calc(100vh - 100px)',
-        backgroundColor: '#1e1e1e',
-        position: 'relative' 
-    }}>
-
-      <CommandsSidebar setpoints={setpoints} liveData={liveData}/>
-      
-      <div className="flywheel-section" style={{position: 'relative', backgroundColor: '#1e1e1e'}}>
-        {isFlywheelPopped && !isDashboardPopped ? (
-            <>
-                <div style={{height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #444', color: '#666'}}>
-                    Flywheel Visual is popped out.
-                    <button className="maximize-btn" style={{marginLeft:'10px'}} onClick={() => setIsFlywheelPopped(false)}>Return</button>
-                </div>
-                <PopoutWindow title="Flywheel Visualization" onClose={() => setIsFlywheelPopped(false)}>
-                    <div style={{height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e1e1e'}}>
-                        {flywheelVisualContent}
-                    </div>
-                </PopoutWindow>
-            </>
-        ) : (
-            flywheelVisualContent
-        )}
-      </div>
-
-      <div className="sidebar status-sidebar">
-        <div className="status-group">
-          <h2>Status Overview</h2>
-          
-          <div className="status-item">
-            <span>Flywheel Status</span>
-            <span className="status-compact-value">{flywheelStatusText}</span>
-          </div>
-          
-          <div className="status-item">
-            <span>Power</span>
-            <span className="status-compact-value">{power.toFixed(2)} kW</span>
-          </div>
-          
-          <div className="status-item">
-            <span>Energy Stored</span>
-            <span className="status-compact-value">{energy.toFixed(1)} kWh</span>
-          </div>
-          
-          <div className="status-item">
-            <span>State of Charge</span>
-            <span className="status-compact-value">{soc.toFixed(0)} %</span>
-          </div>
-          
-          <div className="status-item">
-            <span>Speed</span>
-            <span className="status-compact-value">{speed.toFixed(0)} RPM</span>
-          </div>
-          
-          <div className="status-item">
-            <span>Total Energy Transferred</span>
-            <span className="status-compact-value">{totalEnergy.toFixed(1)} kWh</span>
-          </div>
-          
-          <div className="status-item">
-            <span>Total Cycles</span>
-            <span className="status-compact-value">{cycles}</span>
-          </div>
-          
-          <div className="status-item">
-            <span>Run Hours</span>
-            <span className="status-compact-value">{runHours.toFixed(1)} h</span>
-          </div>
-          
-        </div>
-      </div>
-    </div>
-  );
-
-  // --- RENDER RETURN (Unchanged Popout/Header Logic) ---
-
-  if (isDashboardPopped) {
-      return (
-          <>
-            <div style={{
-                height: 'calc(100vh - 60px)', 
-                display: 'flex', 
-                flexDirection: 'column',
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                backgroundColor: '#1a1a1a',
-                color: '#888'
-            }}>
-                <div style={{fontSize: '2em', marginBottom: '1rem'}}>Main Dashboard is Popped Out</div>
-                <div style={{marginBottom: '2rem'}}>Use the external window to control the system.</div>
-                <button 
-                    className="maximize-btn" 
-                    style={{fontSize: '1.2em', padding: '10px 20px'}}
-                    onClick={() => setIsDashboardPopped(false)}
-                >
-                    Return Dashboard to Main Window
-                </button>
-            </div>
-
-            <PopoutWindow title="SCADA Main Dashboard" onClose={() => setIsDashboardPopped(false)}>
-                {dashboardContent}
-            </PopoutWindow>
-          </>
-      );
-  }
-
-  return (
+   return (
     <div style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
-        {/* Header Bar is Unchanged */}
+        {/* Header Bar */}
         <div style={{
             padding: '10px 20px', 
             backgroundColor: '#252525', 
@@ -189,7 +59,7 @@ function HomePage() {
             display: 'flex', 
             justifyContent: 'flex-end',
             alignItems: 'center',
-            gap: '15px'
+            height: '40px'
         }}>
             <div style={{
                 display: 'flex', 
@@ -211,16 +81,64 @@ function HomePage() {
                     : `OFFLINE (Last: ${formatTime(connectionStatus.lastSeen)})`
                 }
             </div>
-
-            <button 
-                className="maximize-btn" 
-                onClick={() => setIsDashboardPopped(true)}
-            >
-                ❐ Pop Out Dashboard
-            </button>
         </div>
 
-        {dashboardContent}
+        {/* Static Dashboard Layout */}
+        <div className="home-layout" style={{ backgroundColor: '#1e1e1e' }}>
+            <CommandsSidebar setpoints={setpoints} liveData={liveData}/>
+            
+            <div className="flywheel-section" style={{position: 'relative', backgroundColor: '#1e1e1e'}}>
+                <div style={{position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+                    <FlywheelVisual liveData={liveData} />
+                </div>
+            </div>
+
+            <div className="sidebar status-sidebar">
+                <div className="status-group">
+                    <h2>Status Overview</h2>
+                    
+                    <div className="status-item">
+                        <span>Flywheel Status</span>
+                        <span className="status-compact-value">{flywheelStatusText}</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Power</span>
+                        <span className="status-compact-value">{power.toFixed(2)} kW</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Energy Stored</span>
+                        <span className="status-compact-value">{energy.toFixed(1)} kWh</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>State of Charge</span>
+                        <span className="status-compact-value">{soc.toFixed(0)} %</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Speed</span>
+                        <span className="status-compact-value">{speed.toFixed(0)} RPM</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Total Energy Transferred</span>
+                        <span className="status-compact-value">{totalEnergy.toFixed(1)} kWh</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Total Cycles</span>
+                        <span className="status-compact-value">{cycles}</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Run Hours</span>
+                        <span className="status-compact-value">{runHours.toFixed(1)} h</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
   );
 }

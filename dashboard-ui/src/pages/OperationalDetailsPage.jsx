@@ -14,9 +14,9 @@ import {
 import 'chartjs-adapter-date-fns';
 import { subSeconds, subHours, subDays, subMonths, startOfYear } from 'date-fns';
 
-import PensSidebar from '../components/PensSidebar';
+// import PensSidebar from '../components/PensSidebar';    -- Staging the removal of penssidebar
 import StreamingChart from '../components/StreamingChart';
-import PopoutWindow from '../components/PopoutWindow'; // <--- NEW IMPORT
+import PopoutWindow from '../components/PopoutWindow';
 import { chartDefinitions, tagColorMap } from '../constants';
 import apiClient from '../api'; 
 
@@ -276,13 +276,21 @@ function HistorianChart({ title, visibleTags, fetchHistoricalData }) {
     if (isPoppedOut) {
         return (
             <>
-                <div className="chart-card-container placeholder" style={{height: '100px', display:'flex', alignItems:'center', justifyContent:'center'}}>
-                    <span style={{color: '#666', fontStyle: 'italic'}}>{title} is open in another window.</span>
-                    <button className="maximize-btn" style={{marginLeft: '10px'}} onClick={() => setIsPoppedOut(false)}>Bring Back</button>
-                </div>
+                {/* Placeholder in main window remains the same */}
                 <PopoutWindow title={title} onClose={() => setIsPoppedOut(false)}>
-                    <div style={{height: '100vh', padding: '1rem', boxSizing: 'border-box', backgroundColor: '#2d2d2d'}}>
-                        {chartContent}
+                    {/* --- FIX CONTAINER HERE --- */}
+                    <div style={{
+                        height: '100vh', 
+                        width: '100vw',
+                        padding: '2rem', 
+                        boxSizing: 'border-box', 
+                        backgroundColor: '#1e1e1e',
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}>
+                        <div style={{ flexGrow: 1, position: 'relative' }}>
+                            {chartContent}
+                        </div>
                     </div>
                 </PopoutWindow>
             </>
@@ -375,12 +383,16 @@ function OperationalDetailsPage() {
     };
 
     return (
-        <div className="details-layout-final">
-            <PensSidebar 
+        <div className="details-layout-final" style={{
+            gridTemplateColumns: '1fr 300px',
+            gap: '1.5rem'
+        }}>
+            {/* Commented Penssidebar to reduce clutter. */}
+            {/* <PensSidebar 
                 chartDefinitions={chartDefinitions} 
                 visiblePens={visiblePens} 
                 onTogglePen={handleTogglePen} 
-            />
+            /> */}
             <div className="charts-container-final">
                 {chartDefinitions.map(chart => (
                     <HistorianChart 
