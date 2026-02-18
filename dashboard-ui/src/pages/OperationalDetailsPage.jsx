@@ -247,7 +247,7 @@ function HistorianChart({ title, visibleTags, fetchHistoricalData }) {
                 <div style={{display:'flex', gap:'10px'}}>
                     <IndividualTimeSelector onSelect={setTimeRange} />
                     <button className="maximize-btn" onClick={() => setIsPoppedOut(!isPoppedOut)}>
-                        {isPoppedOut ? 'Dock' : '❐ Pop'}
+                        {isPoppedOut ? 'Dock' : '❐ Maximise Chart'}
                     </button>
                 </div>
             </div>
