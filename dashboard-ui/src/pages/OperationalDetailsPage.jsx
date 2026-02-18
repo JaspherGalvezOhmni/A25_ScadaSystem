@@ -95,7 +95,9 @@ const getStartEndTime = (timeRangeKey) => {
     else if (timeRangeKey === '7d') startTime = subDays(now, 7);
     else if (timeRangeKey === '1mo') startTime = subMonths(now, 1);
     else if (timeRangeKey === 'YTD') startTime = startOfYear(now);
-    else if (timeRangeKey === 'All') startTime = subDays(now, 365 * 5); // Go back 5 years 
+    // CHANGE: Reduce All Time to 1 year or 90 days depending on your needs.
+    // If you look back 5 years but only have 1 month of data, the line looks like a tiny dot.
+    else if (timeRangeKey === 'All') startTime = subDays(now, 365); 
 
     return { startTime, endTime: now };
 };

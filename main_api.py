@@ -554,77 +554,62 @@ def update_tag(tag_id: int, u: TagUpdate, user: User = Depends(get_current_activ
 
 @app.get("/api/historian")
 def get_historian(tags: List[str] = Query(None), start_time: Optional[str] = None, end_time: Optional[str] = None):
-    
     if not tags: return {}
-    st = start_time or "1970-01-01T00:00:00Z"
-    et = end_time or datetime.utcnow().isoformat()
     
-    dur = 9999999
+    st = start_time or "1970-01-01T00:00:00Z"
+    et = end_time or datetime.now(timezone.utc).isoformat()
+    
     try:
         st_obj = datetime.fromisoformat(st.replace('Z', '+00:00'))
         et_obj = datetime.fromisoformat(et.replace('Z', '+00:00'))
         dur = (et_obj - st_obj).total_seconds()
     except:
-        st_obj = datetime(1970, 1, 1, tzinfo=timezone.utc)
+        st_obj = datetime.now(timezone.utc) - timedelta(hours=1)
         et_obj = datetime.now(timezone.utc)
+        dur = 3600
 
-    # RAW/AGGREGATION SWITCH (1800 seconds = 30 minutes)
-    raw = dur <= 1800 
-    conn = None
+    # TIERED DATA STRATEGY
+    # 1. Raw Data: Under 30 minutes
+    # 2. Aggregated Raw: 30 mins to 7 days
+    # 3. Summary Table: Over 7 days (Prevents DB Crash)
     
+    is_raw = dur <= 1800
+    use_summary = dur > 86400 * 7 # Route to historian_hourly view
+    
+    conn = None
     try:
         conn = get_db_conn()
         with conn.cursor() as cur:
-            if raw:
-                # RAW QUERY block (unchanged)
+            if is_raw:
                 sql = """SELECT h.ts, tl.tag, COALESCE(h.value_float, h.value_int::double precision, h.value_bool::int::double precision) 
                          FROM historian.historian h JOIN historian.tag_lookup tl ON h.tag_id = tl.id 
-                         WHERE tl.tag = ANY(%s) AND h.ts >= %s AND h.ts <= %s ORDER BY h.ts ASC"""
+                         WHERE tl.tag = ANY(%s) AND h.ts >= %s AND h.ts <= %s 
+                         ORDER BY h.ts ASC LIMIT 5000"""
                 params = (tags, st_obj, et_obj)
-            else:
-                # AGGREGATED QUERY block - FIX: Aggressive Hierarchical Time Buckets
+            
+            elif use_summary:
+                # INDUSTRY STANDARD: Query the pre-calculated hourly view for massive speed gains
+                sql = """SELECT h.bucket, tl.tag, COALESCE(h.max_float, h.max_int::double precision, h.max_bool::double precision)
+                         FROM historian.historian_hourly h JOIN historian.tag_lookup tl ON h.tag_id = tl.id
+                         WHERE tl.tag = ANY(%s) AND h.bucket >= %s AND h.bucket <= %s 
+                         ORDER BY h.bucket ASC"""
+                params = (tags, st_obj, et_obj)
                 
-                # Check for All Time (2 years in the frontend logic) and huge queries first
-                if dur > 86400 * 365 * 2: # > 2 years (This should catch the 'All Time' span)
-                    buck = "1 month" 
-                elif dur > 86400 * 30: # > 1 month
-                    buck = "1 week" 
-                elif dur > 86400 * 7: # > 1 week
-                    buck = "6 hours" # 7 days * 4 per day = 28 points. Very fast.
-                elif dur > 86400 * 2: # > 2 days
-                    buck = "1 hour" # 2 days * 24 per day = 48 points. Fast.
-                else:
-                    buck = "5 minutes" # Default for > 30 minutes up to 2 days. 
+            else:
+                # Dynamic Bucketing for the middle range (30m - 7d)
+                # We target exactly 500 points to keep the frontend snappy
+                bucket_size_sec = max(int(dur / 500), 10)
+                buck = f"{bucket_size_sec} seconds"
                 
                 sql = """
-                    SELECT 
-                        time_bucket(%s, h.ts) as b, 
-                        tl.tag, 
-                        -- FIX: CHANGE AVG() to MAX() for more robust aggregation over long periods
-                        MAX( 
-                            CASE
-                                WHEN h.value_float IS NOT NULL THEN h.value_float
-                                WHEN h.value_int IS NOT NULL THEN h.value_int::double precision
-                                WHEN h.value_bool IS NOT NULL THEN h.value_bool::int::double precision
-                                ELSE NULL
-                            END
-                        )
+                    SELECT time_bucket(%s, h.ts) as b, tl.tag, 
+                           MAX(COALESCE(h.value_float, h.value_int::double precision, h.value_bool::int::double precision))
                     FROM historian.historian h 
                     JOIN historian.tag_lookup tl ON h.tag_id = tl.id
-                    WHERE tl.tag = ANY(%s) 
-                      AND h.ts >= %s 
-                      AND h.ts <= %s 
-                    GROUP BY b, tl.tag 
-                    ORDER BY b ASC
+                    WHERE tl.tag = ANY(%s) AND h.ts >= %s AND h.ts <= %s 
+                    GROUP BY b, tl.tag ORDER BY b ASC
                 """
-                # Trust the original parameter order for safety:
-                params = (buck, tags, st_obj, et_obj) 
-            
-            # --- DEBUG FIX: LOG THE EXECUTED QUERY ---
-            print("\n--- DEBUG: HISTORIAN QUERY ---")
-            print(cur.mogrify(sql, params).decode('utf-8'))
-            print("------------------------------\n")
-            # --- END DEBUG FIX ---
+                params = (buck, tags, st_obj, et_obj)
 
             cur.execute(sql, params)
             res = {t: [] for t in tags}
@@ -632,8 +617,9 @@ def get_historian(tags: List[str] = Query(None), start_time: Optional[str] = Non
                 if r[2] is not None:
                     res[r[1]].append({"ts": r[0].isoformat(), "value": r[2]})
             return res
+            
     except Exception as e:
-        print(f"🔴 Query Error: {e}")
+        print(f"🔴 Historian Query Error: {e}")
         return {"error": str(e)}
     finally:
         release_db_conn(conn)
