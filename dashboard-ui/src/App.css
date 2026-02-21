@@ -1,9 +1,24 @@
 /* --- GLOBAL STYLES & DARK THEME --- */
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: #1e1e1e;
-  color: #dcdcdc;
+  /* Colors */
+  --bg-dark: #1e1e1e;
+  --bg-sidebar: #2d2d2d;
+  --bg-header: #2d2d2d;
+  --text-main: #dcdcdc;
+  --text-dim: #a0a0a0;
+  --accent-blue: #41D1FF;
+  
+  /* Status Colors */
+  --color-healthy: #2ecc71;
+  --color-fault: #e74c3c;
+  --color-unknown: #7f8c8d;
+  --color-warning: #f39c12;
+
+  /* Borders & Spacing */
+  --border: 1px solid #444;
+  --radius: 8px;
 }
+
 body { margin: 0; }
 .App { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
 .main-content { flex-grow: 1; overflow-y: auto; }

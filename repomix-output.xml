@@ -386,130 +386,6 @@ function PensSidebar({ chartDefinitions, visiblePens, onTogglePen }) {
 export default PensSidebar;
 </file>
 
-<file path="dashboard-ui/src/components/PopoutWindow.jsx">
-import React, { useEffect, useState, useRef } from 'react';
-import { createPortal } from 'react-dom';
-
-function PopoutWindow({ title, onClose, children }) {
-  const [container, setContainer] = useState(null);
-  const externalWindowRef = useRef(null);
-
-  useEffect(() => {
-    // 1. Open the window
-    const externalWindow = window.open(
-      '', 
-      '', 
-      `width=800,height=600,left=200,top=200,resizable,scrollbars,status`
-    );
-
-    if (!externalWindow) {
-        alert("Pop-up blocked! Please allow pop-ups for this site.");
-        if (onClose) onClose();
-        return;
-    }
-
-    externalWindowRef.current = externalWindow;
-    
-    // 2. Wait for window to load before manipulating (Important for some browsers)
-    externalWindow.document.title = title || 'Ohmni Pop-out';
-    
-    // 3. Create Container
-    const div = externalWindow.document.createElement('div');
-    div.setAttribute('id', 'popout-root');
-    // Force dark theme immediately to prevent white flash
-    div.style.backgroundColor = '#1e1e1e'; 
-    div.style.minHeight = '100vh';
-    div.style.color = '#dcdcdc';
-    div.style.boxSizing = 'border-box';
-    
-    externalWindow.document.body.appendChild(div);
-    externalWindow.document.body.style.margin = '0';
-    externalWindow.document.body.style.backgroundColor = '#1e1e1e';
-
-    // 4. Copy CSS - Filtered to prevent CORS errors on external stylesheets
-    Array.from(document.styleSheets).forEach((styleSheet) => {
-      try {
-        if (styleSheet.href) {
-          const newLink = externalWindow.document.createElement('link');
-          newLink.rel = 'stylesheet';
-          newLink.href = styleSheet.href;
-          externalWindow.document.head.appendChild(newLink);
-        } else if (styleSheet.cssRules) {
-          const newStyle = externalWindow.document.createElement('style');
-          Array.from(styleSheet.cssRules).forEach((rule) => {
-            newStyle.appendChild(externalWindow.document.createTextNode(rule.cssText));
-          });
-          externalWindow.document.head.appendChild(newStyle);
-        }
-      } catch (e) {
-        // console.warn("Could not copy stylesheet:", e);
-      }
-    });
-
-    setContainer(div);
-
-    // 5. Cleanup Listener
-    const handleBeforeUnload = () => {
-        if (onClose) onClose();
-    };
-    externalWindow.addEventListener('beforeunload', handleBeforeUnload);
-
-    // 6. Cleanup function (Close window when parent unmounts)
-    return () => {
-      externalWindow.removeEventListener('beforeunload', handleBeforeUnload);
-      externalWindow.close();
-    };
-  }, []);
-
-  return container ? createPortal(children, container) : null;
-}
-
-export default PopoutWindow;
-</file>
-
-<file path="dashboard-ui/src/components/ProtectedRoute.jsx">
-// dashboard-ui/src/components/ProtectedRoute.jsx
-import { useLocation, Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-
-function ProtectedRoute({ children, adminOnly = false }) {
-  const { user, token, isLoading } = useAuth();
-  const location = useLocation();
-
-  // 1. If AuthContext says it's loading, show loading screen.
-  if (isLoading) {
-    // Show a more friendly message now that you removed the original loading screen
-    return <div style={{padding: '2rem'}}>Verifying session or loading user details...</div>;
-  }
-
-  // 2. If loading is false, but we still have no token (unauthenticated flow completed)
-  if (!token) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-  
-  // 3. CRITICAL FINAL GUARD: If we have a token, loading is false, but role is missing.
-  // This means re-validation FAILED on the network (e.g. 401, server down, etc.) 
-  // and the final state is bad. If we can't get the role, we should force a log out.
-  if (!user || !user.role) {
-    console.warn("ProtectedRoute: Token found but user/role missing. Forcing logout.");
-    // We should log out here to clear the bad token and redirect to login/App.jsx redirect logic.
-    // This is the only safe exit from the bad state.
-    // NOTE: This relies on AuthContext's `logout` redirecting.
-    const { logout } = useAuth(); 
-    logout(); 
-    return <div style={{padding: '2rem'}}>Session verification failed. Redirecting to login...</div>;
-  }
-  
-  // 4. Role-based restriction
-  if (adminOnly && user.role !== 'Admin') {
-    return <Navigate to="/" replace />; 
-  }
-
-  return children;
-}
-export default ProtectedRoute;
-</file>
-
 <file path="dashboard-ui/src/context/SystemStatusContext.jsx">
 import { createContext, useState, useContext, useEffect, useRef } from 'react';
 import apiClient from '../api';
@@ -1120,312 +996,133 @@ finally:
     if conn: conn.close()
 </file>
 
-<file path="dashboard-ui/src/components/CommandsSidebar.jsx">
-import apiClient from '../api';
-import { useAuth } from '../context/AuthContext'; // Import the auth hook to check token
+<file path="dashboard-ui/src/components/PopoutWindow.jsx">
+import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
-const COMMAND_TAG_BASE = 'A25_CMD_';
+function PopoutWindow({ title, onClose, children }) {
+  const [container, setContainer] = useState(null);
+  const externalWindowRef = useRef(null);
 
-// FIX 1: Change parameter name from 'value' to 'commandKey'
-function CommandsSidebar({ setpoints, liveData }) {
-  const { token, user } = useAuth(); // Get the current token status
+useEffect(() => {
+    // Calculate a good size: 80% of the screen width/height
+    const w = window.screen.width * 0.8;
+    const h = window.screen.height * 0.8;
+    const left = (window.screen.width / 2) - (w / 2);
+    const top = (window.screen.height / 2) - (h / 2);
 
-  const currentSpeed = liveData?.tags?.['A25_Speed'] || 0;
+    const externalWindow = window.open(
+      '', 
+      '', 
+      `width=${w},height=${h},left=${left},top=${top},resizable,scrollbars,status`
+    );
 
-  const RPM_UNLOCK_CHARGE = 4000; // Example threshold for allowing charge command
-  const RPM_UNLOCK_DISCHARGE = 5000; // Example threshold for allowing discharge command
-  const RPM_MAX_SPEED = 8200; // Example maximum speed for safety
-
-  // 1. Base check: Must be logged in/ token should exist.
-  const isUserAuthenticated = !!token && (user?.role === 'Engineer' || user?.role === 'Admin');
-
-  // 2. Button specific logic.
-  const canCharge = isUserAuthenticated && currentSpeed >= RPM_UNLOCK_CHARGE && currentSpeed < RPM_MAX_SPEED;
-  const canDischarge = isUserAuthenticated && currentSpeed >= RPM_UNLOCK_DISCHARGE && currentSpeed < RPM_MAX_SPEED;
-  const canShutdown = isUserAuthenticated;
-  const canStartup = isUserAuthenticated;
-
-  const handleCommand = async (commandKey) => {
-    if (!isUserAuthenticated) {
-      alert("You must be logged in with sufficient permissions to send commands.");
-      return;
+    if (!externalWindow) {
+        alert("Pop-up blocked! Please allow pop-ups for this site.");
+        if (onClose) onClose();
+        return;
     }
 
-    const tagName = COMMAND_TAG_BASE + commandKey.charAt(0).toUpperCase() + commandKey.slice(1);
-    const valueToWrite = true;
+    externalWindowRef.current = externalWindow;
+    
+    // 2. Wait for window to load before manipulating (Important for some browsers)
+    externalWindow.document.title = title || 'Ohmni Pop-out';
+    
+    // 3. Create Container
+    const div = externalWindow.document.createElement('div');
+    div.setAttribute('id', 'popout-root');
+    // Force dark theme immediately to prevent white flash
+    div.style.backgroundColor = '#1e1e1e'; 
+    div.style.minHeight = '100vh';
+    div.style.color = '#dcdcdc';
+    div.style.boxSizing = 'border-box';
+    
+    externalWindow.document.body.appendChild(div);
+    externalWindow.document.body.style.margin = '0';
+    externalWindow.document.body.style.backgroundColor = '#1e1e1e';
 
-    try {
-      // Send command as 1 (TRUE) for all actions.
-      await apiClient.post('/api/write-tag', {
-        tag: tagName,
-        value: valueToWrite
-      });
-      alert(`Command '${commandKey}' sent successfully!`);
-    } catch (error) {
-      console.error(`Error writing to ${tagName}:`, error);
-      alert(`Failed to send command '${commandKey}'. Please try again.`);
-    }
-  }
-
-  const baseDisabled = !isUserAuthenticated;
-
-  return (
-    <div className="sidebar commands-sidebar">
-      <h2>Commands (SIM)</h2>
-      {/* 1. Charge Button */}
-      <button 
-        onClick={() => handleCommand('Charge')} 
-        disabled={baseDisabled || !canCharge}
-      >
-        Charge
-      </button>
-      
-      {/* 2. Discharge Button */}
-      <button 
-        onClick={() => handleCommand('Discharge')} 
-        disabled={baseDisabled || !canDischarge}
-      >
-        Discharge
-      </button>
-
-      {/* 3. Startup Button (Always enabled if authenticated) */}
-      <button 
-        onClick={() => handleCommand('Startup')} 
-        disabled={baseDisabled || !canStartup}
-      >
-        Startup
-      </button>
-      
-      {/* 4. Shutdown Button (Always enabled if authenticated) */}
-      <button 
-        onClick={() => handleCommand('Shutdown')} 
-        disabled={baseDisabled || !canShutdown}
-      >
-        Shutdown
-      </button> 
-      
-    </div>
-  );
-}
-
-export default CommandsSidebar;
-</file>
-
-<file path="dashboard-ui/src/components/StreamingChart.jsx">
-import { useState, useEffect, useRef, useMemo } from "react";
-import { Line } from "react-chartjs-2";
-import { 
-    Chart as ChartJS, 
-    CategoryScale, 
-    LinearScale, 
-    PointElement, 
-    LineElement, 
-    Title, 
-    Tooltip, 
-    Legend, 
-    TimeScale,
-    Decimation 
-} from "chart.js";
-import 'chartjs-adapter-date-fns';
-import apiClient from '../api';
-import { subSeconds } from 'date-fns';
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, TimeScale, Decimation);
-
-function StreamingChart({ selectedTags, displayRangeSec, tagColorMap }) {
-  const rawDataRef = useRef({});
-  const [chartData, setChartData] = useState({ datasets: [] });
-  const [isLoading, setIsLoading] = useState(true);
-  const pollingRef = useRef(null);
-  
-  const pollInterval = 1000; // 10Hz
-
-  // --- DUAL MODE CONFIGURATION ---
-  // "Safe Mode" (<= 5 mins): Standard rendering. Reliable.
-  // "Performance Mode" (> 5 mins): Decimation ON, Parsing OFF. Fast.
-  const isPerformanceMode = displayRangeSec > 300; 
-
-  const chartOptions = useMemo(() => {
-    // BASE OPTIONS
-    const opts = {
-        responsive: true, 
-        maintainAspectRatio: false, 
-        animation: false, 
-        spanGaps: false,
-        plugins: { 
-            legend: { display: false },
-            decimation: { enabled: false } // Default disabled
-        },
-        scales: {
-            x: {
-                type: "time",
-                time: { unit: "second", tooltipFormat: "HH:mm:ss.SSS" },
-                ticks: { color: '#a0a0a0', maxRotation: 0, autoSkip: true, maxTicksLimit: 10, source: 'auto' },
-                grid: { color: '#333' }
-            },
-            y: { ticks: { color: '#a0a0a0' }, grid: { color: '#333' } },
-        },
-        elements: {
-            line: { tension: 0, borderWidth: 2 },
-            point: { radius: 0, hoverRadius: 5 } // Default hidden
-        }
-    };
-
-    if (isPerformanceMode) {
-        // --- PERFORMANCE MODE (> 5 mins) ---
-        opts.parsing = false; // Trust our x: ms data
-        opts.normalized = true;
-        opts.plugins.decimation = {
-            enabled: true,
-            algorithm: 'min-max',
-            samples: 500, 
-        };
-    } else {
-        // --- SAFE MODE (<= 5 mins) ---
-        opts.parsing = true; // Let Chart.js parse the ISO strings/Date objs
-        // Show dots only if range is very short (1 min or less)
-        if (displayRangeSec <= 120) {
-            opts.elements.point.radius = 2;
-        }
-    }
-
-    return opts;
-  }, [isPerformanceMode, displayRangeSec]);
-
-  const mergeAndSetData = (incomingData, endTime, windowSeconds) => {
-    const newRawData = { ...rawDataRef.current };
-
-    selectedTags.forEach((tag) => {
-      if (!newRawData[tag]) newRawData[tag] = [];
-      const existingTimestamps = new Set(newRawData[tag].map((p) => p.ts));
-      
-      if (incomingData[tag] && Array.isArray(incomingData[tag])) {
-          incomingData[tag].forEach((newPoint) => {
-            if (existingTimestamps.has(newPoint.ts)) return;
-            // Basic validation
-            if (newPoint.value === null || newPoint.value === undefined) return;
-            const numericValue = parseFloat(newPoint.value);
-            if (isNaN(numericValue)) return;
-
-            newRawData[tag].push({ ts: newPoint.ts, value: numericValue });
-          });
-      }
-      
-      // Prune old
-      const cutoff = subSeconds(endTime, windowSeconds).getTime();
-      newRawData[tag] = newRawData[tag].filter(
-        (p) => new Date(p.ts).getTime() >= cutoff
-      );
-      
-      newRawData[tag].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
-    });
-
-    rawDataRef.current = newRawData;
-
-    const datasets = selectedTags.map((tag) => {
-        const rawPoints = rawDataRef.current[tag] || [];
-        
-        // DATA TRANSFORMATION BASED ON MODE
-        let dataPoints;
-        if (isPerformanceMode) {
-            // Performance Mode: Needs {x: Milliseconds, y: Value}
-            dataPoints = rawPoints.map(p => ({ x: new Date(p.ts).getTime(), y: p.value }));
-        } else {
-            // Safe Mode: Needs {x: ISO String, y: Value} (Standard parsing)
-            dataPoints = rawPoints.map(p => ({ x: p.ts, y: p.value }));
-        }
-
-        return {
-            label: tag,
-            data: dataPoints,
-            borderColor: tagColorMap[tag],
-            backgroundColor: tagColorMap[tag] + '80',
-        };
-    });
-
-    setChartData({ datasets });
-  };
-
-  useEffect(() => {
-    rawDataRef.current = {};
-    if (pollingRef.current) clearTimeout(pollingRef.current);
-    setIsLoading(true);
-
-    let isMounted = true;
-
-    const runProcess = async () => {
-      const now = new Date();
-      
-      // 1. Initial Backfill
+    // 4. Copy CSS - Filtered to prevent CORS errors on external stylesheets
+    Array.from(document.styleSheets).forEach((styleSheet) => {
       try {
-        const start = subSeconds(now, displayRangeSec);
-        const params = new URLSearchParams();
-        selectedTags.forEach(tag => params.append('tags', tag));
-        params.append('start_time', start.toISOString());
-        params.append('end_time', now.toISOString());
-
-        const histResponse = await apiClient.get('/api/historian', { params });
-        if (isMounted) {
-            mergeAndSetData(histResponse.data, now, displayRangeSec);
-            setIsLoading(false); 
+        if (styleSheet.href) {
+          const newLink = externalWindow.document.createElement('link');
+          newLink.rel = 'stylesheet';
+          newLink.href = styleSheet.href;
+          externalWindow.document.head.appendChild(newLink);
+        } else if (styleSheet.cssRules) {
+          const newStyle = externalWindow.document.createElement('style');
+          Array.from(styleSheet.cssRules).forEach((rule) => {
+            newStyle.appendChild(externalWindow.document.createTextNode(rule.cssText));
+          });
+          externalWindow.document.head.appendChild(newStyle);
         }
       } catch (e) {
-        if (isMounted) setIsLoading(false);
+        // console.warn("Could not copy stylesheet:", e);
       }
+    });
 
-      // 2. Polling Loop
-      const poll = async () => {
-        if (!isMounted) return;
-        const loopNow = new Date();
-        const loopStart = subSeconds(loopNow, 10); // Fetch last 10 seconds to avoid gaps 
+    setContainer(div);
 
-        try {
-          const params = new URLSearchParams();
-          selectedTags.forEach(tag => params.append('tags', tag));
-          params.append('start_time', loopStart.toISOString());
-          params.append('end_time', loopNow.toISOString());
-
-          const liveResponse = await apiClient.get('/api/historian', { params });
-          if (isMounted) {
-            mergeAndSetData(liveResponse.data, loopNow, displayRangeSec);
-          }
-        } catch (e) { }
-        pollingRef.current = setTimeout(poll, pollInterval);
-      };
-
-      poll();
+    // 5. Cleanup Listener
+    const handleBeforeUnload = () => {
+        if (onClose) onClose();
     };
+    externalWindow.addEventListener('beforeunload', handleBeforeUnload);
 
-    runProcess();
-
+    // 6. Cleanup function (Close window when parent unmounts)
     return () => {
-      isMounted = false;
-      if (pollingRef.current) clearTimeout(pollingRef.current);
+      externalWindow.removeEventListener('beforeunload', handleBeforeUnload);
+      externalWindow.close();
     };
-  }, [selectedTags, displayRangeSec]); 
+  }, []);
 
+  return container ? createPortal(children, container) : null;
+}
+
+export default PopoutWindow;
+</file>
+
+<file path="dashboard-ui/src/components/ProtectedRoute.jsx">
+// dashboard-ui/src/components/ProtectedRoute.jsx
+import { useLocation, Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+
+function ProtectedRoute({ children, adminOnly = false }) {
+  const { user, token, isLoading } = useAuth();
+  const location = useLocation();
+
+  // 1. If AuthContext says it's loading, show loading screen.
   if (isLoading) {
-    return (
-        <div style={{
-            height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-            color: '#a0a0a0', flexDirection: 'column', gap: '10px'
-        }}>
-            <span>Loading Data...</span>
-        </div>
-    );
+    // Show a more friendly message now that you removed the original loading screen
+    return <div style={{padding: '2rem'}}>Verifying session or loading user details...</div>;
   }
 
-  // Key forces full re-mount when switching between Safe/Performance modes
-  return (
-    <Line 
-        key={isPerformanceMode ? 'perf' : 'safe'} 
-        data={chartData} 
-        options={chartOptions} 
-    />
-  );
-};
+  // 2. If loading is false, but we still have no token (unauthenticated flow completed)
+  if (!token) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  
+  // 3. CRITICAL FINAL GUARD: If we have a token, loading is false, but role is missing.
+  // This means re-validation FAILED on the network (e.g. 401, server down, etc.) 
+  // and the final state is bad. If we can't get the role, we should force a log out.
+  if (!user || !user.role) {
+    console.warn("ProtectedRoute: Token found but user/role missing. Forcing logout.");
+    // We should log out here to clear the bad token and redirect to login/App.jsx redirect logic.
+    // This is the only safe exit from the bad state.
+    // NOTE: This relies on AuthContext's `logout` redirecting.
+    const { logout } = useAuth(); 
+    logout(); 
+    return <div style={{padding: '2rem'}}>Session verification failed. Redirecting to login...</div>;
+  }
+  
+  // 4. Role-based restriction
+  if (adminOnly && user.role !== 'Admin') {
+    return <Navigate to="/" replace />; 
+  }
 
-export default StreamingChart;
+  return children;
+}
+export default ProtectedRoute;
 </file>
 
 <file path="dashboard-ui/src/pages/LoginPage.jsx">
@@ -1779,465 +1476,6 @@ watchfiles==1.1.1
 websockets==15.0.1
 </file>
 
-<file path="dashboard-ui/src/components/FlywheelVisual.jsx">
-// src/components/FlywheelVisual.jsx
-
-import React from 'react';
-// We'll keep HealthStatus imported in case we add it inside this component later
-import HealthStatus from './HealthStatus'; 
-
-// Component for the new base visual
-function FlywheelVisual({ liveData }) {
-    // FIX: Safely extract tags
-    const tags = liveData?.tags || {};
-
-    // For the schematic health cards, we can directly use the boolean tags to determine status.
-    const UBT_Tag = 'TT001_Healthy';
-    const UBT_Value = tags[UBT_Tag];
-    const UBT_Text = UBT_Value === true ? 'Healthy' : (UBT_Value === false ? 'Fault' : 'N/A');
-    const UBT_Class = UBT_Value === true ? 'healthy' : (UBT_Value === false ? 'unhealthy' : 'unknown');
-
-    const LC_Tag = 'WT001_Healthy';
-    const LC_Value = tags[LC_Tag];
-    const LC_Text = LC_Value === true ? 'Healthy' : (LC_Value === false ? 'Fault' : 'N/A');
-    const LC_Class = LC_Value === true ? 'healthy' : (LC_Value === false ? 'unhealthy' : 'unknown');
-
-    const UV_Tag = 'VT001_Healthy';
-    const UV_Value = tags[UV_Tag];
-    const UV_Text = UV_Value === true ? 'Healthy' : (UV_Value === false ? 'Fault' : 'N/A');
-    const UV_Class = UV_Value === true ? 'healthy' : (UV_Value === false ? 'unhealthy' : 'unknown');
-
-    const PR_Tag = 'PT001_Healthy';
-    const PR_Value = tags[PR_Tag];
-    const PR_Text = PR_Value === true ? 'Healthy' : (PR_Value === false ? 'Fault' : 'N/A');
-    const PR_Class = PR_Value === true ? 'healthy' : (PR_Value === false ? 'unhealthy' : 'unknown');
-
-    const LV_Tag = 'VT002_Healthy';
-    const LV_Value = tags[LV_Tag];
-    const LV_Text = LV_Value === true ? 'Healthy' : (LV_Value === false ? 'Fault' : 'N/A');
-    const LV_Class = LV_Value === true ? 'healthy' : (LV_Value === false ? 'unhealthy' : 'unknown');
-
-    const LBT_Tag = 'TT002_Healthy';
-    const LBT_Value = tags[LBT_Tag];
-    const LBT_Text = LBT_Value === true ? 'Healthy' : (LBT_Value === false ? 'Fault' : 'N/A');
-    const LBT_Class = LBT_Value === true ? 'healthy' : (LBT_Value === false ? 'unhealthy' : 'unknown');
-
-    const MT_Tag = 'TT003_Healthy';
-    const MT_Value = tags[MT_Tag];
-    const MT_Text = MT_Value === true ? 'Healthy' : (MT_Value === false ? 'Fault' : 'N/A');
-    const MT_Class = MT_Value === true ? 'healthy' : (MT_Value === false ? 'unhealthy' : 'unknown');
-
-    const isCharging = tags['A25_En_Charge'] === true;
-    const isDischarging = tags['A25_En_Discharge'] === true;
-    const isShutdown = tags['A25_En_Shutdown'] === true;
-
-    let arrowChar = '';
-    let arrowColor = '#dcdcdc';
-    
-    // Arrow logic
-    if (isCharging) {
-        arrowChar = '↓';
-        arrowColor = '#2ecc71';
-    } else if (isDischarging) {
-        arrowChar = '↑';
-        arrowColor = '#e74c3c';
-    } else if (isShutdown) {
-        arrowChar = '';
-    } else {
-        arrowChar = '⚠️';
-        arrowColor = '#f39c12';
-    }
-
-    // --- Arrow Style ---
-    const arrowStyle = {
-        position: 'absolute',
-        // --- CALIBRATION POINTS ---
-        top: '20%',  // Adjust to be above the flywheel graphic
-        left: '55%', // Adjust to be centered on the graphic
-        // --- END CALIBRATION ---
-        transform: 'translateX(-50%)',
-        fontSize: '8em', // Large arrow
-        fontWeight: 'bold',
-        color: arrowColor,
-        lineHeight: '1',
-        zIndex: 101, // Ensure it's above everything else
-        visibility: arrowChar ? 'visible' : 'hidden', // Hide if arrowChar is empty
-    };
-
-    return (
-        // The container needs to be relative so we can place absolute elements on top
-        // The size of this container should match the available space on the Home Page
-        <div style={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            overflow: 'hidden'
-        }}>
-            {/* 
-                This is the static SVG background.
-                We use an <img> tag for best display, but we can't edit it.
-                You can replace this with the full SVG code if you want to edit the path/fill later.
-            */}
-            <img 
-                src="/A25+Leaders.svg" // SVG path
-                alt="Flywheel Energy Storage Schematic"
-                style={{
-                    maxWidth: '50%', 
-                    maxHeight: '50%',
-                    objectFit: 'contain',
-                    position: 'absolute',
-                    bottom: '80px', // changed this padding to adjust flywheel vertically
-                }}
-            />
-
-            <div
-                style={{
-                    position: 'absolute',
-                    top: '5%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    fontSize: '3em',
-                    fontWeight: 'bold',
-                    color: '#dcdcdc',
-                    zIndex: 102,
-                    whiteSpace: 'nowrap'
-                }}>
-                AC Network
-            </div>
-            
-                {/* ========================================================= */}
-                {/* *** BOOLEAN SCHEMATIC CARD TEMPLATE (DUPLICATABLE BLOCK) *** */}
-                {/* ========================================================= */}
-                
-                {/* 1. UPPER BEARING Temp */}
-                {/* ------------------------------ */}
-
-                <div 
-                    className="schematic-health-card" 
-                    style={{ position: 'absolute', top: '38%', left: '75%', transform: 'translateX(-50%)' }} // adjust top and left as needed for all cards.
-                >
-                    <div className="schematic-card-title">Upper Bearing Temp.</div>
-                    <div className="schematic-status-container">
-                        <div className={`schematic-health-indicator ${UBT_Class}`}>
-                            {UBT_Text}
-                        </div>
-                    </div>
-                </div>
-                {/* 2. Load Cell */}
-                <div 
-                    className="schematic-health-card" 
-                    style={{ position: 'absolute', top: '32%', left: '25%', transform: 'translateX(-50%)' }} 
-                >
-                    <div className="schematic-card-title">Load Cell</div>
-                    <div className="schematic-status-container">
-                        <div className={`schematic-health-indicator ${LC_Class}`}>
-                            {LC_Text}
-                        </div>
-                    </div>
-                </div>
-
-                {/* 3. Upper Vibration */}
-                <div 
-                    className="schematic-health-card" 
-                    style={{ position: 'absolute', top: '42%', left: '25%', transform: 'translateX(-50%)' }} 
-                >
-                    <div className="schematic-card-title">Upper Vibration</div>
-                    <div className="schematic-status-container">
-                        <div className={`schematic-health-indicator ${UV_Class}`}>
-                            {UV_Text}
-                        </div>
-                    </div>
-                </div>
-
-                {/* 3. Pressure */}
-                <div 
-                    className="schematic-health-card" 
-                    style={{ position: 'absolute', top: '52%', left: '25%', transform: 'translateX(-50%)' }} 
-                >
-                    <div className="schematic-card-title">Pressure</div>
-                    <div className="schematic-status-container">
-                        <div className={`schematic-health-indicator ${PR_Class}`}>
-                            {PR_Text}
-                        </div>
-                    </div>
-                </div>
-
-                {/* 4. Pressure */}
-                <div 
-                    className="schematic-health-card" 
-                    style={{ position: 'absolute', top: '67%', left: '25%', transform: 'translateX(-50%)' }} 
-                >
-                    <div className="schematic-card-title">Lower Vibration</div>
-                    <div className="schematic-status-container">
-                        <div className={`schematic-health-indicator ${LV_Class}`}>
-                            {LV_Text}
-                        </div>
-                    </div>
-                </div>
-
-                {/* 4. Lower Bearing Vibration */}
-                <div 
-                    className="schematic-health-card" 
-                    style={{ position: 'absolute', top: '67%', left: '75%', transform: 'translateX(-50%)' }} 
-                >
-                    <div className="schematic-card-title">Lower Bearting Temp</div>
-                    <div className="schematic-status-container">
-                        <div className={`schematic-health-indicator ${LBT_Class}`}>
-                            {LBT_Text}
-                        </div>
-                    </div>
-                </div>
-
-                {/* 5. Motor Temp */}
-                <div 
-                    className="schematic-health-card" 
-                    style={{ position: 'absolute', top: '80%', left: '75%', transform: 'translateX(-50%)' }} 
-                >
-                    <div className="schematic-card-title">Motor Temp.</div>
-                    <div className="schematic-status-container">
-                        <div className={`schematic-health-indicator ${MT_Class}`}>
-                            {MT_Text}
-                        </div>
-                    </div>
-                </div>
-                
-                {/* ========================================================= */}
-                {/* *** END BLOCKS *** */}
-                {/* ========================================================= */}
-
-                {/* ARROW */}
-                <div style={arrowStyle}>
-                    {arrowChar}
-                </div>
-        </div>
-    );
-}
-
-export default FlywheelVisual;
-</file>
-
-<file path="dashboard-ui/src/constants/index.js">
-// src/constants/index.js
-
-export const COLORS = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
-
-export const chartDefinitions = [
-    { 
-        title: "Power", // Based on Picture 2 Top
-        tags: [
-            'A25_Power', 
-            'A25_Speed', 
-            'A25_Energy', // Mapped to 'Energy' in diagram
-        ] 
-    },
-    { 
-        title: "Vibration", // Based on Picture 2 Middle
-        tags: [
-            'VT001.Scaled', 
-            'VT002.Scaled',
-            'A25_Speed',
-        ] 
-    },
-    { 
-        title: "Temperature", 
-        tags: [
-            'A25_Speed',
-            'TT001.Scaled',
-            'TT002.Scaled',
-            'TT003.Scaled',
-        ] 
-    },
-    { 
-        title: "Electromag", // Based on Picture 3 Top (Simplified)
-        tags: [
-            'A25_Speed',
-            'EM_SV',
-            'WT001.Scaled',
-        ] 
-    },
-    { 
-        title: "Pressure", // Based on Picture 3 Middle (Simplified)
-        tags: [
-            'PT001.Scaled'
-        ] 
-    },
-    {
-        title: "Custom", // Based on Picture 3 Bottom (Simplified / Custom)
-        tags: [
-            'A25_SoC',
-            'A25_Cycles',
-            'A25_RunHours',
-            'Test_InfiniteCounter' // Moved from Home page
-        ]
-    }
-];
-
-// All tags from all definitions
-export const allPossibleTags = [...new Set(chartDefinitions.flatMap(c => c.tags))];
-
-// The map is created once and exported for global use
-export const tagColorMap = Object.fromEntries(
-    allPossibleTags.map((tag, index) => [tag, COLORS[index % COLORS.length]])
-);
-</file>
-
-<file path="dashboard-ui/src/context/AuthContext.jsx">
-// File: dashboard-ui/src/context/AuthContext.jsx
-
-import { createContext, useState, useContext, useEffect } from 'react';
-import apiClient from '../api';
-import { useSystemStatus } from './SystemStatusContext'; 
-
-// Minimal JWT Payload Decoder (since we avoid extra dependencies)
-function decodeJwtPayload(token) {
-    if (!token) return null;
-    try {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        return JSON.parse(jsonPayload);
-    } catch (e) {
-        console.error("Failed to decode JWT payload:", e);
-        return null;
-    }
-}
-
-const AuthContext = createContext(null);
-
-// Non-hook way to access the logout function for the global interceptor in api.js
-let globalLogout = () => {};
-
-export const AuthProvider = ({ children }) => {
-  const initialToken = localStorage.getItem('authToken');
-  const [token, setToken] = useState(initialToken);
-
-  // Synchronous User Initialisation from jwt payload.
-  const [user, setUser] = useState(() => {
-    if (!initialToken) return null;
-    const payload = decodeJwtPayload(initialToken);
-    return (payload && payload.sub && payload.role) ? 
-    { username : payload.sub, role: payload.role} : null;
-  });
-
-  // Load only if there is a token to validate over the network
-  const [isLoading, setIsLoading] = useState(
-    initialToken && (!user || !user.role) ? true : false
-  );
-  
-  const { connectionStatus } = useSystemStatus(); 
-
-  const fetchUser = async (currentToken) => {
-
-      if (!currentToken || connectionStatus.state === 'OFFLINE') {
-        setIsLoading(false);
-        return null;
-      }
-
-      try {
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${currentToken}`;
-        const userResponse = await apiClient.get('/users/me', { timeout: 2000 }); 
-        setUser(userResponse.data);
-        return userResponse.data; // Return user data on success
-      } catch (error) {
-        if (error.response && error.response.status === 401) {
-            logout();
-        } 
-        return null; 
-      } finally {
-        setIsLoading(false); 
-      }
-  };
-
-  useEffect(() => {
-    // Initial load: if token exists, run network validation to confirm it's still active.
-    if (token && (isLoading || connectionStatus.state === 'ONLINE')) {
-      fetchUser(token);
-    } else if (!token) {
-      setIsLoading(false);
-    }
-    // Note: Do NOT add 'user' to the dependency array. That creates an infinite loop.
-  }, [token, connectionStatus.state]);
-
-    const login = async (username, password) => {
-    setIsLoading(true); 
-    try {
-      const params = new URLSearchParams();
-      params.append('username', username);
-      params.append('password', password);
-      const response = await apiClient.post('/token', params);
-      const { access_token } = response.data;
-      
-      setToken(access_token);
-      localStorage.setItem('authToken', access_token);
-      
-      // === FIX: SHORT-CIRCUIT ASYNC /users/me CALL FOR INITIAL ROLE POPULATION ===
-      const payload = decodeJwtPayload(access_token);
-      
-      if (payload && payload.sub && payload.role) {
-          // Synchronously set the user state based on the token payload
-          const initialUser = { username: payload.sub, role: payload.role };
-          setUser(initialUser); 
-          setIsLoading(false); // Auth is complete and role is set
-          return true;
-      }
-
-      // Fallback: If JWT parsing failed, force a network call (last resort)
-      console.warn("JWT payload incomplete, falling back to /users/me check...");
-      const fetchedUser = await fetchUser(access_token);
-      return !!fetchedUser;
-
-    } catch (error) {
-      console.error("Login failed:", error);
-      setIsLoading(false); 
-      return false;
-    }
-  };
-  
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem('authToken');
-    delete apiClient.defaults.headers.common['Authorization'];
-    setIsLoading(false); // Reset loading state when logging out
-    window.location.href = '/login'; // Force a full page reload after clearing state to ensure all components reset.
-  };
-
-  useEffect(() => {
-    globalLogout = logout;
-  }, []);
-
-  const value = { token, user, login, logout, isLoading };
-
-  return (
-    <AuthContext.Provider value={value}>
-    {/* Show loading screen only if actively validating a token */}
-      {isLoading && token ? (
-          <div style={{
-              height: '100vh', display: 'flex', alignItems: 'center', 
-              justifyContent: 'center', backgroundColor: '#1e1e1e', color: '#888'
-          }}>
-              Verifying Session...
-          </div>
-      ) : (
-          children
-      )}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => useContext(AuthContext);
-
-export const setGlobalLogout = (logoutFn) => {
-  globalLogout = logoutFn;
-};
-export const getGlobalLogout = () => globalLogout;
-</file>
-
 <file path="dashboard-ui/src/pages/EngineeringPage.jsx">
 import { useState, useEffect } from 'react';
 import { useOutletContext } from "react-router-dom";
@@ -2405,242 +1643,418 @@ function EngineeringPage() {
 export default EngineeringPage;
 </file>
 
-<file path="dashboard-ui/src/pages/HomePage.jsx">
-// dashboard-ui/src/pages/HomePage.jsx
+<file path="dashboard-ui/src/components/StreamingChart.jsx">
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Line } from "react-chartjs-2";
+import { 
+    Chart as ChartJS, 
+    CategoryScale, 
+    LinearScale, 
+    PointElement, 
+    LineElement, 
+    Title, 
+    Tooltip, 
+    Legend, 
+    TimeScale,
+    Decimation 
+} from "chart.js";
+import 'chartjs-adapter-date-fns';
+import apiClient from '../api';
+import { subSeconds } from 'date-fns';
 
-import { useState } from 'react';
-import { useOutletContext } from "react-router-dom";
-import { useSystemStatus } from '../context/SystemStatusContext';
-import CommandsSidebar from '../components/CommandsSidebar';
-import FlywheelVisual from '../components/FlywheelVisual'; 
-import HealthStatus from '../components/HealthStatus';
-import PopoutWindow from '../components/PopoutWindow'; 
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, TimeScale, Decimation);
 
-function HomePage() {
-  const { setpoints } = useOutletContext();
+function StreamingChart({ selectedTags, displayRangeSec, tagColorMap }) {
+  const rawDataRef = useRef({});
+  const [chartData, setChartData] = useState({ datasets: [] });
+  const [isLoading, setIsLoading] = useState(true);
+  const pollingRef = useRef(null);
   
-  // Consuming Global State instead of local fetching
-  const { liveData, connectionStatus, formatTime } = useSystemStatus();
+  const pollInterval = 1000; // 10Hz
 
-  // Popout States
-  const [isFlywheelPopped, setIsFlywheelPopped] = useState(false);
-  const [isDashboardPopped, setIsDashboardPopped] = useState(false);
+  // --- DUAL MODE CONFIGURATION ---
+  // "Safe Mode" (<= 5 mins): Standard rendering. Reliable.
+  // "Performance Mode" (> 5 mins): Decimation ON, Parsing OFF. Fast.
+  const isPerformanceMode = displayRangeSec > 300; 
 
-  // --- DERIVED VALUES (Updated to use NEW A25_ tags and new status logic) ---
-  const tags = liveData.tags || {};
-  
-  // Tags for Status Overview
-  const statusCharge = tags['A25_En_Charge'];        // New boolean tag
-  const statusDischarge = tags['A25_En_Discharge']; // New boolean tag (Note: It's 'Dsicharge' in main_api.py hardcoded list)
-  const statusShutdown = tags['A25_En_Shutdown'];    // New boolean tag
-  const statusStartup = tags['A25_En_Startup'];    // New boolean tag (if needed for future logic)
+  const chartOptions = useMemo(() => {
+    // BASE OPTIONS
+    const opts = {
+        responsive: true, 
+        maintainAspectRatio: false, 
+        animation: false, 
+        spanGaps: false,
+        plugins: { 
+            legend: { display: true },
+            position: 'top',
+            align: 'end',
+            labels: {
+              color: '#a0a0a0',
+              boxWidth: 12,
+              usePointStyle: 'circle',
+              padding: 10,
+              font: { size: 11 }
+            },
+            onClick: (e, legendItem, legend) => {
+              const index = legendItem.datasetIndex;
+              const ci = legend.chart;
+              if (ci.isDatasetVisible(index)) {
+                ci.hide(index);
+                legendItem.hidden = true;
+              } else {
+                ci.show(index);
+                legendItem.hidden = false;
+              }
+            },
+            decimation: { enabled : false }
+        },
+        scales: {
+            x: {
+                type: "time",
+                time: { unit: "second", tooltipFormat: "HH:mm:ss.SSS" },
+                displayFormats: {
+                  second: 'HH:mm:ss',
+                  minute: 'HH:mm',
+                  hour: 'MMM d, HH"mm',
+                },
+                ticks: { color: '#a0a0a0', maxRotation: 0, autoSkip: true, maxTicksLimit: 10, source: 'auto' },
+                grid: { color: '#333' }
+            },
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              ticks: { color: '#a0a0a0' },
+              grid: { color: '#333' }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              min: 0,
+              max: 9000,
+              ticks: { color: '#a0a0a0' },
+              grid: { drawOnChartArea: false }
+            }
+        },
+        elements: {
+            line: { tension: 0, borderWidth: 2 },
+            point: { radius: 0, hoverRadius: 5 } // Default hidden
+        }
+    };
 
-  const power = tags['A25_Power'] || 0;
-  const energy = tags['A25_Energy'] || 0;
-  const soc = tags['A25_SoC'] || 0;
-  const speed = tags['A25_Speed'] || 0;
-  const totalEnergy = tags['A25_Energy_Total'] || 0;
-  const cycles = tags['A25_Cycles'] || 0;
-  const runHours = tags['A25_RunHours'] || 0;
-  
-  // New logic to determine status based on boolean tags
-  const getFlywheelStatusFromBooleans = (tags) => {
-    // Note: The tag name is 'A25_En_Dsicharge' in main_api.py's hardcoded list.
-    const isCharging = tags['A25_En_Charge']; 
-    const isDischarging = tags['A25_En_Discharge']; 
-    const isShutdown = tags['A25_En_Shutdown']; 
+    if (isPerformanceMode) {
+        // --- PERFORMANCE MODE (> 5 mins) ---
+        opts.parsing = false; // Trust our x: ms data
+        opts.normalized = true;
+        opts.plugins.decimation = {
+            enabled: true,
+            algorithm: 'min-max',
+            samples: 500, 
+        };
+    } else {
+        // --- SAFE MODE (<= 5 mins) ---
+        opts.parsing = true; // Let Chart.js parse the ISO strings/Date objs
+        // Show dots only if range is very short (1 min or less)
+        if (displayRangeSec <= 120) {
+            opts.elements.point.radius = 2;
+        }
+    }
 
-    if (isShutdown === true) return "Shutdown";
-    if (isCharging === true) return "Charging";
-    if (isDischarging === true) return "Discharging";
-    
-    // If none of the primary status bits are active, we'll assume Idle or Unknown.
-    // If speed > 0, we can infer it's running but not actively charging/discharging
-    if ((tags['A25_Speed'] || 0) > 10) return "Idle (Spinning)";
+    return opts;
+  }, [isPerformanceMode, displayRangeSec]);
 
-    return "Unknown/Fault";
-  };
-  
-  // Use the new logic to get the final status text
-  const flywheelStatusText = getFlywheelStatusFromBooleans(tags);
+  const mergeAndSetData = (incomingData, endTime, windowSeconds) => {
+    const newRawData = { ...rawDataRef.current };
 
-  // --- COMPONENT CHUNKS ---
-
-  // 2. The Flywheel Visual Wrapper
-  const flywheelVisualContent = (
-    <div style={{position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-        {/* Pass the entire liveData object as required by the new FlywheelVisual */}
-        <FlywheelVisual 
-            liveData={liveData} 
-        />
-        {!isDashboardPopped && (
-            <button 
-                className="maximize-btn" 
-                style={{position: 'absolute', top: 10, right: 10}}
-                onClick={() => setIsFlywheelPopped(!isFlywheelPopped)}
-            >
-                {isFlywheelPopped ? 'Dock' : '❐ Pop Widget'}
-            </button>
-        )}
-    </div>
-  );
-
-  // 3. The Full Dashboard Layout
-  const dashboardContent = (
-    <div className="home-layout" style={{
-        height: isDashboardPopped ? '100vh' : 'calc(100vh - 100px)',
-        backgroundColor: '#1e1e1e',
-        position: 'relative' 
-    }}>
-
-      <CommandsSidebar setpoints={setpoints} liveData={liveData}/>
+    selectedTags.forEach((tag) => {
+      if (!newRawData[tag]) newRawData[tag] = [];
+      const existingTimestamps = new Set(newRawData[tag].map((p) => p.ts));
       
-      <div className="flywheel-section" style={{position: 'relative', backgroundColor: '#1e1e1e'}}>
-        {isFlywheelPopped && !isDashboardPopped ? (
-            <>
-                <div style={{height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #444', color: '#666'}}>
-                    Flywheel Visual is popped out.
-                    <button className="maximize-btn" style={{marginLeft:'10px'}} onClick={() => setIsFlywheelPopped(false)}>Return</button>
-                </div>
-                <PopoutWindow title="Flywheel Visualization" onClose={() => setIsFlywheelPopped(false)}>
-                    <div style={{height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e1e1e'}}>
-                        {flywheelVisualContent}
-                    </div>
-                </PopoutWindow>
-            </>
-        ) : (
-            flywheelVisualContent
-        )}
-      </div>
+      if (incomingData[tag] && Array.isArray(incomingData[tag])) {
+          incomingData[tag].forEach((newPoint) => {
+            if (existingTimestamps.has(newPoint.ts)) return;
+            // Basic validation
+            if (newPoint.value === null || newPoint.value === undefined) return;
+            const numericValue = parseFloat(newPoint.value);
+            if (isNaN(numericValue)) return;
 
-      <div className="sidebar status-sidebar">
-        <div className="status-group">
-          <h2>Status Overview</h2>
-          
-          <div className="status-item">
-            <span>Flywheel Status</span>
-            <span className="status-compact-value">{flywheelStatusText}</span>
-          </div>
-          
-          <div className="status-item">
-            <span>Power</span>
-            <span className="status-compact-value">{power.toFixed(2)} kW</span>
-          </div>
-          
-          <div className="status-item">
-            <span>Energy Stored</span>
-            <span className="status-compact-value">{energy.toFixed(1)} kWh</span>
-          </div>
-          
-          <div className="status-item">
-            <span>State of Charge</span>
-            <span className="status-compact-value">{soc.toFixed(0)} %</span>
-          </div>
-          
-          <div className="status-item">
-            <span>Speed</span>
-            <span className="status-compact-value">{speed.toFixed(0)} RPM</span>
-          </div>
-          
-          <div className="status-item">
-            <span>Total Energy Transferred</span>
-            <span className="status-compact-value">{totalEnergy.toFixed(1)} kWh</span>
-          </div>
-          
-          <div className="status-item">
-            <span>Total Cycles</span>
-            <span className="status-compact-value">{cycles}</span>
-          </div>
-          
-          <div className="status-item">
-            <span>Run Hours</span>
-            <span className="status-compact-value">{runHours.toFixed(1)} h</span>
-          </div>
-          
-        </div>
-      </div>
-    </div>
-  );
-
-  // --- RENDER RETURN (Unchanged Popout/Header Logic) ---
-
-  if (isDashboardPopped) {
-      return (
-          <>
-            <div style={{
-                height: 'calc(100vh - 60px)', 
-                display: 'flex', 
-                flexDirection: 'column',
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                backgroundColor: '#1a1a1a',
-                color: '#888'
-            }}>
-                <div style={{fontSize: '2em', marginBottom: '1rem'}}>Main Dashboard is Popped Out</div>
-                <div style={{marginBottom: '2rem'}}>Use the external window to control the system.</div>
-                <button 
-                    className="maximize-btn" 
-                    style={{fontSize: '1.2em', padding: '10px 20px'}}
-                    onClick={() => setIsDashboardPopped(false)}
-                >
-                    Return Dashboard to Main Window
-                </button>
-            </div>
-
-            <PopoutWindow title="SCADA Main Dashboard" onClose={() => setIsDashboardPopped(false)}>
-                {dashboardContent}
-            </PopoutWindow>
-          </>
+            newRawData[tag].push({ ts: newPoint.ts, value: numericValue });
+          });
+      }
+      
+      // Prune old
+      const cutoff = subSeconds(endTime, windowSeconds).getTime();
+      newRawData[tag] = newRawData[tag].filter(
+        (p) => new Date(p.ts).getTime() >= cutoff
       );
+      
+      newRawData[tag].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
+    });
+
+    rawDataRef.current = newRawData;
+
+    const datasets = selectedTags.map((tag) => {
+        const rawPoints = rawDataRef.current[tag] || [];
+        
+        // DATA TRANSFORMATION BASED ON MODE
+        let dataPoints;
+        if (isPerformanceMode) {
+            // Performance Mode: Needs {x: Milliseconds, y: Value}
+            dataPoints = rawPoints.map(p => ({ x: new Date(p.ts).getTime(), y: p.value }));
+        } else {
+            // Safe Mode: Needs {x: ISO String, y: Value} (Standard parsing)
+            dataPoints = rawPoints.map(p => ({ x: p.ts, y: p.value }));
+        }
+
+        return {
+            label: tag,
+            data: dataPoints,
+            borderColor: tagColorMap[tag],
+            backgroundColor: tagColorMap[tag] + '80',
+            yAxisID: tag === 'A25_Speed' ? 'y1' : 'y',
+        };
+    });
+
+    setChartData({ datasets });
+  };
+
+  useEffect(() => {
+    rawDataRef.current = {};
+    if (pollingRef.current) clearTimeout(pollingRef.current);
+    setIsLoading(true);
+
+    let isMounted = true;
+
+    const runProcess = async () => {
+      const now = new Date();
+      
+      // 1. Initial Backfill
+      try {
+        const start = subSeconds(now, displayRangeSec);
+        const params = new URLSearchParams();
+        selectedTags.forEach(tag => params.append('tags', tag));
+        params.append('start_time', start.toISOString());
+        params.append('end_time', now.toISOString());
+
+        const histResponse = await apiClient.get('/api/historian', { params });
+        if (isMounted) {
+            mergeAndSetData(histResponse.data, now, displayRangeSec);
+            setIsLoading(false); 
+        }
+      } catch (e) {
+        if (isMounted) setIsLoading(false);
+      }
+
+      // 2. Polling Loop
+      const poll = async () => {
+        if (!isMounted) return;
+        const loopNow = new Date();
+        const loopStart = subSeconds(loopNow, 10); // Fetch last 10 seconds to avoid gaps 
+
+        try {
+          const params = new URLSearchParams();
+          selectedTags.forEach(tag => params.append('tags', tag));
+          params.append('start_time', loopStart.toISOString());
+          params.append('end_time', loopNow.toISOString());
+
+          const liveResponse = await apiClient.get('/api/historian', { params });
+          if (isMounted) {
+            mergeAndSetData(liveResponse.data, loopNow, displayRangeSec);
+          }
+        } catch (e) { }
+        pollingRef.current = setTimeout(poll, pollInterval);
+      };
+
+      poll();
+    };
+
+    runProcess();
+
+    return () => {
+      isMounted = false;
+      if (pollingRef.current) clearTimeout(pollingRef.current);
+    };
+  }, [selectedTags, displayRangeSec]); 
+
+  if (isLoading) {
+    return (
+        <div style={{
+            height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+            color: '#a0a0a0', flexDirection: 'column', gap: '10px'
+        }}>
+            <span>Loading Data...</span>
+        </div>
+    );
   }
 
+  // Key forces full re-mount when switching between Safe/Performance modes
   return (
-    <div style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
-        {/* Header Bar is Unchanged */}
-        <div style={{
-            padding: '10px 20px', 
-            backgroundColor: '#252525', 
-            borderBottom: '1px solid #333', 
-            display: 'flex', 
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            gap: '15px'
-        }}>
-            <div style={{
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '8px',
-                fontSize: '0.9em',
-                fontWeight: 'bold',
-                color: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c'
-            }}>
-                <div style={{
-                    width: '10px', 
-                    height: '10px', 
-                    borderRadius: '50%', 
-                    backgroundColor: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c',
-                    boxShadow: connectionStatus.state === 'ONLINE' ? '0 0 8px #2ecc71' : 'none'
-                }}></div>
-                {connectionStatus.state === 'ONLINE' 
-                    ? 'SYSTEM ONLINE' 
-                    : `OFFLINE (Last: ${formatTime(connectionStatus.lastSeen)})`
-                }
-            </div>
-
-            <button 
-                className="maximize-btn" 
-                onClick={() => setIsDashboardPopped(true)}
-            >
-                ❐ Pop Out Dashboard
-            </button>
-        </div>
-
-        {dashboardContent}
-    </div>
+    <Line 
+        key={isPerformanceMode ? 'perf' : 'safe'} 
+        data={chartData} 
+        options={chartOptions} 
+    />
   );
+};
+
+export default StreamingChart;
+</file>
+
+<file path="dashboard-ui/src/context/AuthContext.jsx">
+// File: dashboard-ui/src/context/AuthContext.jsx
+// *** RESTORED TO WORKING STATE from repomix-output.xml ***
+
+import { createContext, useState, useContext, useEffect } from 'react';
+import apiClient from '../api';
+import { useSystemStatus } from './SystemStatusContext'; 
+
+// Minimal JWT Payload Decoder (since we avoid extra dependencies)
+function decodeJwtPayload(token) {
+    if (!token) return null;
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        console.error("Failed to decode JWT payload:", e);
+        return null;
+    }
 }
 
-export default HomePage;
+const AuthContext = createContext(null);
+
+// Non-hook way to access the logout function for the global interceptor in api.js
+let globalLogout = () => {};
+
+export const AuthProvider = ({ children }) => {
+  const initialToken = localStorage.getItem('authToken');
+  const [token, setToken] = useState(initialToken);
+
+  // Synchronous User Initialisation from jwt payload.
+  const [user, setUser] = useState(() => {
+    if (!initialToken) return null;
+    const payload = decodeJwtPayload(initialToken);
+    // CRITICAL FIX: Ensure payload.role is checked. The broken version had a bug here.
+    return (payload && payload.sub && payload.role) ? 
+    { username : payload.sub, role: payload.role} : null;
+  });
+
+  // Load only if there is a token to validate over the network
+  const [isLoading, setIsLoading] = useState(
+    // CRITICAL FIX: Use the logic that checks if the initial token didn't provide user.role
+    initialToken && (!user || !user.role) ? true : false
+  );
+  
+  const { connectionStatus } = useSystemStatus(); 
+
+  const fetchUser = async (currentToken) => {
+    // FIX: Corrected variable name currenToken -> currentToken
+      if (!currentToken || connectionStatus.state === 'OFFLINE') {
+        setIsLoading(false);
+        return null;
+      }
+
+      try {
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${currentToken}`;
+        const userResponse = await apiClient.get('/users/me', { timeout: 2000 }); 
+        setUser(userResponse.data);
+        return userResponse.data; // Return user data on success
+      } catch (error) {
+        if (error.response && error.response.status === 401) {
+            logout();
+        } 
+        return null; 
+      } finally {
+        setIsLoading(false); 
+      }
+  };
+
+  useEffect(() => {
+      // Only fetch user if we have a token but no valid user data yet
+      if (token && !user?.role && connectionStatus.state === 'ONLINE') {
+        fetchUser(token);
+      } else if (!token) {
+        setIsLoading(false);
+      }
+  }, [token, connectionStatus.state]);
+
+    const login = async (username, password) => {
+    setIsLoading(true); 
+    try {
+      const params = new URLSearchParams();
+      params.append('username', username);
+      params.append('password', password);
+      const response = await apiClient.post('/token', params);
+      const { access_token } = response.data;
+      
+      setToken(access_token);
+      localStorage.setItem('authToken', access_token);
+      
+      // === FIX: SHORT-CIRCUIT ASYNC /users/me CALL FOR INITIAL ROLE POPULATION ===
+      const payload = decodeJwtPayload(access_token);
+      
+      if (payload && payload.sub && payload.role) {
+          // Synchronously set the user state based on the token payload
+          const initialUser = { username: payload.sub, role: payload.role };
+          setUser(initialUser); 
+          setIsLoading(false); // Auth is complete and role is set
+          return true;
+      }
+
+      // Fallback: If JWT parsing failed, force a network call (last resort)
+      console.warn("JWT payload incomplete, falling back to /users/me check...");
+      const fetchedUser = await fetchUser(access_token);
+      return !!fetchedUser;
+
+    } catch (error) {
+      console.error("Login failed:", error);
+      setIsLoading(false); 
+      return false;
+    }
+  };
+  
+  const logout = () => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('authToken');
+    delete apiClient.defaults.headers.common['Authorization'];
+    setIsLoading(false); // Reset loading state when logging out
+    window.location.href = '/login'; // Force a full page reload after clearing state to ensure all components reset.
+  };
+
+  useEffect(() => {
+    globalLogout = logout;
+  }, []);
+
+  const value = { token, user, login, logout, isLoading };
+
+  return (
+    <AuthContext.Provider value={value}>
+    {/* Show loading screen only if actively validating a token */}
+      {isLoading && token ? (
+          <div style={{
+              height: '100vh', display: 'flex', alignItems: 'center', 
+              justifyContent: 'center', backgroundColor: '#1e1e1e', color: '#888'
+          }}>
+              Verifying Session...
+          </div>
+      ) : (
+          children
+      )}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => useContext(AuthContext);
+
+export const setGlobalLogout = (logoutFn) => {
+  globalLogout = logoutFn;
+};
+export const getGlobalLogout = () => globalLogout;
 </file>
 
 <file path="dashboard-ui/src/api.js">
@@ -2648,7 +2062,7 @@ export default HomePage;
 import axios from 'axios';
 
 // Set BASE_API_URL to the root path ('/') so Nginx handles proxying to http://backend:8000
-import { setGlobalLogoutt, getGlobalLogout } from './context/AuthContext';
+import { setGlobalLogout, getGlobalLogout } from './context/AuthContext';
 
 export const BASE_API_URL = '/'; 
 const API_KEY = import.meta.env.VITE_API_KEY;
@@ -3129,388 +2543,453 @@ body { margin: 0; }
 .flywheel-data-card, .flywheel-card-title, .flywheel-card-value {
     display: none !important;
 }
+
+#popout-root canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
 </file>
 
-<file path="dashboard-ui/src/pages/OperationalDetailsPage.jsx">
-import { useState, useEffect, useCallback } from 'react';
-import { Line } from 'react-chartjs-2';
-import { 
-    Chart as ChartJS, 
-    CategoryScale, 
-    LinearScale, 
-    PointElement, 
-    LineElement, 
-    Title, 
-    Tooltip, 
-    Legend, 
-    TimeScale 
-} from 'chart.js';
-import 'chartjs-adapter-date-fns';
-import { subSeconds, subHours, subDays, subMonths, startOfYear } from 'date-fns';
+<file path="dashboard-ui/src/constants/index.js">
+// src/constants/index.js
 
-import PensSidebar from '../components/PensSidebar';
-import StreamingChart from '../components/StreamingChart';
-import PopoutWindow from '../components/PopoutWindow'; // <--- NEW IMPORT
-import { chartDefinitions, tagColorMap } from '../constants';
-import apiClient from '../api'; 
+export const COLORS = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, TimeScale);
-
-const staticChartOptions = {
-    responsive: true, 
-    maintainAspectRatio: false, 
-    parsing: false, 
-    normalized: true,
-    plugins: { 
-        legend: { display: true, position: 'top', labels: { color: '#a0a0a0' } } 
+export const chartDefinitions = [
+    { 
+        title: "Power", // Based on Picture 2 Top
+        tags: [
+            'A25_Power', 
+            'A25_Speed', 
+            'A25_Energy', // Mapped to 'Energy' in diagram
+        ] 
     },
-    scales: {
-        x: { 
-            type: 'time', 
-            time: { tooltipFormat: 'PP pp' }, 
-            ticks: { color: '#a0a0a0', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, 
-            grid: { color: '#333' } 
-        },
-        y: { 
-            ticks: { color: '#a0a0a0' }, 
-            grid: { color: '#333' } 
-        }
+    { 
+        title: "Vibration", // Based on Picture 2 Middle
+        tags: [
+            'VT001.Scaled', 
+            'VT002.Scaled',
+            'A25_Speed',
+        ] 
     },
-    animation: { duration: 0 }
-};
-
-const getDurationInSeconds = (timeRangeKey) => {
-    const value = parseInt(timeRangeKey.slice(0, -1));
-    const unit = timeRangeKey.slice(-1);
-    if (unit === 's') return value;
-    if (unit === 'm') return value * 60;
-    return 0; 
-};
-
-const getStartEndTime = (timeRangeKey) => {
-    const now = new Date();
-    let startTime = null;
-
-    if (timeRangeKey === '1h') startTime = subHours(now, 1);
-    else if (timeRangeKey === '24h') startTime = subHours(now, 24);
-    else if (timeRangeKey === '7d') startTime = subDays(now, 7);
-    else if (timeRangeKey === '1mo') startTime = subMonths(now, 1);
-    else if (timeRangeKey === 'YTD') startTime = startOfYear(now);
-    else if (timeRangeKey === 'All') startTime = subDays(now, 365 * 5); // Go back 5 years 
-
-    return { startTime, endTime: now };
-};
-
-
-const getFlywheelStatusFromBooleans = (tags) => {
-    // Note: The tag name is 'A25_En_Dsicharge' in main_api.py's hardcoded list.
-    const isCharging = tags['A25_En_Charge']; 
-    const isDischarging = tags['A25_En_Discharge']; 
-    const isShutdown = tags['A25_En_Shutdown']; 
-
-    if (isShutdown === true) return "Shutdown";
-    if (isCharging === true) return "Charging";
-    if (isDischarging === true) return "Discharging";
-    
-    // If none of the primary status bits are active, we'll assume Idle or Unknown.
-    if ((tags['A25_Speed'] || 0) > 10) return "Idle (Spinning)";
-
-    return "Unknown/Fault";
-};
-
-// --- UPDATED: LiveSensorTable with Pop-out Logic ---
-const TELEMETRY_TAGS_TO_DISPLAY = [
-    { label: "Power", tag: "A25_Power", unit: "kW" },
-    { label: "Speed", tag: "A25_Speed", unit: "RPM" },
-    { label: "Flywheel Status", tag: "A25_Status", unit: "Status" }, // Handled specially
-    { label: "Upper Bearing Temp.", tag: "TT001.Scaled", unit: "°C" },
-    { label: "Lower Bearing Temp.", tag: "TT002.Scaled", unit: "°C" },
-    { label: "Motor Temp.", tag: "TT003.Scaled", unit: "°C" },
-    { label: "Upper Vibration", tag: "VT001.Scaled", unit: "" },
-    { label: "Lower Vibration", tag: "VT002.Scaled", unit: "" },
-    { label: "Load Cell", tag: "WT001.Scaled", unit: "kg" },
-    { label: "Pressure", tag: "PT001.Scaled", unit: "" },
-    { label: "Load Cell Target", tag: "EM_SV", unit: "kg" },
-    // Add boolean examples from Picture 3 for demo
-    { label: "Vib Health (U)", tag: "VT001_Healthy", unit: "Bool" },
-    { label: "Pressure Health", tag: "PT001_Healthy", unit: "Bool" },
+    { 
+        title: "Temperature", 
+        tags: [
+            'A25_Speed',
+            'TT001.Scaled',
+            'TT002.Scaled',
+            'TT003.Scaled',
+        ] 
+    },
+    { 
+        title: "Electromag", // Based on Picture 3 Top (Simplified)
+        tags: [
+            'A25_Speed',
+            'EM_SV',
+            'WT001.Scaled',
+        ] 
+    },
+    { 
+        title: "Pressure", // Based on Picture 3 Middle (Simplified)
+        tags: [
+            'PT001.Scaled'
+        ] 
+    },
+    {
+        title: "Custom", // Based on Picture 3 Bottom (Simplified / Custom)
+        tags: [
+            'A25_SoC',
+            'A25_Cycles',
+            'A25_RunHours',
+        ]
+    }
 ];
 
-function LiveSensorTable({ tags }) {
-    
-    const handlePopout = () => {
-        // Calculate center of screen
-        const width = 1000;
-        const height = 800;
-        const left = (window.screen.width / 2) - (width / 2);
-        const top = (window.screen.height / 2) - (height / 2);
-        
-        // Open the dedicated route in a new window
-        window.open(
-            '/sensor-wall', 
-            'SensorWallWindow', 
-            `width=${width},height=${height},left=${left},top=${top},resizable,scrollbars`
-        );
-    };
+// All tags from all definitions
+export const allPossibleTags = [...new Set(chartDefinitions.flatMap(c => c.tags))];
 
-    if (!tags || Object.keys(tags).length === 0) return <div className="sidebar sensor-sidebar">Loading...</div>;
+// The map is created once and exported for global use
+export const tagColorMap = Object.fromEntries(
+    allPossibleTags.map((tag, index) => [tag, COLORS[index % COLORS.length]])
+);
+</file>
 
-    const derivedFlywheelStatus = getFlywheelStatusFromBooleans(tags);
+<file path="dashboard-ui/src/components/CommandsSidebar.jsx">
+import apiClient from '../api';
+import { useAuth } from '../context/AuthContext'; // Import the auth hook to check token
 
-    return (
-        <div className="sidebar sensor-sidebar">
-            <div className="sidebar-header-row">
-                <h2>Telemetry</h2> {/* <--- Updated Title */}
-                <button 
-                    className="maximize-btn" 
-                    onClick={handlePopout}
-                >
-                    ❐ Pop Out Wall
-                </button>
-            </div>
-            
-            <div className="sensor-list">
-                {TELEMETRY_TAGS_TO_DISPLAY.map(({ label, tag, unit }) => {
-                    const value = tags[tag];
-                    let displayValue;
-                    
-                    if (tag === "A25_Status") {
-                        displayValue = derivedFlywheelStatus;
-                    } else if (typeof value === 'number') {
-                        // All numeric values display to 2 decimal places (or just the number)
-                        displayValue = `${value.toFixed(value % 1 !== 0 ? 2 : 0)} ${unit}`;
-                    } else if (typeof value === 'boolean' || unit === 'Bool') {
-                         displayValue = value ? 'TRUE' : 'FALSE';
-                    } else {
-                        displayValue = String(value);
-                    }
-                    
-                    return (
-                        <div className="sensor-item" key={tag}>
-                            <span className="sensor-label">{label}</span>
-                            <span className="sensor-value">
-                                {displayValue}
-                            </span>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-}
+const COMMAND_TAG_BASE = 'A25_SIM_';
 
-const IndividualTimeSelector = ({ onSelect }) => {
-    const ranges = {
-        '1m': '1 Minute (Live)',
-        '5m': '5 Minutes (Live)',
-        '30m':'30 Minutes (Live)',
-        '1h': '1 Hour (History)',
-        '24h': '24 Hours (History)',
-        '7d': '7 Days (History)',
-        '1mo': '1 Month (History)',
-        'YTD': 'Year to Date',
-        'All': 'All Time'
-    };
+// FIX 1: Change parameter name from 'value' to 'commandKey'
+function CommandsSidebar({ setpoints, liveData }) {
+  const { token, user } = useAuth(); // Get the current token status
 
-    return (
-        <div className="individual-time-selector">
-            <span>Range:</span>
-            <select onChange={(e) => onSelect(e.target.value)} defaultValue="5m">
-                {Object.entries(ranges).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                ))}
-            </select>
-        </div>
-    );
-};
+  const currentSpeed = liveData?.tags?.['A25_Speed'] || 0; // placeholder for now just in case we want to use speed as reference in future?
+  const En_Charge = liveData?.tags?.['A25_En_Charge'] || 0;
+  const En_Discharge = liveData?.tags?.['A25_En_Discharge'] || 0;
+  const En_Shutdown = liveData?.tags?.['A25_En_Shutdown'] || 0;
+  const En_Startup = liveData?.tags?.['A25_En_Startup'] || 0;
 
-// --- UPDATED: HistorianChart with Pop-out Logic ---
-function HistorianChart({ title, visibleTags, fetchHistoricalData }) {
-    const [timeRange, setTimeRange] = useState('5m'); 
-    const [staticData, setStaticData] = useState({ datasets: [] });
-    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-    const [isPoppedOut, setIsPoppedOut] = useState(false);
+  // 1. Base check: Must be logged in/ token should exist.
+  const isUserAuthenticated = !!token && (user?.role === 'Engineer' || user?.role === 'Admin');
 
-    const isStreamingMode = ['1m', '5m', '30m'].includes(timeRange);
+  // 2. Button specific logic.
+  const canCharge = isUserAuthenticated && En_Charge == 1;
+  const canDischarge = isUserAuthenticated && En_Discharge == 1;
+  const canShutdown = isUserAuthenticated && En_Shutdown == 1;
+  const canStartup = isUserAuthenticated && En_Startup == 1;
 
-    useEffect(() => {
-        if (isStreamingMode || visibleTags.length === 0) return;
-
-        const loadHistory = async () => {
-            setIsLoadingHistory(true);
-            const data = await fetchHistoricalData(title, visibleTags, timeRange);
-            setStaticData(data);
-            setIsLoadingHistory(false);
-        };
-
-        loadHistory();
-    }, [timeRange, visibleTags, isStreamingMode, title, fetchHistoricalData]);
-
-    // The Inner Content
-    const chartContent = (
-        <div className="chart-card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div className="chart-header">
-                <h3>
-                    {title} 
-                    {isStreamingMode ? 
-                        <span className="live-badge" style={{marginLeft:'10px'}}>LIVE</span> : 
-                        <span style={{marginLeft:'10px', fontSize:'0.7em', color:'#a0a0a0'}}>HISTORICAL</span>
-                    }
-                </h3>
-                <div style={{display:'flex', gap:'10px'}}>
-                    <IndividualTimeSelector onSelect={setTimeRange} />
-                    <button className="maximize-btn" onClick={() => setIsPoppedOut(!isPoppedOut)}>
-                        {isPoppedOut ? 'Dock' : '❐ Pop'}
-                    </button>
-                </div>
-            </div>
-
-            <div className="chart-wrapper" style={{flexGrow: 1, minHeight: 0}}>
-                {visibleTags.length === 0 ? (
-                    <div className="no-data-message">No Pens Selected</div>
-                ) : isStreamingMode ? (
-                    <StreamingChart 
-                        selectedTags={visibleTags}
-                        displayRangeSec={getDurationInSeconds(timeRange)}
-                        tagColorMap={tagColorMap}
-                    />
-                ) : (
-                    isLoadingHistory ? (
-                        <div className="loading-message">Loading History...</div>
-                    ) : (
-                        <Line
-                            key={visibleTags.join('-')}
-                            options={staticChartOptions}
-                            data={staticData}></Line>
-                    )
-                )}
-            </div>
-        </div>
-    );
-
-    if (isPoppedOut) {
-        return (
-            <>
-                <div className="chart-card-container placeholder" style={{height: '100px', display:'flex', alignItems:'center', justifyContent:'center'}}>
-                    <span style={{color: '#666', fontStyle: 'italic'}}>{title} is open in another window.</span>
-                    <button className="maximize-btn" style={{marginLeft: '10px'}} onClick={() => setIsPoppedOut(false)}>Bring Back</button>
-                </div>
-                <PopoutWindow title={title} onClose={() => setIsPoppedOut(false)}>
-                    <div style={{height: '100vh', padding: '1rem', boxSizing: 'border-box', backgroundColor: '#2d2d2d'}}>
-                        {chartContent}
-                    </div>
-                </PopoutWindow>
-            </>
-        );
+  const handleCommand = async (commandKey) => {
+    if (!isUserAuthenticated) {
+      alert("You must be logged in with sufficient permissions to send commands.");
+      return;
     }
 
-    return (
-        <div className="chart-card-container">
-            {chartContent}
-        </div>
-    );
+    const tagName = COMMAND_TAG_BASE + commandKey.charAt(0).toUpperCase() + commandKey.slice(1);
+    console.log(`Attempting to send command '${commandKey}' by writing to tag '${tagName}' with value true.`);
+    const valueToWrite = 1;
+
+    try {
+      // Send command as 1 (TRUE) for all actions.
+      await apiClient.post('/api/write-tag', {
+        tag_name: tagName,
+        value: valueToWrite
+      });
+      alert(`Command '${commandKey}' sent successfully!`);
+    } catch (error) {
+      console.error(`Error writing to ${tagName}:`, error);
+      alert(`Failed to send command '${commandKey}'. Please try again.`);
+    }
+  }
+
+  const baseDisabled = !isUserAuthenticated;
+
+  return (
+    <div className="sidebar commands-sidebar">
+      <h2>Commands (SIM)</h2>
+
+      {/* Guest access warning */}
+      {!isUserAuthenticated && (
+        <p className="auth-warning">
+          Please log in with an Engineer or Admin account to send commands.
+        </p>
+      )}
+
+      {/* 1. Charge Button */}
+      <button 
+        onClick={() => handleCommand('Charge')} 
+        disabled={baseDisabled || !canCharge}
+      >
+        Charge
+      </button>
+      
+      {/* 2. Discharge Button */}
+      <button 
+        onClick={() => handleCommand('Discharge')} 
+        disabled={baseDisabled || !canDischarge}
+      >
+        Discharge
+      </button>
+
+      {/* 3. Startup Button (Always enabled if authenticated) */}
+      <button 
+        onClick={() => handleCommand('Startup')} 
+        disabled={baseDisabled || !canStartup}
+      >
+        Startup
+      </button>
+      
+      {/* 4. Shutdown Button (Always enabled if authenticated) */}
+      <button 
+        onClick={() => handleCommand('Shutdown')} 
+        disabled={baseDisabled || !canShutdown}
+      >
+        Shutdown
+      </button> 
+      
+    </div>
+  );
 }
 
-function OperationalDetailsPage() {
-    const [liveTags, setLiveTags] = useState({});
-    const [visiblePens, setVisiblePens] = useState(() => {
-        const initial = {};
-        chartDefinitions.forEach(def => {
-            initial[def.title] = def.tags; 
-        });
-        return initial;
-    });
-    const [historicalCache, setHistoricalCache] = useState({});
-    const fetchHistoricalData = useCallback(async (chartTitle, visibleTags, timeRange) => {
-        // Create unique key for the cache entry
-        const cacheKey = `${chartTitle}-${timeRange}-${visibleTags.join(',')}`;
-        
-        // 1. Check Cache
-        if (historicalCache[cacheKey]) {
-            return historicalCache[cacheKey];
-        }
-        
-        // 2. Fetch from API
-        try {
-            const { startTime, endTime } = getStartEndTime(timeRange);
-            const params = new URLSearchParams();
-            visibleTags.forEach(tag => params.append('tags', tag));
-            if (startTime) params.append('start_time', startTime.toISOString());
-            params.append('end_time', endTime.toISOString());
+export default CommandsSidebar;
+</file>
 
-            const response = await apiClient.get('/api/historian', { params });
-            const data = response.data;
+<file path="dashboard-ui/src/pages/HomePage.jsx">
+// dashboard-ui/src/pages/HomePage.jsx
+
+import { useState } from 'react';
+import { useOutletContext } from "react-router-dom";
+import { useSystemStatus } from '../context/SystemStatusContext';
+import CommandsSidebar from '../components/CommandsSidebar';
+import FlywheelVisual from '../components/FlywheelVisual'; 
+import HealthStatus from '../components/HealthStatus';
+import PopoutWindow from '../components/PopoutWindow'; 
+
+function HomePage() {
+  const { setpoints } = useOutletContext();
+  
+  // Consuming Global State instead of local fetching
+  const { liveData, connectionStatus, formatTime } = useSystemStatus();
+
+  // Popout States
+  // const [isFlywheelPopped, setIsFlywheelPopped] = useState(false);  staging removal
+  // const [isDashboardPopped, setIsDashboardPopped] = useState(false); staging removal
+
+  // --- DERIVED VALUES (Updated to use NEW A25_ tags and new status logic) ---
+  const tags = liveData.tags || {};
+  
+  // Tags for Status Overview
+  const STATUS_MAP = {
+    3: "Idle",
+    6: "Idle",
+    7: "Idle",
+    1: "Stopped",
+    2: "Starting Up",
+    4: "Charging",
+    5: "Discharging"
+  };
+
+  const power = tags['A25_Power'] || 0;
+  const energy = tags['A25_Energy'] || 0;
+  const soc = tags['A25_SoC'] || 0;
+  const speed = tags['A25_Speed'] || 0;
+  const totalEnergy = tags['A25_Energy_Total'] || 0;
+  const cycles = tags['A25_Cycles'] || 0;
+  const runHours = tags['A25_RunHours'] || 0;
+  const status = tags?.['A25_Status'] ?? 0;
+  
+  // New logic to determine status based on boolean tags
+  const getFlywheelStatusFromBooleans = (tags) => {
+    return STATUS_MAP[status] ?? "Unknown";
+  };
+  
+  // Use the new logic to get the final status text
+  const flywheelStatusText = getFlywheelStatusFromBooleans(tags);
+
+   return (
+    <div style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
+        {/* Header Bar */}
+        <div style={{
+            padding: '10px 20px', 
+            backgroundColor: '#252525', 
+            borderBottom: '1px solid #333', 
+            display: 'flex', 
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            height: '40px'
+        }}>
+            <div style={{
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                fontSize: '0.9em',
+                fontWeight: 'bold',
+                color: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c'
+            }}>
+                <div style={{
+                    width: '10px', 
+                    height: '10px', 
+                    borderRadius: '50%', 
+                    backgroundColor: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c',
+                    boxShadow: connectionStatus.state === 'ONLINE' ? '0 0 8px #2ecc71' : 'none'
+                }}></div>
+                {connectionStatus.state === 'ONLINE' 
+                    ? 'PLC ONLINE' 
+                    : `OFFLINE (Last: ${formatTime(connectionStatus.lastSeen)})`
+                }
+            </div>
+        </div>
+
+        {/* Static Dashboard Layout */}
+        <div className="home-layout" style={{ backgroundColor: '#1e1e1e' }}>
+            <CommandsSidebar setpoints={setpoints} liveData={liveData}/>
             
-            // Convert data into chart datasets (same logic as before)
-            const newDatasets = visibleTags.map(tagName => ({
-                label: tagName,
-                data: data[tagName]?.map(p => ({ x: new Date(p.ts).getTime(), y: p.value })) || [],
-                borderColor: tagColorMap[tagName] || '#888',
-                backgroundColor: (tagColorMap[tagName] || '#888') + '80',
-                tension: 0.2, 
-                pointRadius: 0, 
-                borderWidth: 2,
-            }));
-            const chartData = { datasets: newDatasets };
+            <div className="flywheel-section" style={{position: 'relative', backgroundColor: '#1e1e1e'}}>
+                <div style={{position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+                    <FlywheelVisual liveData={liveData} />
+                </div>
+            </div>
 
-            // 3. Update Cache
-            setHistoricalCache(prev => ({ ...prev, [cacheKey]: chartData }));
-            return chartData;
+            <div className="sidebar status-sidebar">
+                <div className="status-group">
+                    <h2>Status Overview</h2>
+                    
+                    <div className="status-item">
+                        <span>Flywheel Status</span>
+                        <span className="status-compact-value">{flywheelStatusText}</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Power</span>
+                        <span className="status-compact-value">{power.toFixed(2)} kW</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Energy Stored</span>
+                        <span className="status-compact-value">{energy.toFixed(1)} kWh</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>State of Charge</span>
+                        <span className="status-compact-value">{soc.toFixed(0)} %</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Speed</span>
+                        <span className="status-compact-value">{speed.toFixed(0)} RPM</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Total Energy Transferred</span>
+                        <span className="status-compact-value">{totalEnergy.toFixed(1)} kWh</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Total Cycles</span>
+                        <span className="status-compact-value">{cycles}</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Run Hours</span>
+                        <span className="status-compact-value">{runHours.toFixed(1)} h</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  );
+}
 
-        } catch (error) {
-            console.error(`History fetch failed for ${chartTitle}:`, error);
-            return { datasets: [] };
-        }
-    }, [historicalCache, setHistoricalCache]);
+export default HomePage;
+</file>
 
-    useEffect(() => {
-        const fetchLive = async () => {
-            try {
-                const resp = await apiClient.get('/api/live-data');
-                setLiveTags(resp.data.tags || {});
-            } catch (err) { 
-                console.error("Live data error:", err); 
-            }
-        };
-        fetchLive(); 
-        const intervalId = setInterval(fetchLive, 1000); 
-        return () => clearInterval(intervalId);
-    }, []);
+<file path="dashboard-ui/src/components/FlywheelVisual.jsx">
+// src/components/FlywheelVisual.jsx
 
-    const handleTogglePen = (chartTitle, penName) => {
-        setVisiblePens(prev => {
-            const currentList = prev[chartTitle] || [];
-            if (currentList.includes(penName)) {
-                return { ...prev, [chartTitle]: currentList.filter(p => p !== penName) };
-            } else {
-                return { ...prev, [chartTitle]: [...currentList, penName] };
-            }
-        });
+import React from 'react';
+
+function FlywheelVisual({ liveData }) {
+    const tags = liveData?.tags || {};
+    const STATUS_MAP = {
+        3: "Idle",
+        6: "Idle",
+        7: "Idle",
+        1: "Stopped",
+        2: "Starting Up",
+        4: "Charging",
+        5: "Discharging"
+    };
+
+    // Health Card Logic
+    const UBT_Value = tags['TT001_Healthy'];
+    const LC_Value = tags['WT001_Healthy'];
+    const UV_Value = tags['VT001_Healthy'];
+    const PR_Value = tags['PT001_Healthy'];
+    const LV_Value = tags['VT002_Healthy'];
+    const LBT_Value = tags['TT002_Healthy'];
+    const MT_Value = tags['TT003_Healthy'];
+
+    const getStatusInfo = (val) => ({
+        text: val === true ? 'Healthy' : (val === false ? 'Fault' : 'N/A'),
+        class: val === true ? 'healthy' : (val === false ? 'unhealthy' : 'unknown')
+    });
+
+    const status = tags?.['A25_Status'] ?? 0;
+    const statusText = STATUS_MAP[status] ?? "Unknown";
+
+    let arrowChar = '';
+    let arrowColor = '#dcdcdc';
+    if (statusText === "Charging" || statusText === "Starting Up") { arrowChar = '↓'; arrowColor = '#2ecc71'; }
+    else if (statusText === "Discharging") { arrowChar = '↑'; arrowColor = '#e74c3c'; }
+    else if (statusText === "Stopped" || statusText === "Idle") { arrowChar = '-'; }
+    else { arrowChar = '⚠️'; arrowColor = '#f39c12'; }
+
+    const arrowStyle = {
+        position: 'absolute',
+        top: '18%',
+        left: '53%',
+        transform: 'translateX(-50%)',
+        fontSize: '8em',
+        fontWeight: 'bold',
+        color: arrowColor,
+        lineHeight: '1',
+        zIndex: 101,
+        visibility: arrowChar ? 'visible' : 'hidden',
     };
 
     return (
-        <div className="details-layout-final">
-            <PensSidebar 
-                chartDefinitions={chartDefinitions} 
-                visiblePens={visiblePens} 
-                onTogglePen={handleTogglePen} 
-            />
-            <div className="charts-container-final">
-                {chartDefinitions.map(chart => (
-                    <HistorianChart 
-                        key={chart.title}
-                        title={chart.title} 
-                        visibleTags={visiblePens[chart.title] || []}
-                        fetchHistoricalData={fetchHistoricalData}
-                    />
-                ))}
+        <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+            <div style={{ position: 'relative', height: '90%', aspectRatio: '407 / 471', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                
+                <img src="/A25+Leaders.svg" alt="Schematic" style={{ width: '60%', height: '60%', objectFit: 'contain', position: 'absolute', top: '40%' }} />
+
+                <div style={{ position: 'absolute', top: '5%', left: '53%', transform: 'translateX(-50%)', fontSize: '2.5em', fontWeight: 'bold', color: '#dcdcdc', zIndex: 102, whiteSpace: 'nowrap' }}>
+                    AC Network
+                </div>
+            
+                {/* 1. UPPER BEARING */}
+                <div className="schematic-health-card" style={{ position: 'absolute', top: '38%', left: '93%', transform: 'translateX(-50%)' }}>
+                    <div className="schematic-card-title">Upper Bearing Temp.</div>
+                    <div className="schematic-status-container">
+                        <div className={`schematic-health-indicator ${getStatusInfo(UBT_Value).class}`}>{getStatusInfo(UBT_Value).text}</div>
+                    </div>
+                </div>
+
+                {/* 2. Load Cell */}
+                <div className="schematic-health-card" style={{ position: 'absolute', top: '32%', left: '8%', transform: 'translateX(-50%)' }}>
+                    <div className="schematic-card-title">Load Cell</div>
+                    <div className="schematic-status-container">
+                        <div className={`schematic-health-indicator ${getStatusInfo(LC_Value).class}`}>{getStatusInfo(LC_Value).text}</div>
+                    </div>
+                </div>
+
+                {/* 3. Upper Vibration */}
+                <div className="schematic-health-card" style={{ position: 'absolute', top: '45%', left: '8%', transform: 'translateX(-50%)' }}>
+                    <div className="schematic-card-title">Upper Vibration</div>
+                    <div className="schematic-status-container">
+                        <div className={`schematic-health-indicator ${getStatusInfo(UV_Value).class}`}>{getStatusInfo(UV_Value).text}</div>
+                    </div>
+                </div>
+
+                {/* 4. Pressure */}
+                <div className="schematic-health-card" style={{ position: 'absolute', top: '75%', left: '8%', transform: 'translateX(-50%)' }}>
+                    <div className="schematic-card-title">Pressure</div>
+                    <div className="schematic-status-container">
+                        <div className={`schematic-health-indicator ${getStatusInfo(PR_Value).class}`}>{getStatusInfo(PR_Value).text}</div>
+                    </div>
+                </div>
+
+                {/* 5. Lower Vibration */}
+                <div className="schematic-health-card" style={{ position: 'absolute', top: '60%', left: '8%', transform: 'translateX(-50%)' }}>
+                    <div className="schematic-card-title">Lower Vibration</div>
+                    <div className="schematic-status-container">
+                        <div className={`schematic-health-indicator ${getStatusInfo(LV_Value).class}`}>{getStatusInfo(LV_Value).text}</div>
+                    </div>
+                </div>
+
+                {/* 6. Lower Bearing Temp */}
+                <div className="schematic-health-card" style={{ position: 'absolute', top: '75%', left: '93%', transform: 'translateX(-50%)' }}>
+                    <div className="schematic-card-title">Lower Bearing Temp.</div>
+                    <div className="schematic-status-container">
+                        <div className={`schematic-health-indicator ${getStatusInfo(LBT_Value).class}`}>{getStatusInfo(LBT_Value).text}</div>
+                    </div>
+                </div>
+
+                {/* 7. Motor Temp */}
+                <div className="schematic-health-card" style={{ position: 'absolute', top: '90%', left: '93%', transform: 'translateX(-50%)' }}>
+                    <div className="schematic-card-title">Motor Temp.</div>
+                    <div className="schematic-status-container">
+                        <div className={`schematic-health-indicator ${getStatusInfo(MT_Value).class}`}>{getStatusInfo(MT_Value).text}</div>
+                    </div>
+                </div>
+
+                <div style={arrowStyle}>{arrowChar}</div>
             </div>
-            <LiveSensorTable tags={liveTags} />
         </div>
     );
 }
 
-export default OperationalDetailsPage;
+export default FlywheelVisual;
 </file>
 
 <file path="main_api.py">
@@ -3518,7 +2997,7 @@ import os
 import threading
 import time
 import psycopg2
-from psycopg2 import pool
+from psycopg2 import pool, execute_values
 import uvicorn
 import queue
 from fastapi import FastAPI, Query, Header, HTTPException, Depends, Request
@@ -3890,6 +3369,7 @@ def sync_tags_with_db():
         {"name": "A25_En_Charge", "datatype": "bool"},
         {"name": "A25_En_Discharge", "datatype": "bool"},
         {"name": "A25_En_Shutdown", "datatype": "bool"},
+        {"name": "A25_En_Startup", "datatype": "bool"},
         {"name": "A25_Energy", "datatype": "float"},
         {"name": "A25_Energy_Total", "datatype": "float"},
         {"name": "A25_RunHours", "datatype": "int"},
@@ -4069,77 +3549,62 @@ def update_tag(tag_id: int, u: TagUpdate, user: User = Depends(get_current_activ
 
 @app.get("/api/historian")
 def get_historian(tags: List[str] = Query(None), start_time: Optional[str] = None, end_time: Optional[str] = None):
-    
     if not tags: return {}
-    st = start_time or "1970-01-01T00:00:00Z"
-    et = end_time or datetime.utcnow().isoformat()
     
-    dur = 9999999
+    st = start_time or "1970-01-01T00:00:00Z"
+    et = end_time or datetime.now(timezone.utc).isoformat()
+    
     try:
         st_obj = datetime.fromisoformat(st.replace('Z', '+00:00'))
         et_obj = datetime.fromisoformat(et.replace('Z', '+00:00'))
         dur = (et_obj - st_obj).total_seconds()
     except:
-        st_obj = datetime(1970, 1, 1, tzinfo=timezone.utc)
+        st_obj = datetime.now(timezone.utc) - timedelta(hours=1)
         et_obj = datetime.now(timezone.utc)
+        dur = 3600
 
-    # RAW/AGGREGATION SWITCH (1800 seconds = 30 minutes)
-    raw = dur <= 1800 
-    conn = None
+    # TIERED DATA STRATEGY
+    # 1. Raw Data: Under 30 minutes
+    # 2. Aggregated Raw: 30 mins to 7 days
+    # 3. Summary Table: Over 7 days (Prevents DB Crash)
     
+    is_raw = dur <= 1800
+    use_summary = dur > 86400 * 7 # Route to historian_hourly view
+    
+    conn = None
     try:
         conn = get_db_conn()
         with conn.cursor() as cur:
-            if raw:
-                # RAW QUERY block (unchanged)
+            if is_raw:
                 sql = """SELECT h.ts, tl.tag, COALESCE(h.value_float, h.value_int::double precision, h.value_bool::int::double precision) 
                          FROM historian.historian h JOIN historian.tag_lookup tl ON h.tag_id = tl.id 
-                         WHERE tl.tag = ANY(%s) AND h.ts >= %s AND h.ts <= %s ORDER BY h.ts ASC"""
+                         WHERE tl.tag = ANY(%s) AND h.ts >= %s AND h.ts <= %s 
+                         ORDER BY h.ts ASC LIMIT 5000"""
                 params = (tags, st_obj, et_obj)
-            else:
-                # AGGREGATED QUERY block - FIX: Aggressive Hierarchical Time Buckets
+            
+            elif use_summary:
+                # INDUSTRY STANDARD: Query the pre-calculated hourly view for massive speed gains
+                sql = """SELECT h.bucket, tl.tag, COALESCE(h.max_float, h.max_int::double precision, h.max_bool::double precision)
+                         FROM historian.historian_hourly h JOIN historian.tag_lookup tl ON h.tag_id = tl.id
+                         WHERE tl.tag = ANY(%s) AND h.bucket >= %s AND h.bucket <= %s 
+                         ORDER BY h.bucket ASC"""
+                params = (tags, st_obj, et_obj)
                 
-                # Check for All Time (2 years in the frontend logic) and huge queries first
-                if dur > 86400 * 365 * 2: # > 2 years (This should catch the 'All Time' span)
-                    buck = "1 month" 
-                elif dur > 86400 * 30: # > 1 month
-                    buck = "1 week" 
-                elif dur > 86400 * 7: # > 1 week
-                    buck = "6 hours" # 7 days * 4 per day = 28 points. Very fast.
-                elif dur > 86400 * 2: # > 2 days
-                    buck = "1 hour" # 2 days * 24 per day = 48 points. Fast.
-                else:
-                    buck = "5 minutes" # Default for > 30 minutes up to 2 days. 
+            else:
+                # Dynamic Bucketing for the middle range (30m - 7d)
+                # We target exactly 500 points to keep the frontend snappy
+                bucket_size_sec = max(int(dur / 500), 10)
+                buck = f"{bucket_size_sec} seconds"
                 
                 sql = """
-                    SELECT 
-                        time_bucket(%s, h.ts) as b, 
-                        tl.tag, 
-                        -- FIX: CHANGE AVG() to MAX() for more robust aggregation over long periods
-                        MAX( 
-                            CASE
-                                WHEN h.value_float IS NOT NULL THEN h.value_float
-                                WHEN h.value_int IS NOT NULL THEN h.value_int::double precision
-                                WHEN h.value_bool IS NOT NULL THEN h.value_bool::int::double precision
-                                ELSE NULL
-                            END
-                        )
+                    SELECT time_bucket(%s, h.ts) as b, tl.tag, 
+                           MAX(COALESCE(h.value_float, h.value_int::double precision, h.value_bool::int::double precision))
                     FROM historian.historian h 
                     JOIN historian.tag_lookup tl ON h.tag_id = tl.id
-                    WHERE tl.tag = ANY(%s) 
-                      AND h.ts >= %s 
-                      AND h.ts <= %s 
-                    GROUP BY b, tl.tag 
-                    ORDER BY b ASC
+                    WHERE tl.tag = ANY(%s) AND h.ts >= %s AND h.ts <= %s 
+                    GROUP BY b, tl.tag ORDER BY b ASC
                 """
-                # Trust the original parameter order for safety:
-                params = (buck, tags, st_obj, et_obj) 
-            
-            # --- DEBUG FIX: LOG THE EXECUTED QUERY ---
-            print("\n--- DEBUG: HISTORIAN QUERY ---")
-            print(cur.mogrify(sql, params).decode('utf-8'))
-            print("------------------------------\n")
-            # --- END DEBUG FIX ---
+                params = (buck, tags, st_obj, et_obj)
 
             cur.execute(sql, params)
             res = {t: [] for t in tags}
@@ -4147,8 +3612,9 @@ def get_historian(tags: List[str] = Query(None), start_time: Optional[str] = Non
                 if r[2] is not None:
                     res[r[1]].append({"ts": r[0].isoformat(), "value": r[2]})
             return res
+            
     except Exception as e:
-        print(f"🔴 Query Error: {e}")
+        print(f"🔴 Historian Query Error: {e}")
         return {"error": str(e)}
     finally:
         release_db_conn(conn)
@@ -4218,6 +3684,422 @@ def update_setting_endpoint(key: str, s: Setting, user: User = Depends(get_curre
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
+</file>
+
+<file path="dashboard-ui/src/pages/OperationalDetailsPage.jsx">
+import { useState, useEffect, useCallback } from 'react';
+import { Line } from 'react-chartjs-2';
+import { 
+    Chart as ChartJS, 
+    CategoryScale, 
+    LinearScale, 
+    PointElement, 
+    LineElement, 
+    Title, 
+    Tooltip, 
+    Legend, 
+    TimeScale 
+} from 'chart.js';
+import 'chartjs-adapter-date-fns';
+import { subSeconds, subHours, subDays, subMonths, startOfYear } from 'date-fns';
+
+// import PensSidebar from '../components/PensSidebar';    -- Staging the removal of penssidebar
+import StreamingChart from '../components/StreamingChart';
+import PopoutWindow from '../components/PopoutWindow';
+import { chartDefinitions, tagColorMap } from '../constants';
+import apiClient from '../api'; 
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, TimeScale);
+
+const STATUS_MAP = {
+    3: "Idle",
+    6: "Idle",
+    7: "Idle",
+    1: "Stopped",
+    2: "Starting Up",
+    4: "Charging",
+    5: "Discharging"
+};
+
+const staticChartOptions = {
+    responsive: true, 
+    maintainAspectRatio: false, 
+    parsing: false, 
+    normalized: true,
+    plugins: { 
+        legend: { display: true, position: 'top', labels: { color: '#a0a0a0' } } 
+    },
+    scales: {
+        x: { 
+            type: 'time', 
+            time: { tooltipFormat: 'PP pp' },
+            displayFormats: {
+                hour: 'MMM d, h a',
+                day: 'MMM d',
+                week: 'MMM d',
+                month: 'MMM yyyy'
+            },
+            ticks: { color: '#a0a0a0', maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, 
+            grid: { color: '#333' } 
+        },
+        y: {
+            type: 'linear',
+            display: true,
+            position: 'left', // Main axis for Temp, Vibration, Power, etc.
+            ticks: { color: '#a0a0a0' },
+            grid: { color: '#333' }
+        },
+        y1: { 
+            type: 'linear',
+            display: true,
+            position: 'right',
+            min: 0,
+            max: 9000,
+            title: {
+                display: true,
+                text: 'Speed (RPM)',
+                color: '#a0a0a0'
+            },
+            ticks: { color: '#a0a0a0' }, 
+            grid: { drawOnChartArea: false } 
+        }
+    },
+    animation: { duration: 0 }
+};
+
+const getDurationInSeconds = (timeRangeKey) => {
+    const value = parseInt(timeRangeKey.slice(0, -1));
+    const unit = timeRangeKey.slice(-1);
+    if (unit === 's') return value;
+    if (unit === 'm') return value * 60;
+    return 0; 
+};
+
+const getStartEndTime = (timeRangeKey) => {
+    const now = new Date();
+    let startTime = null;
+
+    if (timeRangeKey === '1h') startTime = subHours(now, 1);
+    else if (timeRangeKey === '24h') startTime = subHours(now, 24);
+    else if (timeRangeKey === '7d') startTime = subDays(now, 7);
+    else if (timeRangeKey === '1mo') startTime = subMonths(now, 1);
+    else if (timeRangeKey === 'YTD') startTime = startOfYear(now);
+    // CHANGE: Reduce All Time to 1 year or 90 days depending on your needs.
+    // If you look back 5 years but only have 1 month of data, the line looks like a tiny dot.
+    else if (timeRangeKey === 'All') startTime = subDays(now, 365); 
+
+    return { startTime, endTime: now };
+};
+
+
+const getFlywheelStatusFromBooleans = (tags) => {
+    const status = tags?.['A25_Status'] ?? 0;
+    return STATUS_MAP[status] ?? "Unkown";
+};
+
+// --- UPDATED: LiveSensorTable with Pop-out Logic ---
+const TELEMETRY_TAGS_TO_DISPLAY = [
+    { label: "Power", tag: "A25_Power", unit: "kW" },
+    { label: "Speed", tag: "A25_Speed", unit: "RPM" },
+    { label: "Flywheel Status", tag: "A25_Status", unit: "Status" }, // Handled specially
+    { label: "Upper Bearing Temp.", tag: "TT001.Scaled", unit: "°C" },
+    { label: "Lower Bearing Temp.", tag: "TT002.Scaled", unit: "°C" },
+    { label: "Motor Temp.", tag: "TT003.Scaled", unit: "°C" },
+    { label: "Upper Vibration", tag: "VT001.Scaled", unit: "" },
+    { label: "Lower Vibration", tag: "VT002.Scaled", unit: "" },
+    { label: "Load Cell", tag: "WT001.Scaled", unit: "kg" },
+    { label: "Pressure", tag: "PT001.Scaled", unit: "" },
+    { label: "Load Cell Target", tag: "EM_SV", unit: "kg" },
+];
+
+function LiveSensorTable({ tags }) {
+    
+    const handlePopout = () => {
+        // Calculate center of screen
+        const width = 1000;
+        const height = 800;
+        const left = (window.screen.width / 2) - (width / 2);
+        const top = (window.screen.height / 2) - (height / 2);
+        
+        // Open the dedicated route in a new window
+        window.open(
+            '/sensor-wall', 
+            'SensorWallWindow', 
+            `width=${width},height=${height},left=${left},top=${top},resizable,scrollbars`
+        );
+    };
+
+    if (!tags || Object.keys(tags).length === 0) return <div className="sidebar sensor-sidebar">Loading...</div>;
+
+    const derivedFlywheelStatus = getFlywheelStatusFromBooleans(tags);
+
+    return (
+        <div className="sidebar sensor-sidebar">
+            <div className="sidebar-header-row">
+                <h2>Telemetry</h2> {/* <--- Updated Title */}
+                <button 
+                    className="maximize-btn" 
+                    onClick={handlePopout}
+                >
+                    ❐ View All Tags
+                </button>
+            </div>
+            
+            <div className="sensor-list">
+                {TELEMETRY_TAGS_TO_DISPLAY.map(({ label, tag, unit }) => {
+                    const value = tags[tag];
+                    let displayValue;
+                    
+                    if (tag === "A25_Status") {
+                        displayValue = derivedFlywheelStatus;
+                    } else if (typeof value === 'number') {
+                        // All numeric values display to 2 decimal places (or just the number)
+                        displayValue = `${value.toFixed(value % 1 !== 0 ? 2 : 0)} ${unit}`;
+                    } else if (typeof value === 'boolean' || unit === 'Bool') {
+                         displayValue = value ? 'TRUE' : 'FALSE';
+                    } else {
+                        displayValue = String(value);
+                    }
+                    
+                    return (
+                        <div className="sensor-item" key={tag}>
+                            <span className="sensor-label">{label}</span>
+                            <span className="sensor-value">
+                                {displayValue}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+const IndividualTimeSelector = ({ onSelect }) => {
+    const ranges = {
+        '1m': '1 Minute (Live)',
+        '5m': '5 Minutes (Live)',
+        '30m':'30 Minutes (Live)',
+        '1h': '1 Hour (History)',
+        '24h': '24 Hours (History)',
+        '7d': '7 Days (History)',
+        '1mo': '1 Month (History)',
+        'YTD': 'Year to Date',
+        'All': 'All Time'
+    };
+
+    return (
+        <div className="individual-time-selector">
+            <span>Range:</span>
+            <select onChange={(e) => onSelect(e.target.value)} defaultValue="5m">
+                {Object.entries(ranges).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                ))}
+            </select>
+        </div>
+    );
+};
+
+// --- UPDATED: HistorianChart with Pop-out Logic ---
+function HistorianChart({ title, visibleTags, fetchHistoricalData }) {
+    const [timeRange, setTimeRange] = useState('5m'); 
+    const [staticData, setStaticData] = useState({ datasets: [] });
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [isPoppedOut, setIsPoppedOut] = useState(false);
+
+    const isStreamingMode = ['1m', '5m', '30m'].includes(timeRange);
+
+    useEffect(() => {
+        if (isStreamingMode || visibleTags.length === 0) return;
+
+        const loadHistory = async () => {
+            setIsLoadingHistory(true);
+            const data = await fetchHistoricalData(title, visibleTags, timeRange);
+            setStaticData(data);
+            setIsLoadingHistory(false);
+        };
+
+        loadHistory();
+    }, [timeRange, visibleTags, isStreamingMode, title, fetchHistoricalData]);
+
+    // The Inner Content
+    const chartContent = (
+        <div className="chart-card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div className="chart-header">
+                <h3>
+                    {title} 
+                    {isStreamingMode ? 
+                        <span className="live-badge" style={{marginLeft:'10px'}}>LIVE</span> : 
+                        <span style={{marginLeft:'10px', fontSize:'0.7em', color:'#a0a0a0'}}>HISTORICAL</span>
+                    }
+                </h3>
+                <div style={{display:'flex', gap:'10px'}}>
+                    <IndividualTimeSelector onSelect={setTimeRange} />
+                    <button className="maximize-btn" onClick={() => setIsPoppedOut(!isPoppedOut)}>
+                        {isPoppedOut ? 'Dock' : '❐ Maximise Chart'}
+                    </button>
+                </div>
+            </div>
+
+            <div className="chart-wrapper" style={{flexGrow: 1, minHeight: 0}}>
+                {visibleTags.length === 0 ? (
+                    <div className="no-data-message">No Pens Selected</div>
+                ) : isStreamingMode ? (
+                    <StreamingChart 
+                        selectedTags={visibleTags}
+                        displayRangeSec={getDurationInSeconds(timeRange)}
+                        tagColorMap={tagColorMap}
+                    />
+                ) : (
+                    isLoadingHistory ? (
+                        <div className="loading-message">Loading History...</div>
+                    ) : (
+                        <Line
+                            key={visibleTags.join('-')}
+                            options={staticChartOptions}
+                            data={staticData}></Line>
+                    )
+                )}
+            </div>
+        </div>
+    );
+
+    if (isPoppedOut) {
+        return (
+            <>
+                {/* Placeholder in main window remains the same */}
+                <PopoutWindow title={title} onClose={() => setIsPoppedOut(false)}>
+                    {/* --- FIX CONTAINER HERE --- */}
+                    <div style={{
+                        height: '100vh', 
+                        width: '100vw',
+                        padding: '2rem', 
+                        boxSizing: 'border-box', 
+                        backgroundColor: '#1e1e1e',
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}>
+                        <div style={{ flexGrow: 1, position: 'relative' }}>
+                            {chartContent}
+                        </div>
+                    </div>
+                </PopoutWindow>
+            </>
+        );
+    }
+
+    return (
+        <div className="chart-card-container">
+            {chartContent}
+        </div>
+    );
+}
+
+function OperationalDetailsPage() {
+    const [liveTags, setLiveTags] = useState({});
+    const [visiblePens, setVisiblePens] = useState(() => {
+        const initial = {};
+        chartDefinitions.forEach(def => {
+            initial[def.title] = def.tags; 
+        });
+        return initial;
+    });
+    const [historicalCache, setHistoricalCache] = useState({});
+    const fetchHistoricalData = useCallback(async (chartTitle, visibleTags, timeRange) => {
+        // Create unique key for the cache entry
+        const cacheKey = `${chartTitle}-${timeRange}-${visibleTags.join(',')}`;
+        
+        // 1. Check Cache
+        if (historicalCache[cacheKey]) {
+            return historicalCache[cacheKey];
+        }
+        
+        // 2. Fetch from API
+        try {
+            const { startTime, endTime } = getStartEndTime(timeRange);
+            const params = new URLSearchParams();
+            visibleTags.forEach(tag => params.append('tags', tag));
+            if (startTime) params.append('start_time', startTime.toISOString());
+            params.append('end_time', endTime.toISOString());
+
+            const response = await apiClient.get('/api/historian', { params });
+            const data = response.data;
+            
+            // Convert data into chart datasets (same logic as before)
+            const newDatasets = visibleTags.map(tagName => ({
+                label: tagName,
+                data: data[tagName]?.map(p => ({ x: new Date(p.ts).getTime(), y: p.value })) || [],
+                borderColor: tagColorMap[tagName] || '#888',
+                backgroundColor: (tagColorMap[tagName] || '#888') + '80',
+                yAxisID: tagName === 'A25_Speed' ? 'y1' : 'y',
+                tension: 0.2, 
+                pointRadius: 0, 
+                borderWidth: 2,
+            }));
+            const chartData = { datasets: newDatasets };
+
+            // 3. Update Cache
+            setHistoricalCache(prev => ({ ...prev, [cacheKey]: chartData }));
+            return chartData;
+
+        } catch (error) {
+            console.error(`History fetch failed for ${chartTitle}:`, error);
+            return { datasets: [] };
+        }
+    }, [historicalCache, setHistoricalCache]);
+
+    useEffect(() => {
+        const fetchLive = async () => {
+            try {
+                const resp = await apiClient.get('/api/live-data');
+                setLiveTags(resp.data.tags || {});
+            } catch (err) { 
+                console.error("Live data error:", err); 
+            }
+        };
+        fetchLive(); 
+        const intervalId = setInterval(fetchLive, 1000); 
+        return () => clearInterval(intervalId);
+    }, []);
+
+    const handleTogglePen = (chartTitle, penName) => {
+        setVisiblePens(prev => {
+            const currentList = prev[chartTitle] || [];
+            if (currentList.includes(penName)) {
+                return { ...prev, [chartTitle]: currentList.filter(p => p !== penName) };
+            } else {
+                return { ...prev, [chartTitle]: [...currentList, penName] };
+            }
+        });
+    };
+
+    return (
+        <div className="details-layout-final" style={{
+            gridTemplateColumns: '1fr 300px',
+            gap: '1.5rem'
+        }}>
+            {/* Commented Penssidebar to reduce clutter. */}
+            {/* <PensSidebar 
+                chartDefinitions={chartDefinitions} 
+                visiblePens={visiblePens} 
+                onTogglePen={handleTogglePen} 
+            /> */}
+            <div className="charts-container-final">
+                {chartDefinitions.map(chart => (
+                    <HistorianChart 
+                        key={chart.title}
+                        title={chart.title} 
+                        visibleTags={visiblePens[chart.title] || []}
+                        fetchHistoricalData={fetchHistoricalData}
+                    />
+                ))}
+            </div>
+            <LiveSensorTable tags={liveTags} />
+        </div>
+    );
+}
+
+export default OperationalDetailsPage;
 </file>
 
 </files>

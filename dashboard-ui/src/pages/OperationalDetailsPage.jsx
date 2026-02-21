@@ -13,6 +13,7 @@ import {
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import { subSeconds, subHours, subDays, subMonths, startOfYear } from 'date-fns';
+import { getSystemStatus } from '../constants';
 
 // import PensSidebar from '../components/PensSidebar';    -- Staging the removal of penssidebar
 import StreamingChart from '../components/StreamingChart';
@@ -21,16 +22,6 @@ import { chartDefinitions, tagColorMap } from '../constants';
 import apiClient from '../api'; 
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, TimeScale);
-
-const STATUS_MAP = {
-    3: "Idle",
-    6: "Idle",
-    7: "Idle",
-    1: "Stopped",
-    2: "Starting Up",
-    4: "Charging",
-    5: "Discharging"
-};
 
 const staticChartOptions = {
     responsive: true, 
@@ -102,12 +93,6 @@ const getStartEndTime = (timeRangeKey) => {
     return { startTime, endTime: now };
 };
 
-
-const getFlywheelStatusFromBooleans = (tags) => {
-    const status = tags?.['A25_Status'] ?? 0;
-    return STATUS_MAP[status] ?? "Unkown";
-};
-
 // --- UPDATED: LiveSensorTable with Pop-out Logic ---
 const TELEMETRY_TAGS_TO_DISPLAY = [
     { label: "Power", tag: "A25_Power", unit: "kW" },
@@ -124,7 +109,7 @@ const TELEMETRY_TAGS_TO_DISPLAY = [
 ];
 
 function LiveSensorTable({ tags }) {
-    
+
     const handlePopout = () => {
         // Calculate center of screen
         const width = 1000;
@@ -140,9 +125,10 @@ function LiveSensorTable({ tags }) {
         );
     };
 
-    if (!tags || Object.keys(tags).length === 0) return <div className="sidebar sensor-sidebar">Loading...</div>;
+    if (!tags || Object.keys(tags).length === 0) return <div className="sidebar sensor-sidebar">Loading Telemetry...</div>;
 
-    const derivedFlywheelStatus = getFlywheelStatusFromBooleans(tags);
+    const statusCode = tags['A25_Status'] ?? 0;
+    const derivedFlywheelStatus = getSystemStatus(statusCode).text;
 
     return (
         <div className="sidebar sensor-sidebar">

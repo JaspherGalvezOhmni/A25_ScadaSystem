@@ -7,6 +7,7 @@ import CommandsSidebar from '../components/CommandsSidebar';
 import FlywheelVisual from '../components/FlywheelVisual'; 
 import HealthStatus from '../components/HealthStatus';
 import PopoutWindow from '../components/PopoutWindow'; 
+import { getSystemStatus } from '../constants';
 
 function HomePage() {
   const { setpoints } = useOutletContext();
@@ -20,17 +21,10 @@ function HomePage() {
 
   // --- DERIVED VALUES (Updated to use NEW A25_ tags and new status logic) ---
   const tags = liveData.tags || {};
-  
-  // Tags for Status Overview
-  const STATUS_MAP = {
-    3: "Idle",
-    6: "Idle",
-    7: "Idle",
-    1: "Stopped",
-    2: "Starting Up",
-    4: "Charging",
-    5: "Discharging"
-  };
+
+  const status = tags?.['A25_Status'] ?? 0;
+  const flywheelStatusText = getSystemStatus(status).text;
+
 
   const power = tags['A25_Power'] || 0;
   const energy = tags['A25_Energy'] || 0;
@@ -39,15 +33,11 @@ function HomePage() {
   const totalEnergy = tags['A25_Energy_Total'] || 0;
   const cycles = tags['A25_Cycles'] || 0;
   const runHours = tags['A25_RunHours'] || 0;
-  const status = tags?.['A25_Status'] ?? 0;
   
   // New logic to determine status based on boolean tags
   const getFlywheelStatusFromBooleans = (tags) => {
     return STATUS_MAP[status] ?? "Unknown";
   };
-  
-  // Use the new logic to get the final status text
-  const flywheelStatusText = getFlywheelStatusFromBooleans(tags);
 
    return (
     <div style={{height: '100%', display: 'flex', flexDirection: 'column'}}>

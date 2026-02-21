@@ -3,6 +3,7 @@ import threading
 import time
 import psycopg2
 from psycopg2 import pool
+from psycopg2.extras import execute_values
 import uvicorn
 import queue
 from fastapi import FastAPI, Query, Header, HTTPException, Depends, Request

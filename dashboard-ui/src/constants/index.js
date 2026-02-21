@@ -2,6 +2,34 @@
 
 export const COLORS = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
 
+export const STATUS_MAP = {
+    1: { text: "Stopped", color: "#7f8c8d" },
+    2: { text: "Starting Up", color: "#3498db" },
+    3: { text: "Idle", color: "#95a5a6" },
+    4: { text: "Charging", color: "#2ecc71" },
+    5: { text: "Discharging", color: "#e74c3c" },
+    6: { text: "Idle", color: "#95a5a6"},
+    7: { text: "Idle", color: "#95a5a6" },
+}
+
+export const getSystemStatus = (statusCode) => {
+    return STATUS_MAP[statusCode] || { text: "Unknown", color: "#888" };
+};
+
+// arrow logic
+export const getDirectionConfig = (statusText) => {
+    if (statusText === "Charging" || statusText === "Starting Up") {
+        return { char: '↓', color: '#2ecc71' };
+    }
+    if (statusText === "Discharging") {
+        return { char: '↑', color: '#e74c3c' };
+    }
+    if (statusText === "Stopped" || statusText === "Idle") {
+        return { char: '-', color: '#888' };
+    }
+    return { char: '⚠️', color: '#f39c12' };
+};
+
 export const chartDefinitions = [
     { 
         title: "Power", // Based on Picture 2 Top
