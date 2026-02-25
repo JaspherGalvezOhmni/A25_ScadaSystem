@@ -451,3 +451,16 @@ body { margin: 0; }
   width: 100% !important;
   height: 100% !important;
 }
+
+.status-pill {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: bold;
+}
+.status-pill.online { background: rgba(46, 204, 113, 0.2); color: #2ecc71; border: 1px solid #2ecc71; }
+.status-pill.offline { background: rgba(231, 76, 60, 0.2); color: #e74c3c; border: 1px solid #e74c3c; animation: blinker 1.5s linear infinite; }
+
+@keyframes blinker {
+  50% { opacity: 0.4; }
+}

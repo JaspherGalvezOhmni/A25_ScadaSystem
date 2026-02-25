@@ -41,37 +41,13 @@ function HomePage() {
 
    return (
     <div style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
-        {/* Header Bar */}
+
         <div style={{
-            padding: '10px 20px', 
-            backgroundColor: '#252525', 
-            borderBottom: '1px solid #333', 
-            display: 'flex', 
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            height: '40px'
-        }}>
-            <div style={{
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '8px',
-                fontSize: '0.9em',
-                fontWeight: 'bold',
-                color: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c'
-            }}>
-                <div style={{
-                    width: '10px', 
-                    height: '10px', 
-                    borderRadius: '50%', 
-                    backgroundColor: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c',
-                    boxShadow: connectionStatus.state === 'ONLINE' ? '0 0 8px #2ecc71' : 'none'
-                }}></div>
-                {connectionStatus.state === 'ONLINE' 
-                    ? 'PLC ONLINE' 
-                    : `OFFLINE (Last: ${formatTime(connectionStatus.lastSeen)})`
-                }
-            </div>
-        </div>
+            backgroundColor: '#181818',
+            borderBottom: '1px solid #333',
+            height: '6px',
+            flexShrink: 0
+        }}></div>
 
         {/* Static Dashboard Layout */}
         <div className="home-layout" style={{ backgroundColor: '#1e1e1e' }}>

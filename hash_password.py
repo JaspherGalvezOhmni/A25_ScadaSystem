@@ -5,7 +5,7 @@ import sys
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Use a default password or get one from the command line
-plain_password = "password"
+plain_password = "opensesame"
 if len(sys.argv) > 1:
     plain_password = sys.argv[1]
 

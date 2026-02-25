@@ -91,16 +91,31 @@ function App() {
         </nav>
 
         <div className="header-right-side">
-          <div style={{marginRight: '20px', display: 'flex', alignItems: 'center', gap: '10px'}}>
-             <div style={{
-                width: '10px', height: '10px', borderRadius: '50%',
+          {/* NEW DUAL INDICATORS */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '10px' }}>
+            
+            {/* SERVER STATUS */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{
+                width: '8px', height: '8px', borderRadius: '50%',
                 backgroundColor: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c',
                 boxShadow: connectionStatus.state === 'ONLINE' ? '0 0 8px #2ecc71' : 'none'
-             }}></div>
-             <span style={{fontSize: '0.9em', color: '#a0a0a0'}}>
-                {connectionStatus.state === 'ONLINE' ? 'ONLINE' : 'OFFLINE'}
-             </span>
+              }}></div>
+              <span style={{ fontSize: '0.75em', color: '#888', fontWeight: 'bold' }}>SRV</span>
+            </div>
+
+            {/* PLC STATUS */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                backgroundColor: (connectionStatus.state === 'ONLINE' && connectionStatus.plcConnected) ? '#2ecc71' : '#e74c3c',
+                boxShadow: (connectionStatus.state === 'ONLINE' && connectionStatus.plcConnected) ? '0 0 8px #2ecc71' : 'none'
+              }}></div>
+              <span style={{ fontSize: '0.75em', color: '#888', fontWeight: 'bold' }}>PLC</span>
+            </div>
+            
           </div>
+
           <div className="status-time">{isClient ? formattedTime : 'Loading...'}</div>
           {token && (
             <button onClick={logout} className="logout-button">Log Out</button>

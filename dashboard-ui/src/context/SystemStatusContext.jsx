@@ -35,7 +35,8 @@ export const SystemStatusProvider = ({ children }) => {
             
             setConnectionStatus({
                 state: 'ONLINE',
-                lastSeen: now
+                lastSeen: now,
+                plcConnected: response.data.status === 'connected'
             });
         }
       } catch (error) {
