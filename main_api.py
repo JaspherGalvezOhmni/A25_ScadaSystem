@@ -118,6 +118,22 @@ class Setting(BaseModel):
     key: str
     value: Union[float, str]
 
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    role: str
+    is_active: bool = True
+
+class UserAdminView(BaseModel):
+    username: str
+    role: str
+    is_active: bool
+
+class UserUpdate(BaseModel):
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+    password: Optional[str] = None
+
 # --- HELPERS ---
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -509,6 +525,99 @@ async def log_requests(request: Request, call_next):
     return await call_next(request)
 
 # --- ENDPOINTS ---
+
+# List users
+@app.get("/api/admin/users", response_model=List[UserAdminView], dependencies=[Depends(get_current_active_admin)])
+def list_users():
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute("SELECT username, role, is_active FROM app.users ORDER BY username ASC")
+            return [UserAdminView(username=r[0], role=r[1], is_active=r[2]) for r in cur.fetchall()]
+    finally:
+        release_db_conn(conn)
+# Create user
+@app.post("/api/admin/users", dependencies=[Depends(get_current_active_admin)])
+def create_user(u: UserCreate):
+    clean_username = u.username.strip().replace(" ", "")
+
+    if not clean_username:
+        raise HTTPException(400, "Username cannot be empty")
+
+    conn = None
+    try:
+        conn = get_db_conn()
+        hashed = pwd_context.hash(u.password)
+        with conn.cursor() as cur:
+            # Check if exists first to provide a clear error message
+            cur.execute("SELECT username FROM app.users WHERE username = %s", (clean_username,))
+            if cur.fetchone():
+                raise HTTPException(400, f"User '{clean_username}' already exists")
+
+            cur.execute(
+                "INSERT INTO app.users (username, hashed_password, role, is_active) VALUES (%s, %s, %s, %s)",
+                (clean_username, hashed, u.role, u.is_active)
+            )
+            conn.commit()
+        return {"status": "success"}
+    except Exception as e:
+        if conn: conn.rollback()
+        # If it's already an HTTPException, re-raise it, otherwise wrap it
+        if isinstance(e, HTTPException): raise e
+        raise HTTPException(400, f"Database error: {str(e)}")
+    finally:
+        release_db_conn(conn)
+
+# Edit user (Role, Status, Password)
+@app.put("/api/admin/users/{username}", dependencies=[Depends(get_current_active_admin)])
+def update_user(username: str, u: UserUpdate):
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            if u.role:
+                cur.execute("UPDATE app.users SET role = %s WHERE username = %s", (u.role, username))
+            if u.is_active is not None:
+                cur.execute("UPDATE app.users SET is_active = %s WHERE username = %s", (u.is_active, username))
+
+            # Password Reset
+            if u.password and len(u.password) > 0:
+                hashed = pwd_context.hash(u.password)
+                cur.execute("UPDATE app.users SET hashed_password = %s HWERE username = %s", (hashed, username))
+
+            conn.commit()
+        return {"status": "updated"}
+    finally:
+        release_db_conn(conn)
+
+# Delete user
+    
+@app.delete("/api/admin/users/{username}", dependencies=[Depends(get_current_active_admin)])
+def delete_user(username: str, current_user: User = Depends(get_current_active_admin)):
+    # 1. Protect the MASTER account (Hardcoded name)
+    MASTER_ACCOUNT = "admin" 
+    
+    if username.lower() == MASTER_ACCOUNT:
+        raise HTTPException(403, "Security: The Master Admin account cannot be deleted.")
+
+    # 2. Prevent deleting yourself (if you aren't the master but are an admin)
+    if username == current_user.username:
+        raise HTTPException(400, "Security: You cannot delete your own session account.")
+
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM app.users WHERE username = %s", (username,))
+            conn.commit()
+        return {"status": "deleted"}
+    except Exception as e:
+        if conn: conn.rollback()
+        raise HTTPException(500, f"Database error: {e}")
+    finally:
+        release_db_conn(conn)
+
 @app.get("/")
 def health_check(): return {"status": "online", "ts": datetime.now().isoformat()}
 

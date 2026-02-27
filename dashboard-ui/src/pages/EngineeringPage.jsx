@@ -3,9 +3,158 @@ import { useOutletContext } from "react-router-dom";
 import apiClient from '../api';
 import { useAuth } from '../context/AuthContext'; // Keep useAuth for robust role check
 
+// User manager
+function UserManager() {
+    const [users, setUsers] = useState([]);
+    const [isFetching, setIsFetching] = useState(true);
+    const [editingUser, setEditingUser] = useState(null); // Tracks which user is being edited.
+    const [newUser, setNewUser] = useState({ username: '', password: '', role: 'Operator' });
+
+    const fetchUsers = async () => {
+        setIsFetching(true);
+        try {
+            const response = await apiClient.get('/api/admin/users');
+            setUsers(response.data);
+        } catch (err) {
+            console.error('Failed to fetch users:', err);
+        } finally {
+            setIsFetching(false);
+        }
+    };
+
+    useEffect(() => { fetchUsers(); }, []);
+
+    const handleCreate = async (e) => {
+        e.preventDefault();
+        
+        // Clean username one last time before sending
+        const cleanName = newUser.username.trim().replace(/\s/g, '');
+        
+        if (cleanName.length < 3) {
+            alert("Username must be at least 3 characters.");
+            return;
+        }
+
+        try {
+            await apiClient.post('/api/admin/users', { 
+                username: cleanName,
+                password: newUser.password,
+                role: newUser.role,
+                is_active: true // Explicitly send this to avoid 400 errors
+            });
+            setNewUser({ username: '', password: '', role: 'Operator' });
+            fetchUsers();
+            alert("User created successfully.");
+        } catch (err) { 
+            // Show the specific error from the backend if available
+            const msg = err.response?.data?.detail || "Error creating user.";
+            alert(msg); 
+        }
+    };
+
+    const handleUpdate = async (username) => {
+        try {
+            await apiClient.put(`/api/admin/users/${username}`, editingUser);
+            setEditingUser(null);
+            fetchUsers();
+            alert("User updated.");
+        } catch (err) { alert("Update failed."); }
+    };
+
+    const handleDelete = async (username) => {
+        if (!window.confirm(`Delete user ${username}?`)) return;
+        try {
+            await apiClient.delete(`/api/admin/users/${username}`);
+            fetchUsers();
+        } catch (err) { alert(err.response?.data?.detail || "Delete failed."); }
+    };
+
+    if (isFetching) return <div className="card"><h2>Loading User Management...</h2></div>
+
+    return (
+        <div className="card" style={{ marginTop: '2rem' }}>
+            <h2>User Management (Admin)</h2>
+            <p>Manage system access levels and passwords.</p>
+            
+            <table className="tag-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {users.map(u => (
+                        <tr key={u.username}>
+                            <td>{u.username}</td>
+                            <td>
+                                {editingUser?.username === u.username ? (
+                                    <select 
+                                        value={editingUser.role} 
+                                        onChange={e => setEditingUser({...editingUser, role: e.target.value})}
+                                        className="status-toggle" style={{backgroundColor: '#1e1e1e', color: 'white'}}
+                                    >
+                                        <option value="Operator">Operator</option>
+                                        <option value="Engineer">Engineer</option>
+                                        <option value="Admin">Admin</option>
+                                    </select>
+                                ) : u.role}
+                            </td>
+                            <td style={{ display: 'flex', gap: '10px' }}>
+                                {editingUser?.username === u.username ? (
+                                    <>
+                                        <button onClick={() => handleUpdate(u.username)} style={{backgroundColor: '#27ae60'}}>Save</button>
+                                        <button onClick={() => setEditingUser(null)}>Cancel</button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button onClick={() => setEditingUser({username: u.username, role: u.role, password: ''})}>Edit</button>
+                                        <button onClick={() => handleDelete(u.username)} style={{backgroundColor: '#c0392b'}}>Delete</button>
+                                    </>
+                                )}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+
+            <h3 style={{ marginTop: '2rem', borderTop: '1px solid #444', paddingTop: '1rem' }}>Create New User</h3>
+            <form onSubmit={handleCreate} className="form-group-with-button" style={{ gridTemplateColumns: '1fr 1fr 1fr 80px' }}>
+                <input 
+                    placeholder="Username (No spaces)" 
+                    value={newUser.username} 
+                    onChange={e => {
+                        // Remove spaces immediately as the user types
+                        const val = e.target.value.replace(/\s/g, '');
+                        setNewUser({...newUser, username: val});
+                    }} 
+                    required 
+                />
+                <input 
+                    type="password" 
+                    placeholder="Password" 
+                    value={newUser.password} 
+                    onChange={e => setNewUser({...newUser, password: e.target.value})} 
+                    required 
+                />
+                <select 
+                    value={newUser.role} 
+                    onChange={e => setNewUser({...newUser, role: e.target.value})}
+                    style={{ padding: '0.8rem', borderRadius: '6px', backgroundColor: '#1e1e1e', color: 'white', border: '1px solid #555' }}
+                >
+                    <option value="Operator">Operator</option>
+                    <option value="Engineer">Engineer</option>
+                    <option value="Admin">Admin</option>
+                </select>
+                <button type="submit">Add</button>
+            </form>
+        </div>
+    );
+}
+
+// Setpoint
 function SetpointManager() {
-    // FIX: Revert to using useOutletContext internally, as originally designed,
-    // to keep it simple and avoid passing props when not strictly necessary.
     const { setpoints, setSetpoints } = useOutletContext();
     const [localSettings, setLocalSettings] = useState(setpoints); 
 
@@ -147,8 +296,9 @@ function EngineeringPage() {
                 {/* 1. Show SetpointManager if Engineer or Admin */}
                 {isEngineer && <SetpointManager />}
                 
-                {/* 2. Show TagManager if Admin */}
+                {/* 2. Show TagManager and User Manager if Admin */}
                 {isAdmin && <TagManager />}
+                {isAdmin && <UserManager />}
                 
                 {/* 3. Access Denied if authenticated but role is neither */}
                 {(!isEngineer && !isAdmin) && (
