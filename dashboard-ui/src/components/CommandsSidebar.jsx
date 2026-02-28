@@ -1,7 +1,7 @@
 import apiClient from '../api';
 import { useAuth } from '../context/AuthContext'; // Import the auth hook to check token
 
-const COMMAND_TAG_BASE = 'A25_SIM_';
+const COMMAND_TAG_BASE = 'A25_CMD_';
 
 // FIX 1: Change parameter name from 'value' to 'commandKey'
 function CommandsSidebar({ setpoints, liveData }) {
@@ -49,7 +49,7 @@ function CommandsSidebar({ setpoints, liveData }) {
 
   return (
     <div className="sidebar commands-sidebar">
-      <h2>Commands (SIM)</h2>
+      <h2>Commands</h2>
 
       {/* Guest access warning */}
       {!isUserAuthenticated && (
