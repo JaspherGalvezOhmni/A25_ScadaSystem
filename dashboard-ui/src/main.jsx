@@ -4,10 +4,11 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from './App.jsx';
 import './index.css';
 import { AuthProvider } from './context/AuthContext';
-import { SystemStatusProvider } from './context/SystemStatusContext'; // <--- NEW IMPORT
+import { SystemStatusProvider } from './context/SystemStatusContext';
 import HomePage from './pages/HomePage';
 import OperationalDetailsPage from './pages/OperationalDetailsPage';
-import EngineeringPage from './pages/EngineeringPage';
+import EngineeringPage from './pages/EngineeringPage'; // now CONFIG page 
+import EngineeringDashboardPage from './pages/EngineeringDashboardPage'; //
 import LoginPage from './pages/LoginPage';
 import SensorWallPage from './pages/SensorWallPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -19,11 +20,19 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: "operational-details", element: <OperationalDetailsPage /> },
-      { 
-        path: "engineering", 
+      {
+        path: "engineering",
         element: (
-          <ProtectedRoute>
-            <EngineeringPage />
+          <ProtectedRoute restrictTo={['Engineer', 'Admin']}>
+            <EngineeringDashboardPage />
+          </ProtectedRoute>
+        )
+      },
+      { 
+        path: "configuration", 
+        element: (
+          <ProtectedRoute restrictTo={['Engineer', 'Admin']}>
+            <EngineeringPage /> {/* Repurposed to Configuration Page */}
           </ProtectedRoute>
         )
       },

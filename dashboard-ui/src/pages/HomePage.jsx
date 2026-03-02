@@ -34,11 +34,6 @@ function HomePage() {
   const cycles = tags['A25_Cycles'] || 0;
   const runHours = tags['A25_RunHours'] || 0;
   
-  // New logic to determine status based on boolean tags
-  const getFlywheelStatusFromBooleans = (tags) => {
-    return STATUS_MAP[status] ?? "Unknown";
-  };
-
    return (
     <div style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
 

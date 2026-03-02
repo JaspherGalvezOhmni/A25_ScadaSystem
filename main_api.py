@@ -49,7 +49,12 @@ WRITEABLE_TAGS = {
     "A25_CMD_Discharge", 
     "A25_CMD_Shutdown", 
     "A25_CMD_Startup",
-    "EM_SV"
+    "EM_SV",
+    "Controller:Global/EM_ControlEnable",
+    "SCADA_Tags/VFD_AutoReturnEnable",
+    "VFD_OFF1_CONTROL",
+    "VFD_RESET",
+    "VFD_OFF3_CONTROL"
 }
 
 

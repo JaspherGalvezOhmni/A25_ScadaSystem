@@ -14,7 +14,7 @@ function CommandsSidebar({ setpoints, liveData }) {
   const En_Startup = liveData?.tags?.['A25_En_Startup'] || 0;
 
   // 1. Base check: Must be logged in/ token should exist.
-  const isUserAuthenticated = !!token && (user?.role === 'Engineer' || user?.role === 'Admin');
+  const isUserAuthenticated = !!token && (user?.role === 'Engineer' || user?.role === 'Admin' || user?.role === 'Operator');
 
   // 2. Button specific logic.
   const canCharge = isUserAuthenticated && En_Charge == 1;
@@ -54,7 +54,7 @@ function CommandsSidebar({ setpoints, liveData }) {
       {/* Guest access warning */}
       {!isUserAuthenticated && (
         <p className="auth-warning">
-          Please log in with an Engineer or Admin account to send commands.
+          Please log in to send commands.
         </p>
       )}
 

@@ -386,208 +386,6 @@ function PensSidebar({ chartDefinitions, visiblePens, onTogglePen }) {
 export default PensSidebar;
 </file>
 
-<file path="dashboard-ui/src/context/SystemStatusContext.jsx">
-import { createContext, useState, useContext, useEffect, useRef } from 'react';
-import apiClient from '../api';
-
-const SystemStatusContext = createContext(null);
-
-export const SystemStatusProvider = ({ children }) => {
-  const [liveData, setLiveData] = useState({ tags: {} });
-  
-  // FIX: Initialize state from LocalStorage so we remember "Last Seen" after refresh
-  const [connectionStatus, setConnectionStatus] = useState(() => {
-      const saved = localStorage.getItem('lastSystemSeen');
-      return {
-          state: 'CONNECTING',
-          lastSeen: saved ? new Date(saved) : null
-      };
-  });
-
-  const isFetchingRef = useRef(false);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const performHeartbeat = async () => {
-      if (isFetchingRef.current) return;
-      isFetchingRef.current = true;
-
-      try {
-        const response = await apiClient.get(`/api/live-data?_=${Date.now()}`, { timeout: 2000 });
-        
-        if (isMounted) {
-            setLiveData(response.data);
-            const now = new Date();
-            // FIX: Save to LocalStorage
-            localStorage.setItem('lastSystemSeen', now.toISOString());
-            
-            setConnectionStatus({
-                state: 'ONLINE',
-                lastSeen: now
-            });
-        }
-      } catch (error) {
-        if (isMounted) {
-            setConnectionStatus(prev => ({
-                state: 'OFFLINE',
-                lastSeen: prev.lastSeen 
-            }));
-        }
-      } finally {
-        isFetchingRef.current = false;
-      }
-    };
-
-    performHeartbeat();
-    const intervalId = setInterval(performHeartbeat, 1000);
-
-    return () => {
-        isMounted = false;
-        clearInterval(intervalId);
-    };
-  }, []);
-
-  const value = {
-    liveData,
-    connectionStatus,
-    formatTime: (date) => {
-        if (!date) return "Never";
-        return new Date(date).toLocaleTimeString('en-US', { hour12: false });
-    }
-  };
-
-  return (
-    <SystemStatusContext.Provider value={value}>
-      {children}
-    </SystemStatusContext.Provider>
-  );
-};
-
-export const useSystemStatus = () => useContext(SystemStatusContext);
-</file>
-
-<file path="dashboard-ui/src/App.jsx">
-import { useState, useEffect } from 'react';
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from './context/AuthContext';
-import { useSystemStatus } from './context/SystemStatusContext'; // <--- NEW IMPORT
-import apiClient from './api';
-import './App.css';
-
-function App() {
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [isClient, setIsClient] = useState(false);
-  const [setpoints, setSetpoints] = useState({});
-
-  const auth = useAuth();
-  const { token, logout, user } = auth;
-  const navigate = useNavigate();
-  
-  // Consume System Status for Global Overlay
-  const { connectionStatus, formatTime } = useSystemStatus();
-
-  // Redirect Logic
-  useEffect(() => {
-    if (!isClient) return;
-    // Only redirect if NO token. If we have a token but server is down, stay put.
-    if (!token && !user) {
-      navigate('/login', { replace: true });
-    }
-  }, [token, user, isClient, navigate]);
-
-  // Fetch Settings (Only if online)
-  useEffect(() => {
-    const fetchSettings = async () => {
-      if (!token) return;
-      try {
-        const response = await apiClient.get('/api/settings');
-        const settingsObj = response.data.reduce((acc, s) => {
-          acc[s.key.replace('setpoint_', '')] = s.value;
-          return acc;
-        }, {});
-        setSetpoints(settingsObj);
-      } catch (error) {
-        // Quiet fail on settings fetch
-      }
-    };
-    if (connectionStatus.state === 'ONLINE') {
-        fetchSettings();
-    }
-  }, [token, connectionStatus.state]);
-
-  useEffect(() => {
-    setIsClient(true);
-    const timerId = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timerId);
-  }, []);
-
-  const formattedTime = currentTime.toLocaleString('en-US', {
-    weekday: 'short', month: 'short', day: 'numeric',
-    hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false,
-  });
-
-  // --- THE GLOBAL OFFLINE OVERLAY ---
-  const offlineOverlay = connectionStatus.state === 'OFFLINE' && (
-      <div className="connection-overlay">
-          <div className="connection-box">
-              <h2>Communication Lost</h2>
-              <p>
-                  Backend server is unreachable.<br/>
-                  Last connection: <strong>{formatTime(connectionStatus.lastSeen)}</strong>
-              </p>
-              <div className="retry-spinner"></div>
-              <p style={{fontSize: '0.9em', marginTop: '1rem', color: '#888'}}>
-                  System is attempting to reconnect...
-              </p>
-          </div>
-      </div>
-  );
-
-  return (
-    <div className="App" style={{position: 'relative'}}>
-      {/* RENDER OVERLAY ON TOP OF EVERYTHING */}
-      {offlineOverlay}
-
-      <header className="App-header">
-        <div className="logo-container">
-          <img src="/Ohmni_Logo_RGB_Blue_WhiteBG.svg" alt="Ohmni Logo" />
-        </div>
-
-        <nav className="navigation">
-          <NavLink to="/">Home</NavLink>
-          <NavLink to="/operational-details">Operational Details</NavLink>
-          <NavLink to="/engineering">Engineering</NavLink>
-        </nav>
-
-        <div className="header-right-side">
-          <div style={{marginRight: '20px', display: 'flex', alignItems: 'center', gap: '10px'}}>
-             <div style={{
-                width: '10px', height: '10px', borderRadius: '50%',
-                backgroundColor: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c',
-                boxShadow: connectionStatus.state === 'ONLINE' ? '0 0 8px #2ecc71' : 'none'
-             }}></div>
-             <span style={{fontSize: '0.9em', color: '#a0a0a0'}}>
-                {connectionStatus.state === 'ONLINE' ? 'ONLINE' : 'OFFLINE'}
-             </span>
-          </div>
-          <div className="status-time">{isClient ? formattedTime : 'Loading...'}</div>
-          {token && (
-            <button onClick={logout} className="logout-button">Log Out</button>
-          )}
-        </div>
-      </header>
-
-      <main className="main-content">
-        <Outlet context={{ setpoints, setSetpoints, user: auth.user }} />
-      </main>
-    </div>
-  );
-}
-
-export default App;
-</file>
-
 <file path="dashboard-ui/src/index.css">
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -870,28 +668,6 @@ EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 </file>
 
-<file path="hash_password.py">
-from passlib.context import CryptContext
-import sys
-
-# This must match the context in your main_api.py
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# Use a default password or get one from the command line
-plain_password = "password"
-if len(sys.argv) > 1:
-    plain_password = sys.argv[1]
-
-hashed_password = pwd_context.hash(plain_password)
-
-print("\n--- PASSWORD HASH GENERATED ---")
-print(f"Plain text: '{plain_password}'")
-print("\nCOPY THE SQL COMMAND BELOW and run it in your psql terminal:")
-print("-" * 50)
-print(f"UPDATE app.users SET hashed_password = '{hashed_password}' WHERE username = 'admin';")
-print("-" * 50)
-</file>
-
 <file path="nginx.conf">
 server {
     listen 80;
@@ -1125,6 +901,88 @@ function ProtectedRoute({ children, adminOnly = false }) {
 export default ProtectedRoute;
 </file>
 
+<file path="dashboard-ui/src/context/SystemStatusContext.jsx">
+import { createContext, useState, useContext, useEffect, useRef } from 'react';
+import apiClient from '../api';
+
+const SystemStatusContext = createContext(null);
+
+export const SystemStatusProvider = ({ children }) => {
+  const [liveData, setLiveData] = useState({ tags: {} });
+  
+  // FIX: Initialize state from LocalStorage so we remember "Last Seen" after refresh
+  const [connectionStatus, setConnectionStatus] = useState(() => {
+      const saved = localStorage.getItem('lastSystemSeen');
+      return {
+          state: 'CONNECTING',
+          lastSeen: saved ? new Date(saved) : null
+      };
+  });
+
+  const isFetchingRef = useRef(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const performHeartbeat = async () => {
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
+
+      try {
+        const response = await apiClient.get(`/api/live-data?_=${Date.now()}`, { timeout: 2000 });
+        
+        if (isMounted) {
+            setLiveData(response.data);
+            const now = new Date();
+            // FIX: Save to LocalStorage
+            localStorage.setItem('lastSystemSeen', now.toISOString());
+            
+            setConnectionStatus({
+                state: 'ONLINE',
+                lastSeen: now,
+                plcConnected: response.data.status === 'connected'
+            });
+        }
+      } catch (error) {
+        if (isMounted) {
+            setConnectionStatus(prev => ({
+                state: 'OFFLINE',
+                lastSeen: prev.lastSeen 
+            }));
+        }
+      } finally {
+        isFetchingRef.current = false;
+      }
+    };
+
+    performHeartbeat();
+    const intervalId = setInterval(performHeartbeat, 1000);
+
+    return () => {
+        isMounted = false;
+        clearInterval(intervalId);
+    };
+  }, []);
+
+  const value = {
+    liveData,
+    connectionStatus,
+    formatTime: (date) => {
+        if (!date) return "Never";
+        return new Date(date).toLocaleTimeString('en-US', { hour12: false });
+    }
+  };
+
+  return (
+    <SystemStatusContext.Provider value={value}>
+      {children}
+    </SystemStatusContext.Provider>
+  );
+};
+
+export const useSystemStatus = () => useContext(SystemStatusContext);
+</file>
+
 <file path="dashboard-ui/src/pages/LoginPage.jsx">
 // File: dashboard-ui/src/pages/LoginPage.jsx
 
@@ -1309,6 +1167,142 @@ function SensorWallPage() {
 export default SensorWallPage;
 </file>
 
+<file path="dashboard-ui/src/App.jsx">
+import { useState, useEffect } from 'react';
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from './context/AuthContext';
+import { useSystemStatus } from './context/SystemStatusContext'; // <--- NEW IMPORT
+import apiClient from './api';
+import './App.css';
+
+function App() {
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isClient, setIsClient] = useState(false);
+  const [setpoints, setSetpoints] = useState({});
+
+  const auth = useAuth();
+  const { token, logout, user } = auth;
+  const navigate = useNavigate();
+  
+  // Consume System Status for Global Overlay
+  const { connectionStatus, formatTime } = useSystemStatus();
+
+  // Redirect Logic
+  useEffect(() => {
+    if (!isClient) return;
+    // Only redirect if NO token. If we have a token but server is down, stay put.
+    if (!token && !user) {
+      navigate('/login', { replace: true });
+    }
+  }, [token, user, isClient, navigate]);
+
+  // Fetch Settings (Only if online)
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (!token) return;
+      try {
+        const response = await apiClient.get('/api/settings');
+        const settingsObj = response.data.reduce((acc, s) => {
+          acc[s.key.replace('setpoint_', '')] = s.value;
+          return acc;
+        }, {});
+        setSetpoints(settingsObj);
+      } catch (error) {
+        // Quiet fail on settings fetch
+      }
+    };
+    if (connectionStatus.state === 'ONLINE') {
+        fetchSettings();
+    }
+  }, [token, connectionStatus.state]);
+
+  useEffect(() => {
+    setIsClient(true);
+    const timerId = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timerId);
+  }, []);
+
+  const formattedTime = currentTime.toLocaleString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false,
+  });
+
+  // --- THE GLOBAL OFFLINE OVERLAY ---
+  const offlineOverlay = connectionStatus.state === 'OFFLINE' && (
+      <div className="connection-overlay">
+          <div className="connection-box">
+              <h2>Communication Lost</h2>
+              <p>
+                  Backend server is unreachable.<br/>
+                  Last connection: <strong>{formatTime(connectionStatus.lastSeen)}</strong>
+              </p>
+              <div className="retry-spinner"></div>
+              <p style={{fontSize: '0.9em', marginTop: '1rem', color: '#888'}}>
+                  System is attempting to reconnect...
+              </p>
+          </div>
+      </div>
+  );
+
+  return (
+    <div className="App" style={{position: 'relative'}}>
+      {/* RENDER OVERLAY ON TOP OF EVERYTHING */}
+      {offlineOverlay}
+
+      <header className="App-header">
+        <div className="logo-container">
+          <img src="/Ohmni_Logo_RGB_Blue_WhiteBG.svg" alt="Ohmni Logo" />
+        </div>
+
+        <nav className="navigation">
+          <NavLink to="/">Home</NavLink>
+          <NavLink to="/operational-details">Operational Details</NavLink>
+          <NavLink to="/engineering">Engineering</NavLink>
+        </nav>
+
+        <div className="header-right-side">
+          {/* NEW DUAL INDICATORS */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '10px' }}>
+            
+            {/* SERVER STATUS */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                backgroundColor: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c',
+                boxShadow: connectionStatus.state === 'ONLINE' ? '0 0 8px #2ecc71' : 'none'
+              }}></div>
+              <span style={{ fontSize: '0.75em', color: '#888', fontWeight: 'bold' }}>SRV</span>
+            </div>
+
+            {/* PLC STATUS */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                backgroundColor: (connectionStatus.state === 'ONLINE' && connectionStatus.plcConnected) ? '#2ecc71' : '#e74c3c',
+                boxShadow: (connectionStatus.state === 'ONLINE' && connectionStatus.plcConnected) ? '0 0 8px #2ecc71' : 'none'
+              }}></div>
+              <span style={{ fontSize: '0.75em', color: '#888', fontWeight: 'bold' }}>PLC</span>
+            </div>
+            
+          </div>
+
+          <div className="status-time">{isClient ? formattedTime : 'Loading...'}</div>
+          {token && (
+            <button onClick={logout} className="logout-button">Log Out</button>
+          )}
+        </div>
+      </header>
+
+      <main className="main-content">
+        <Outlet context={{ setpoints, setSetpoints, user: auth.user }} />
+      </main>
+    </div>
+  );
+}
+
+export default App;
+</file>
+
 <file path="dashboard-ui/src/main.jsx">
 import React from 'react';
 import ReactDOM from 'react-dom/client';
@@ -1416,6 +1410,28 @@ services:
 #   postgres_data:
 </file>
 
+<file path="hash_password.py">
+from passlib.context import CryptContext
+import sys
+
+# This must match the context in your main_api.py
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Use a default password or get one from the command line
+plain_password = "opensesame"
+if len(sys.argv) > 1:
+    plain_password = sys.argv[1]
+
+hashed_password = pwd_context.hash(plain_password)
+
+print("\n--- PASSWORD HASH GENERATED ---")
+print(f"Plain text: '{plain_password}'")
+print("\nCOPY THE SQL COMMAND BELOW and run it in your psql terminal:")
+print("-" * 50)
+print(f"UPDATE app.users SET hashed_password = '{hashed_password}' WHERE username = 'admin';")
+print("-" * 50)
+</file>
+
 <file path="requirements.txt">
 annotated-doc==0.0.4
 annotated-types==0.7.0
@@ -1474,173 +1490,6 @@ urllib3==2.5.0
 uvicorn==0.38.0
 watchfiles==1.1.1
 websockets==15.0.1
-</file>
-
-<file path="dashboard-ui/src/pages/EngineeringPage.jsx">
-import { useState, useEffect } from 'react';
-import { useOutletContext } from "react-router-dom";
-import apiClient from '../api';
-import { useAuth } from '../context/AuthContext'; // Keep useAuth for robust role check
-
-function SetpointManager() {
-    // FIX: Revert to using useOutletContext internally, as originally designed,
-    // to keep it simple and avoid passing props when not strictly necessary.
-    const { setpoints, setSetpoints } = useOutletContext();
-    const [localSettings, setLocalSettings] = useState(setpoints); 
-
-    // Sync local state when global setpoints load, but only if user isn't actively editing
-    useEffect(() => { 
-        if (setpoints) setLocalSettings(setpoints); 
-    }, [setpoints]);
-
-    if (!setpoints || Object.keys(setpoints).length === 0) return <div className="card"><h2>Loading Setpoints...</h2></div>;
-
-    const handleInputChange = (key, value) => {
-        setLocalSettings(prev => ({ ...prev, [key]: value }));
-    };
-
-    const handleSave = async (key) => {
-        const rawValue = localSettings[key];
-        const numValue = rawValue === '' ? 0 : parseFloat(rawValue);
-        
-        try {
-            await apiClient.put(`/api/settings/setpoint_${key}`, { key: `setpoint_${key}`, value: numValue });
-            setSetpoints(prev => ({ ...prev, [key]: numValue }));
-            setLocalSettings(prev => ({ ...prev, [key]: numValue }));
-            alert(`Setting '${key}' saved successfully!`);
-        } catch (err) { 
-            alert('Failed to update setting.'); 
-            console.error("Failed to save setting:", err);
-        }
-    };
-    
-    const getValue = (val) => (val === undefined || val === null) ? '' : val;
-
-    return (
-        <div className="card">
-            <h2>Command Setpoints (Engineer)</h2>
-            <p>Configure the value sent to the PLC for each command.</p>
-            {['charge', 'discharge', 'shutdown', 'idle'].map((key) => (
-                <div className="form-group-with-button" key={key}>
-                    <label>{key.charAt(0).toUpperCase() + key.slice(1)} Value:</label>
-                    <input 
-                        type="number" 
-                        value={getValue(localSettings[key])} 
-                        onChange={(e) => handleInputChange(key, e.target.value)} 
-                    />
-                    <button onClick={() => handleSave(key)}>Save</button>
-                </div>
-            ))}
-        </div>
-    );
-}
-
-// === RESTORING THE MISSING TAG MANAGER COMPONENT ===
-function TagManager() {
-    const [tags, setTags] = useState([]);
-    const [isFetching, setIsFetching] = useState(true);
-    const [isError, setIsError] = useState(false); 
-
-    useEffect(() => {
-        const fetchTags = async () => {
-            setIsFetching(true);
-            setIsError(false);
-            try {
-                const response = await apiClient.get('/api/tags');
-                setTags(response.data);
-                setIsError(false);
-            } catch (err) { 
-                console.error('Failed to fetch tags for TagManager:', err.response?.status, err.message); 
-                setIsError(true); 
-            } finally {
-                setIsFetching(false);
-            }
-        };
-        fetchTags();
-    }, []);
-
-    if (isFetching) {
-        return (
-            <div className="card" style={{marginTop: '2rem'}}>
-                <h2>Tag Polling Configuration (Admin)</h2>
-                <p>Loading configuration...</p>
-            </div>
-        );
-    }
-    
-    if (isError) {
-        return (
-            <div className="card" style={{marginTop: '2rem', borderLeft: '5px solid #e74c3c'}}>
-                <h2>Tag Polling Configuration (Admin)</h2>
-                <p style={{color: '#e74c3c'}}>
-                    Configuration data inaccessible. (Check console for error).
-                </p>
-            </div>
-        );
-    }
-
-    return (
-        <div className="card" style={{marginTop: '2rem'}}>
-            <h2>Tag Polling Configuration (Admin)</h2>
-            <table className="tag-table">
-                <thead><tr><th>ID</th><th>Tag Name</th><th>Data Type</th><th>Status</th></tr></thead>
-                <tbody>
-                    {tags.map(tag => (
-                        <tr key={tag.id}>
-                            <td>{tag.id}</td><td>{tag.tag}</td><td>{tag.datatype}</td>
-                            <td><button className={`status-toggle ${tag.is_active ? 'active' : 'inactive'}`} onClick={() => handleToggle(tag.id, tag.is_active)}>{tag.is_active ? 'ACTIVE' : 'INACTIVE'}</button></td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
-}
-// === END TAG MANAGER RESTORATION ===
-
-function EngineeringPage() {
-    // We rely on useAuth() now, as the sync-login fix ensures it holds the most accurate, non-null user data.
-    const { user } = useAuth(); 
-    
-    // Check if the primary data structure (user object) has resolved.
-    if (!user) {
-        // This state handles the brief moment after login but before the context has propagated.
-        return (
-            <div className="engineering-layout">
-                <div className="card" style={{width: '100%', maxWidth: '600px'}}>
-                    <h2>Authenticating Role...</h2>
-                    <p>Please wait while the final permissions are verified.</p>
-                </div>
-            </div>
-        );
-    }
-    
-    // Robust role evaluation based on data guaranteed by the AuthContext user
-    const role = user.role;
-    const isEngineer = role === 'Engineer' || role === 'Admin';
-    const isAdmin = role === 'Admin';
-
-    return (
-        <div className="engineering-layout">
-            <div>
-                {/* 1. Show SetpointManager if Engineer or Admin */}
-                {isEngineer && <SetpointManager />}
-                
-                {/* 2. Show TagManager if Admin */}
-                {isAdmin && <TagManager />}
-                
-                {/* 3. Access Denied if authenticated but role is neither */}
-                {(!isEngineer && !isAdmin) && (
-                    <div className="card">
-                        <h2>Access Denied</h2>
-                        <p>Your current role ({role}) does not have permission to view this page.</p>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-export default EngineeringPage;
 </file>
 
 <file path="dashboard-ui/src/components/StreamingChart.jsx">
@@ -2057,6 +1906,323 @@ export const setGlobalLogout = (logoutFn) => {
 export const getGlobalLogout = () => globalLogout;
 </file>
 
+<file path="dashboard-ui/src/pages/EngineeringPage.jsx">
+import { useState, useEffect } from 'react';
+import { useOutletContext } from "react-router-dom";
+import apiClient from '../api';
+import { useAuth } from '../context/AuthContext'; // Keep useAuth for robust role check
+
+// User manager
+function UserManager() {
+    const [users, setUsers] = useState([]);
+    const [isFetching, setIsFetching] = useState(true);
+    const [editingUser, setEditingUser] = useState(null); // Tracks which user is being edited.
+    const [newUser, setNewUser] = useState({ username: '', password: '', role: 'Operator' });
+
+    const fetchUsers = async () => {
+        setIsFetching(true);
+        try {
+            const response = await apiClient.get('/api/admin/users');
+            setUsers(response.data);
+        } catch (err) {
+            console.error('Failed to fetch users:', err);
+        } finally {
+            setIsFetching(false);
+        }
+    };
+
+    useEffect(() => { fetchUsers(); }, []);
+
+    const handleCreate = async (e) => {
+        e.preventDefault();
+        
+        // Clean username one last time before sending
+        const cleanName = newUser.username.trim().replace(/\s/g, '');
+        
+        if (cleanName.length < 3) {
+            alert("Username must be at least 3 characters.");
+            return;
+        }
+
+        try {
+            await apiClient.post('/api/admin/users', { 
+                username: cleanName,
+                password: newUser.password,
+                role: newUser.role,
+                is_active: true // Explicitly send this to avoid 400 errors
+            });
+            setNewUser({ username: '', password: '', role: 'Operator' });
+            fetchUsers();
+            alert("User created successfully.");
+        } catch (err) { 
+            // Show the specific error from the backend if available
+            const msg = err.response?.data?.detail || "Error creating user.";
+            alert(msg); 
+        }
+    };
+
+    const handleUpdate = async (username) => {
+        try {
+            await apiClient.put(`/api/admin/users/${username}`, editingUser);
+            setEditingUser(null);
+            fetchUsers();
+            alert("User updated.");
+        } catch (err) { alert("Update failed."); }
+    };
+
+    const handleDelete = async (username) => {
+        if (!window.confirm(`Delete user ${username}?`)) return;
+        try {
+            await apiClient.delete(`/api/admin/users/${username}`);
+            fetchUsers();
+        } catch (err) { alert(err.response?.data?.detail || "Delete failed."); }
+    };
+
+    if (isFetching) return <div className="card"><h2>Loading User Management...</h2></div>
+
+    return (
+        <div className="card" style={{ marginTop: '2rem' }}>
+            <h2>User Management (Admin)</h2>
+            <p>Manage system access levels and passwords.</p>
+            
+            <table className="tag-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {users.map(u => (
+                        <tr key={u.username}>
+                            <td>{u.username}</td>
+                            <td>
+                                {editingUser?.username === u.username ? (
+                                    <select 
+                                        value={editingUser.role} 
+                                        onChange={e => setEditingUser({...editingUser, role: e.target.value})}
+                                        className="status-toggle" style={{backgroundColor: '#1e1e1e', color: 'white'}}
+                                    >
+                                        <option value="Operator">Operator</option>
+                                        <option value="Engineer">Engineer</option>
+                                        <option value="Admin">Admin</option>
+                                    </select>
+                                ) : u.role}
+                            </td>
+                            <td style={{ display: 'flex', gap: '10px' }}>
+                                {editingUser?.username === u.username ? (
+                                    <>
+                                        <button onClick={() => handleUpdate(u.username)} style={{backgroundColor: '#27ae60'}}>Save</button>
+                                        <button onClick={() => setEditingUser(null)}>Cancel</button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button onClick={() => setEditingUser({username: u.username, role: u.role, password: ''})}>Edit</button>
+                                        <button onClick={() => handleDelete(u.username)} style={{backgroundColor: '#c0392b'}}>Delete</button>
+                                    </>
+                                )}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+
+            <h3 style={{ marginTop: '2rem', borderTop: '1px solid #444', paddingTop: '1rem' }}>Create New User</h3>
+            <form onSubmit={handleCreate} className="form-group-with-button" style={{ gridTemplateColumns: '1fr 1fr 1fr 80px' }}>
+                <input 
+                    placeholder="Username (No spaces)" 
+                    value={newUser.username} 
+                    onChange={e => {
+                        // Remove spaces immediately as the user types
+                        const val = e.target.value.replace(/\s/g, '');
+                        setNewUser({...newUser, username: val});
+                    }} 
+                    required 
+                />
+                <input 
+                    type="password" 
+                    placeholder="Password" 
+                    value={newUser.password} 
+                    onChange={e => setNewUser({...newUser, password: e.target.value})} 
+                    required 
+                />
+                <select 
+                    value={newUser.role} 
+                    onChange={e => setNewUser({...newUser, role: e.target.value})}
+                    style={{ padding: '0.8rem', borderRadius: '6px', backgroundColor: '#1e1e1e', color: 'white', border: '1px solid #555' }}
+                >
+                    <option value="Operator">Operator</option>
+                    <option value="Engineer">Engineer</option>
+                    <option value="Admin">Admin</option>
+                </select>
+                <button type="submit">Add</button>
+            </form>
+        </div>
+    );
+}
+
+// Setpoint
+function SetpointManager() {
+    const { setpoints, setSetpoints } = useOutletContext();
+    const [localSettings, setLocalSettings] = useState(setpoints); 
+
+    // Sync local state when global setpoints load, but only if user isn't actively editing
+    useEffect(() => { 
+        if (setpoints) setLocalSettings(setpoints); 
+    }, [setpoints]);
+
+    if (!setpoints || Object.keys(setpoints).length === 0) return <div className="card"><h2>Loading Setpoints...</h2></div>;
+
+    const handleInputChange = (key, value) => {
+        setLocalSettings(prev => ({ ...prev, [key]: value }));
+    };
+
+    const handleSave = async (key) => {
+        const rawValue = localSettings[key];
+        const numValue = rawValue === '' ? 0 : parseFloat(rawValue);
+        
+        try {
+            await apiClient.put(`/api/settings/setpoint_${key}`, { key: `setpoint_${key}`, value: numValue });
+            setSetpoints(prev => ({ ...prev, [key]: numValue }));
+            setLocalSettings(prev => ({ ...prev, [key]: numValue }));
+            alert(`Setting '${key}' saved successfully!`);
+        } catch (err) { 
+            alert('Failed to update setting.'); 
+            console.error("Failed to save setting:", err);
+        }
+    };
+    
+    const getValue = (val) => (val === undefined || val === null) ? '' : val;
+
+    return (
+        <div className="card">
+            <h2>Command Setpoints (Engineer)</h2>
+            <p>Configure the value sent to the PLC for each command.</p>
+            {['charge', 'discharge', 'shutdown', 'idle'].map((key) => (
+                <div className="form-group-with-button" key={key}>
+                    <label>{key.charAt(0).toUpperCase() + key.slice(1)} Value:</label>
+                    <input 
+                        type="number" 
+                        value={getValue(localSettings[key])} 
+                        onChange={(e) => handleInputChange(key, e.target.value)} 
+                    />
+                    <button onClick={() => handleSave(key)}>Save</button>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+// === RESTORING THE MISSING TAG MANAGER COMPONENT ===
+function TagManager() {
+    const [tags, setTags] = useState([]);
+    const [isFetching, setIsFetching] = useState(true);
+    const [isError, setIsError] = useState(false); 
+
+    useEffect(() => {
+        const fetchTags = async () => {
+            setIsFetching(true);
+            setIsError(false);
+            try {
+                const response = await apiClient.get('/api/tags');
+                setTags(response.data);
+                setIsError(false);
+            } catch (err) { 
+                console.error('Failed to fetch tags for TagManager:', err.response?.status, err.message); 
+                setIsError(true); 
+            } finally {
+                setIsFetching(false);
+            }
+        };
+        fetchTags();
+    }, []);
+
+    if (isFetching) {
+        return (
+            <div className="card" style={{marginTop: '2rem'}}>
+                <h2>Tag Polling Configuration (Admin)</h2>
+                <p>Loading configuration...</p>
+            </div>
+        );
+    }
+    
+    if (isError) {
+        return (
+            <div className="card" style={{marginTop: '2rem', borderLeft: '5px solid #e74c3c'}}>
+                <h2>Tag Polling Configuration (Admin)</h2>
+                <p style={{color: '#e74c3c'}}>
+                    Configuration data inaccessible. (Check console for error).
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="card" style={{marginTop: '2rem'}}>
+            <h2>Tag Polling Configuration (Admin)</h2>
+            <table className="tag-table">
+                <thead><tr><th>ID</th><th>Tag Name</th><th>Data Type</th><th>Status</th></tr></thead>
+                <tbody>
+                    {tags.map(tag => (
+                        <tr key={tag.id}>
+                            <td>{tag.id}</td><td>{tag.tag}</td><td>{tag.datatype}</td>
+                            <td><button className={`status-toggle ${tag.is_active ? 'active' : 'inactive'}`} onClick={() => handleToggle(tag.id, tag.is_active)}>{tag.is_active ? 'ACTIVE' : 'INACTIVE'}</button></td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+// === END TAG MANAGER RESTORATION ===
+
+function EngineeringPage() {
+    // We rely on useAuth() now, as the sync-login fix ensures it holds the most accurate, non-null user data.
+    const { user } = useAuth(); 
+    
+    // Check if the primary data structure (user object) has resolved.
+    if (!user) {
+        // This state handles the brief moment after login but before the context has propagated.
+        return (
+            <div className="engineering-layout">
+                <div className="card" style={{width: '100%', maxWidth: '600px'}}>
+                    <h2>Authenticating Role...</h2>
+                    <p>Please wait while the final permissions are verified.</p>
+                </div>
+            </div>
+        );
+    }
+    
+    // Robust role evaluation based on data guaranteed by the AuthContext user
+    const role = user.role;
+    const isEngineer = role === 'Engineer' || role === 'Admin';
+    const isAdmin = role === 'Admin';
+
+    return (
+        <div className="engineering-layout">
+            <div>
+                {/* 1. Show SetpointManager if Engineer or Admin */}
+                {isEngineer && <SetpointManager />}
+                
+                {/* 2. Show TagManager and User Manager if Admin */}
+                {isAdmin && <TagManager />}
+                {isAdmin && <UserManager />}
+                
+                {/* 3. Access Denied if authenticated but role is neither */}
+                {(!isEngineer && !isAdmin) && (
+                    <div className="card">
+                        <h2>Access Denied</h2>
+                        <p>Your current role ({role}) does not have permission to view this page.</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+export default EngineeringPage;
+</file>
+
 <file path="dashboard-ui/src/api.js">
 // src/api.js
 import axios from 'axios';
@@ -2107,6 +2273,98 @@ apiClient.interceptors.response.use(
 )
 
 export default apiClient;
+</file>
+
+<file path="dashboard-ui/src/constants/index.js">
+// src/constants/index.js
+
+export const COLORS = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
+
+export const STATUS_MAP = {
+    1: { text: "Stopped", color: "#7f8c8d" },
+    2: { text: "Starting Up", color: "#3498db" },
+    3: { text: "Idle", color: "#95a5a6" },
+    4: { text: "Charging", color: "#2ecc71" },
+    5: { text: "Discharging", color: "#e74c3c" },
+    6: { text: "Idle", color: "#95a5a6"},
+    7: { text: "Idle", color: "#95a5a6" },
+}
+
+export const getSystemStatus = (statusCode) => {
+    return STATUS_MAP[statusCode] || { text: "Unknown", color: "#888" };
+};
+
+// arrow logic
+export const getDirectionConfig = (statusText) => {
+    if (statusText === "Charging" || statusText === "Starting Up") {
+        return { char: '↓', color: '#2ecc71' };
+    }
+    if (statusText === "Discharging") {
+        return { char: '↑', color: '#e74c3c' };
+    }
+    if (statusText === "Stopped" || statusText === "Idle") {
+        return { char: '-', color: '#888' };
+    }
+    return { char: '⚠️', color: '#f39c12' };
+};
+
+export const chartDefinitions = [
+    { 
+        title: "Power", // Based on Picture 2 Top
+        tags: [
+            'A25_Power', 
+            'A25_Speed', 
+            'A25_Energy', // Mapped to 'Energy' in diagram
+        ] 
+    },
+    { 
+        title: "Vibration", // Based on Picture 2 Middle
+        tags: [
+            'VT001.Scaled', 
+            'VT002.Scaled',
+            'A25_Speed',
+        ] 
+    },
+    { 
+        title: "Temperature", 
+        tags: [
+            'A25_Speed',
+            'TT001.Scaled',
+            'TT002.Scaled',
+            'TT003.Scaled',
+        ] 
+    },
+    { 
+        title: "Electromag", // Based on Picture 3 Top (Simplified)
+        tags: [
+            'A25_Speed',
+            'EM_SV',
+            'WT001.Scaled',
+        ] 
+    },
+    { 
+        title: "Pressure", // Based on Picture 3 Middle (Simplified)
+        tags: [
+            'PT001.Scaled'
+        ] 
+    },
+    {
+        title: "Custom", // Based on Picture 3 Bottom (Simplified / Custom)
+        tags: [
+            'A25_SoC',
+            'A25_Cycles',
+            'A25_RunHours',
+        ]
+    }
+];
+
+// All tags from all definitions
+export const allPossibleTags = [...new Set(chartDefinitions.flatMap(c => c.tags))];
+
+// The map is created once and exported for global use
+export const tagColorMap = Object.fromEntries(
+    allPossibleTags.map((tag, index) => [tag, COLORS[index % COLORS.length]])
+);
 </file>
 
 <file path="dashboard-ui/src/App.css">
@@ -2563,13 +2821,26 @@ body { margin: 0; }
   width: 100% !important;
   height: 100% !important;
 }
+
+.status-pill {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: bold;
+}
+.status-pill.online { background: rgba(46, 204, 113, 0.2); color: #2ecc71; border: 1px solid #2ecc71; }
+.status-pill.offline { background: rgba(231, 76, 60, 0.2); color: #e74c3c; border: 1px solid #e74c3c; animation: blinker 1.5s linear infinite; }
+
+@keyframes blinker {
+  50% { opacity: 0.4; }
+}
 </file>
 
 <file path="dashboard-ui/src/components/CommandsSidebar.jsx">
 import apiClient from '../api';
 import { useAuth } from '../context/AuthContext'; // Import the auth hook to check token
 
-const COMMAND_TAG_BASE = 'A25_SIM_';
+const COMMAND_TAG_BASE = 'A25_CMD_';
 
 // FIX 1: Change parameter name from 'value' to 'commandKey'
 function CommandsSidebar({ setpoints, liveData }) {
@@ -2617,7 +2888,7 @@ function CommandsSidebar({ setpoints, liveData }) {
 
   return (
     <div className="sidebar commands-sidebar">
-      <h2>Commands (SIM)</h2>
+      <h2>Commands</h2>
 
       {/* Guest access warning */}
       {!isUserAuthenticated && (
@@ -2663,237 +2934,6 @@ function CommandsSidebar({ setpoints, liveData }) {
 }
 
 export default CommandsSidebar;
-</file>
-
-<file path="dashboard-ui/src/constants/index.js">
-// src/constants/index.js
-
-export const COLORS = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
-
-export const STATUS_MAP = {
-    1: { text: "Stopped", color: "#7f8c8d" },
-    2: { text: "Starting Up", color: "#3498db" },
-    3: { text: "Idle", color: "#95a5a6" },
-    4: { text: "Charging", color: "#2ecc71" },
-    5: { text: "Discharging", color: "#e74c3c" },
-    6: { text: "Idle", color: "#95a5a6"},
-    7: { text: "Idle", color: "#95a5a6" },
-}
-
-export const getSystemStatus = (statusCode) => {
-    return STATUS_MAP[statusCode] || { text: "Unknown", color: "#888" };
-};
-
-// arrow logic
-export const getDirectionConfig = (statusText) => {
-    if (statusText === "Charging" || statusText === "Starting Up") {
-        return { char: '↓', color: '#2ecc71' };
-    }
-    if (statusText === "Discharging") {
-        return { char: '↑', color: '#e74c3c' };
-    }
-    if (statusText === "Stopped" || statusText === "Idle") {
-        return { char: '-', color: '#888' };
-    }
-    return { char: '⚠️', color: '#f39c12' };
-};
-
-export const chartDefinitions = [
-    { 
-        title: "Power", // Based on Picture 2 Top
-        tags: [
-            'A25_Power', 
-            'A25_Speed', 
-            'A25_Energy', // Mapped to 'Energy' in diagram
-        ] 
-    },
-    { 
-        title: "Vibration", // Based on Picture 2 Middle
-        tags: [
-            'VT001.Scaled', 
-            'VT002.Scaled',
-            'A25_Speed',
-        ] 
-    },
-    { 
-        title: "Temperature", 
-        tags: [
-            'A25_Speed',
-            'TT001.Scaled',
-            'TT002.Scaled',
-            'TT003.Scaled',
-        ] 
-    },
-    { 
-        title: "Electromag", // Based on Picture 3 Top (Simplified)
-        tags: [
-            'A25_Speed',
-            'EM_SV',
-            'WT001.Scaled',
-        ] 
-    },
-    { 
-        title: "Pressure", // Based on Picture 3 Middle (Simplified)
-        tags: [
-            'PT001.Scaled'
-        ] 
-    },
-    {
-        title: "Custom", // Based on Picture 3 Bottom (Simplified / Custom)
-        tags: [
-            'A25_SoC',
-            'A25_Cycles',
-            'A25_RunHours',
-        ]
-    }
-];
-
-// All tags from all definitions
-export const allPossibleTags = [...new Set(chartDefinitions.flatMap(c => c.tags))];
-
-// The map is created once and exported for global use
-export const tagColorMap = Object.fromEntries(
-    allPossibleTags.map((tag, index) => [tag, COLORS[index % COLORS.length]])
-);
-</file>
-
-<file path="dashboard-ui/src/pages/HomePage.jsx">
-// dashboard-ui/src/pages/HomePage.jsx
-
-import { useState } from 'react';
-import { useOutletContext } from "react-router-dom";
-import { useSystemStatus } from '../context/SystemStatusContext';
-import CommandsSidebar from '../components/CommandsSidebar';
-import FlywheelVisual from '../components/FlywheelVisual'; 
-import HealthStatus from '../components/HealthStatus';
-import PopoutWindow from '../components/PopoutWindow'; 
-import { getSystemStatus } from '../constants';
-
-function HomePage() {
-  const { setpoints } = useOutletContext();
-  
-  // Consuming Global State instead of local fetching
-  const { liveData, connectionStatus, formatTime } = useSystemStatus();
-
-  // Popout States
-  // const [isFlywheelPopped, setIsFlywheelPopped] = useState(false);  staging removal
-  // const [isDashboardPopped, setIsDashboardPopped] = useState(false); staging removal
-
-  // --- DERIVED VALUES (Updated to use NEW A25_ tags and new status logic) ---
-  const tags = liveData.tags || {};
-
-  const status = tags?.['A25_Status'] ?? 0;
-  const flywheelStatusText = getSystemStatus(status).text;
-
-
-  const power = tags['A25_Power'] || 0;
-  const energy = tags['A25_Energy'] || 0;
-  const soc = tags['A25_SoC'] || 0;
-  const speed = tags['A25_Speed'] || 0;
-  const totalEnergy = tags['A25_Energy_Total'] || 0;
-  const cycles = tags['A25_Cycles'] || 0;
-  const runHours = tags['A25_RunHours'] || 0;
-  
-  // New logic to determine status based on boolean tags
-  const getFlywheelStatusFromBooleans = (tags) => {
-    return STATUS_MAP[status] ?? "Unknown";
-  };
-
-   return (
-    <div style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
-        {/* Header Bar */}
-        <div style={{
-            padding: '10px 20px', 
-            backgroundColor: '#252525', 
-            borderBottom: '1px solid #333', 
-            display: 'flex', 
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            height: '40px'
-        }}>
-            <div style={{
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '8px',
-                fontSize: '0.9em',
-                fontWeight: 'bold',
-                color: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c'
-            }}>
-                <div style={{
-                    width: '10px', 
-                    height: '10px', 
-                    borderRadius: '50%', 
-                    backgroundColor: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c',
-                    boxShadow: connectionStatus.state === 'ONLINE' ? '0 0 8px #2ecc71' : 'none'
-                }}></div>
-                {connectionStatus.state === 'ONLINE' 
-                    ? 'PLC ONLINE' 
-                    : `OFFLINE (Last: ${formatTime(connectionStatus.lastSeen)})`
-                }
-            </div>
-        </div>
-
-        {/* Static Dashboard Layout */}
-        <div className="home-layout" style={{ backgroundColor: '#1e1e1e' }}>
-            <CommandsSidebar setpoints={setpoints} liveData={liveData}/>
-            
-            <div className="flywheel-section" style={{position: 'relative', backgroundColor: '#1e1e1e'}}>
-                <div style={{position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-                    <FlywheelVisual liveData={liveData} />
-                </div>
-            </div>
-
-            <div className="sidebar status-sidebar">
-                <div className="status-group">
-                    <h2>Status Overview</h2>
-                    
-                    <div className="status-item">
-                        <span>Flywheel Status</span>
-                        <span className="status-compact-value">{flywheelStatusText}</span>
-                    </div>
-                    
-                    <div className="status-item">
-                        <span>Power</span>
-                        <span className="status-compact-value">{power.toFixed(2)} kW</span>
-                    </div>
-                    
-                    <div className="status-item">
-                        <span>Energy Stored</span>
-                        <span className="status-compact-value">{energy.toFixed(1)} kWh</span>
-                    </div>
-                    
-                    <div className="status-item">
-                        <span>State of Charge</span>
-                        <span className="status-compact-value">{soc.toFixed(0)} %</span>
-                    </div>
-                    
-                    <div className="status-item">
-                        <span>Speed</span>
-                        <span className="status-compact-value">{speed.toFixed(0)} RPM</span>
-                    </div>
-                    
-                    <div className="status-item">
-                        <span>Total Energy Transferred</span>
-                        <span className="status-compact-value">{totalEnergy.toFixed(1)} kWh</span>
-                    </div>
-                    
-                    <div className="status-item">
-                        <span>Total Cycles</span>
-                        <span className="status-compact-value">{cycles}</span>
-                    </div>
-                    
-                    <div className="status-item">
-                        <span>Run Hours</span>
-                        <span className="status-compact-value">{runHours.toFixed(1)} h</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-  );
-}
-
-export default HomePage;
 </file>
 
 <file path="dashboard-ui/src/components/FlywheelVisual.jsx">
@@ -2975,6 +3015,121 @@ function FlywheelVisual({ liveData }) {
 }
 
 export default FlywheelVisual;
+</file>
+
+<file path="dashboard-ui/src/pages/HomePage.jsx">
+// dashboard-ui/src/pages/HomePage.jsx
+
+import { useState } from 'react';
+import { useOutletContext } from "react-router-dom";
+import { useSystemStatus } from '../context/SystemStatusContext';
+import CommandsSidebar from '../components/CommandsSidebar';
+import FlywheelVisual from '../components/FlywheelVisual'; 
+import HealthStatus from '../components/HealthStatus';
+import PopoutWindow from '../components/PopoutWindow'; 
+import { getSystemStatus } from '../constants';
+
+function HomePage() {
+  const { setpoints } = useOutletContext();
+  
+  // Consuming Global State instead of local fetching
+  const { liveData, connectionStatus, formatTime } = useSystemStatus();
+
+  // Popout States
+  // const [isFlywheelPopped, setIsFlywheelPopped] = useState(false);  staging removal
+  // const [isDashboardPopped, setIsDashboardPopped] = useState(false); staging removal
+
+  // --- DERIVED VALUES (Updated to use NEW A25_ tags and new status logic) ---
+  const tags = liveData.tags || {};
+
+  const status = tags?.['A25_Status'] ?? 0;
+  const flywheelStatusText = getSystemStatus(status).text;
+
+
+  const power = tags['A25_Power'] || 0;
+  const energy = tags['A25_Energy'] || 0;
+  const soc = tags['A25_SoC'] || 0;
+  const speed = tags['A25_Speed'] || 0;
+  const totalEnergy = tags['A25_Energy_Total'] || 0;
+  const cycles = tags['A25_Cycles'] || 0;
+  const runHours = tags['A25_RunHours'] || 0;
+  
+  // New logic to determine status based on boolean tags
+  const getFlywheelStatusFromBooleans = (tags) => {
+    return STATUS_MAP[status] ?? "Unknown";
+  };
+
+   return (
+    <div style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
+
+        <div style={{
+            backgroundColor: '#181818',
+            borderBottom: '1px solid #333',
+            height: '6px',
+            flexShrink: 0
+        }}></div>
+
+        {/* Static Dashboard Layout */}
+        <div className="home-layout" style={{ backgroundColor: '#1e1e1e' }}>
+            <CommandsSidebar setpoints={setpoints} liveData={liveData}/>
+            
+            <div className="flywheel-section" style={{position: 'relative', backgroundColor: '#1e1e1e'}}>
+                <div style={{position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+                    <FlywheelVisual liveData={liveData} />
+                </div>
+            </div>
+
+            <div className="sidebar status-sidebar">
+                <div className="status-group">
+                    <h2>Status Overview</h2>
+                    
+                    <div className="status-item">
+                        <span>Flywheel Status</span>
+                        <span className="status-compact-value">{flywheelStatusText}</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Power</span>
+                        <span className="status-compact-value">{power.toFixed(2)} kW</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Energy Stored</span>
+                        <span className="status-compact-value">{energy.toFixed(1)} kWh</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>State of Charge</span>
+                        <span className="status-compact-value">{soc.toFixed(0)} %</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Speed</span>
+                        <span className="status-compact-value">{speed.toFixed(0)} RPM</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Total Energy Transferred</span>
+                        <span className="status-compact-value">{totalEnergy.toFixed(1)} kWh</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Total Cycles</span>
+                        <span className="status-compact-value">{cycles}</span>
+                    </div>
+                    
+                    <div className="status-item">
+                        <span>Run Hours</span>
+                        <span className="status-compact-value">{runHours.toFixed(1)} h</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  );
+}
+
+export default HomePage;
 </file>
 
 <file path="main_api.py">
@@ -3097,6 +3252,22 @@ class TagWriteRequest(BaseModel):
 class Setting(BaseModel):
     key: str
     value: Union[float, str]
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    role: str
+    is_active: bool = True
+
+class UserAdminView(BaseModel):
+    username: str
+    role: str
+    is_active: bool
+
+class UserUpdate(BaseModel):
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+    password: Optional[str] = None
 
 # --- HELPERS ---
 def verify_password(plain_password, hashed_password):
@@ -3489,6 +3660,99 @@ async def log_requests(request: Request, call_next):
     return await call_next(request)
 
 # --- ENDPOINTS ---
+
+# List users
+@app.get("/api/admin/users", response_model=List[UserAdminView], dependencies=[Depends(get_current_active_admin)])
+def list_users():
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute("SELECT username, role, is_active FROM app.users ORDER BY username ASC")
+            return [UserAdminView(username=r[0], role=r[1], is_active=r[2]) for r in cur.fetchall()]
+    finally:
+        release_db_conn(conn)
+# Create user
+@app.post("/api/admin/users", dependencies=[Depends(get_current_active_admin)])
+def create_user(u: UserCreate):
+    clean_username = u.username.strip().replace(" ", "")
+
+    if not clean_username:
+        raise HTTPException(400, "Username cannot be empty")
+
+    conn = None
+    try:
+        conn = get_db_conn()
+        hashed = pwd_context.hash(u.password)
+        with conn.cursor() as cur:
+            # Check if exists first to provide a clear error message
+            cur.execute("SELECT username FROM app.users WHERE username = %s", (clean_username,))
+            if cur.fetchone():
+                raise HTTPException(400, f"User '{clean_username}' already exists")
+
+            cur.execute(
+                "INSERT INTO app.users (username, hashed_password, role, is_active) VALUES (%s, %s, %s, %s)",
+                (clean_username, hashed, u.role, u.is_active)
+            )
+            conn.commit()
+        return {"status": "success"}
+    except Exception as e:
+        if conn: conn.rollback()
+        # If it's already an HTTPException, re-raise it, otherwise wrap it
+        if isinstance(e, HTTPException): raise e
+        raise HTTPException(400, f"Database error: {str(e)}")
+    finally:
+        release_db_conn(conn)
+
+# Edit user (Role, Status, Password)
+@app.put("/api/admin/users/{username}", dependencies=[Depends(get_current_active_admin)])
+def update_user(username: str, u: UserUpdate):
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            if u.role:
+                cur.execute("UPDATE app.users SET role = %s WHERE username = %s", (u.role, username))
+            if u.is_active is not None:
+                cur.execute("UPDATE app.users SET is_active = %s WHERE username = %s", (u.is_active, username))
+
+            # Password Reset
+            if u.password and len(u.password) > 0:
+                hashed = pwd_context.hash(u.password)
+                cur.execute("UPDATE app.users SET hashed_password = %s HWERE username = %s", (hashed, username))
+
+            conn.commit()
+        return {"status": "updated"}
+    finally:
+        release_db_conn(conn)
+
+# Delete user
+    
+@app.delete("/api/admin/users/{username}", dependencies=[Depends(get_current_active_admin)])
+def delete_user(username: str, current_user: User = Depends(get_current_active_admin)):
+    # 1. Protect the MASTER account (Hardcoded name)
+    MASTER_ACCOUNT = "admin" 
+    
+    if username.lower() == MASTER_ACCOUNT:
+        raise HTTPException(403, "Security: The Master Admin account cannot be deleted.")
+
+    # 2. Prevent deleting yourself (if you aren't the master but are an admin)
+    if username == current_user.username:
+        raise HTTPException(400, "Security: You cannot delete your own session account.")
+
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM app.users WHERE username = %s", (username,))
+            conn.commit()
+        return {"status": "deleted"}
+    except Exception as e:
+        if conn: conn.rollback()
+        raise HTTPException(500, f"Database error: {e}")
+    finally:
+        release_db_conn(conn)
+
 @app.get("/")
 def health_check(): return {"status": "online", "ts": datetime.now().isoformat()}
 

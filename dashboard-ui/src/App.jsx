@@ -87,7 +87,12 @@ function App() {
         <nav className="navigation">
           <NavLink to="/">Home</NavLink>
           <NavLink to="/operational-details">Operational Details</NavLink>
-          <NavLink to="/engineering">Engineering</NavLink>
+          {(user?.role === 'Admin' || user?.role === 'Engineer') && (
+            <>
+              <NavLink to="/engineering">Engineering</NavLink>
+              <NavLink to="/configuration">Config</NavLink>
+            </>
+          )}
         </nav>
 
         <div className="header-right-side">
@@ -117,8 +122,19 @@ function App() {
           </div>
 
           <div className="status-time">{isClient ? formattedTime : 'Loading...'}</div>
-          {token && (
-            <button onClick={logout} className="logout-button">Log Out</button>
+          {token ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.8em', color: '#41D1FF' }}>{user?.username} ({user?.role})</span>
+              <button onClick={logout} className="logout-button">Log Out</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => navigate('/login')}
+              className="logout-button"
+              style={{ borderColor: '#41D1FF', color: '#41D1FF' }}
+            >
+              Log In
+            </button>
           )}
         </div>
       </header>

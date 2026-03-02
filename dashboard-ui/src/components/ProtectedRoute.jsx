@@ -2,7 +2,7 @@
 import { useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-function ProtectedRoute({ children, adminOnly = false }) {
+function ProtectedRoute({ children, adminOnly = false, restrictTo = null }) {
   const { user, token, isLoading } = useAuth();
   const location = useLocation();
 
@@ -31,8 +31,12 @@ function ProtectedRoute({ children, adminOnly = false }) {
   }
   
   // 4. Role-based restriction
-  if (adminOnly && user.role !== 'Admin') {
-    return <Navigate to="/" replace />; 
+
+  const allowedRoles = restrictTo || (adminOnly ? ['Admin'] : null);
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    console.warn(`Access Denied: Role '${user.role}' not in allowed list [${allowedRoles}]`);
+    return <Navigate to="/" replace />;
   }
 
   return children;
