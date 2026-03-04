@@ -52,7 +52,10 @@ dashboard-ui/
     assets/
       react.svg
     components/
+      widgets/
+        TagBrowserWidget.jsx
       CommandsSidebar.jsx
+      EngineeringSidebar.jsx
       FlywheelVisual.jsx
       HealthStatus.jsx
       PensSidebar.jsx
@@ -65,6 +68,7 @@ dashboard-ui/
       AuthContext.jsx
       SystemStatusContext.jsx
     pages/
+      EngineeringDashboardPage.jsx
       EngineeringPage.jsx
       HomePage.jsx
       LoginPage.jsx
@@ -95,6 +99,133 @@ test_db_read.py
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="dashboard-ui/src/components/widgets/TagBrowserWidget.jsx">
+import React, { useState, useEffect } from 'react';
+import apiClient from '../../api';
+
+// Recursive component to display tree nodes
+const TagTree = ({ node, path = '', onTagSelect, dbTagNames }) => {
+    const folders = Object.keys(node).filter(k => k !== '__tags__');
+    const tags = node.__tags__ || [];
+
+    return (
+        <ul className="tag-tree-ul">
+            {/* Render Folders/Structures */}
+            {folders.map(folderName => (
+                <li key={folderName} className="tag-folder">
+                    <details open>
+                        <summary className="folder-name">{folderName}</summary>
+                        <TagTree
+                            node={node[folderName]}
+                            path={`${path}/${folderName}`}
+                            onTagSelect={onTagSelect}
+                            dbTagNames={dbTagNames}
+                        />
+                    </details>
+                </li>
+            ))}
+
+            {/* Render Tags (Leaf Nodes) */}
+            {tags.map(tag => {
+                const isInDb = dbTagNames.has(tag.name);
+                return (
+                    <li
+                        key={tag.name}
+                        className={`tag-item ${isInDb ? 'tag-in-db' : ''}`}
+                        onClick={() => onTagSelect(tag, isInDb)}
+                    >
+                        <span className="tag-name-display">{tag.tag_name_only} <span className="tag-datatype">({tag.datatype})</span></span>
+                        {!isInDb && <button className="add-tag-btn">+</button>}
+                    </li>
+                );
+            })}
+        </ul>
+    );
+};
+
+
+function TagBrowserWidget({ onTagsUpdated }) {
+    const [plcTree, setPlcTree] = useState(null);
+    const [dbTagNames, setDbTagNames] = useState(new Set()); // Tags actively polled by DB
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    // Fetch both PLC tags and the current list of tags in the DB lookup table
+    const fetchData = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            // 1. Fetch PLC structure (Admin endpoint used by Engineer/Admin roles)
+            const plcResponse = await apiClient.get('/api/plc-browse');
+            setPlcTree(plcResponse.data);
+
+            // 2. Fetch current DB tags (to show which tags are ready for history/live display)
+            const dbResponse = await apiClient.get('/api/tags');
+            const dbTags = new Set(dbResponse.data.map(t => t.tag));
+            setDbTagNames(dbTags);
+
+        } catch (e) {
+            console.error("Tag Browser failed:", e);
+            setError("Failed to fetch tags. Ensure PLC and DB are reachable, and you are logged in as Admin/Engineer.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // We expose a method to let the parent trigger a refresh if a tag is deleted
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const handleTagSelect = async (tag, isInDb) => {
+        if (isInDb) return; // Already there
+
+        try {
+            await apiClient.post('/api/tags', { tag: tag.name, datatype: tag.datatype });
+            // Refresh local state and inform parent
+            const dbResponse = await apiClient.get('/api/tags');
+            const dbTags = new Set(dbResponse.data.map(t => t.tag));
+            setDbTagNames(dbTags);
+            if (onTagsUpdated) onTagsUpdated();
+
+        } catch (e) {
+            alert(e.response?.data?.detail || "Failed to add tag");
+        }
+    };
+
+    return (
+        <div className="card tag-browser-widget" style={{ display: 'flex', flexDirection: 'column', marginTop: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h2 style={{ margin: 0 }}>PLC Tag Browser</h2>
+                <button
+                    onClick={fetchData}
+                    disabled={isLoading}
+                    style={{ padding: '0.4rem 0.8rem', backgroundColor: '#3a3a3a' }}
+                >
+                    {isLoading ? 'Refreshing...' : 'Refresh'}
+                </button>
+            </div>
+
+            {error && <p className="error-message">{error}</p>}
+
+            <div className="tag-browser-content" style={{ flexGrow: 1, overflowY: 'auto', maxHeight: '400px', border: '1px solid #444', borderRadius: '6px', padding: '1rem', backgroundColor: '#1e1e1e' }}>
+                {isLoading && !error && <div className="loading-message">Loading PLC Structure...</div>}
+
+                {plcTree && Object.keys(plcTree).length > 0 && (
+                    <TagTree node={plcTree} onTagSelect={handleTagSelect} dbTagNames={dbTagNames} />
+                )}
+
+                {(!plcTree || Object.keys(plcTree).length === 0) && !isLoading && !error && (
+                    <div style={{ color: '#888', fontStyle: 'italic' }}>No tags found or PLC offline.</div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+export default TagBrowserWidget;
+</file>
 
 <file path="dashboard-ui/public/A25+Leaders.svg">
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -318,6 +449,122 @@ l-135 -124 -97 -3 c-143 -3 -138 -8 -138 158 0 76 3 141 7 144 10 11 521 8
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
 </file>
 
+<file path="dashboard-ui/src/components/EngineeringSidebar.jsx">
+import React, { useState, useEffect } from 'react';
+import apiClient from '../api';
+
+function EngineeringSidebar({ liveData }) {
+  const tags = liveData?.tags || {};
+
+  // Local state for smooth typing
+  const [maglevInput, setMaglevInput] = useState(tags['EM_SV'] || 0);
+  const [motorInput, setMotorInput] = useState(tags['A25_Speed'] || 0);
+
+  // Sync inputs with live data only when not typing
+  useEffect(() => {
+    if (document.activeElement.id !== 'mag-input') setMaglevInput(tags['EM_SV'] || 0);
+    if (document.activeElement.id !== 'mot-input') setMotorInput(tags['A25_Speed'] || 0);
+  }, [tags]);
+
+  const handleWrite = async (tagName, value) => {
+    try {
+      // Logic for bool vs float
+      const finalValue = typeof value === 'boolean' ? (value ? 1 : 0) : parseFloat(value);
+      await apiClient.post('/api/write-tag', { 
+        tag_name: tagName, 
+        value: finalValue 
+      });
+    } catch (error) {
+      console.error("Write error", error);
+    }
+  };
+
+  const toggleTag = (tagName) => {
+    const currentState = tags[tagName] === true || tags[tagName] === 1;
+    handleWrite(tagName, !currentState);
+  };
+
+  return (
+    <div className="sidebar commands-sidebar" style={{ gap: '20px', padding: '15px' }}>
+      
+      {/* BOX 1: MAGLEV CONTROL */}
+      <div className="eng-box">
+        <div className="eng-header-row">MAGLEV CONTROL</div>
+        
+        <div className="eng-field-row">
+          <div className="eng-label-field">TARGET SETPOINT</div>
+          <input 
+            id="mag-input"
+            className="eng-value-input"
+            type="number" 
+            value={maglevInput}
+            onChange={(e) => setMaglevInput(e.target.value)}
+            onBlur={() => handleWrite('EM_SV', maglevInput)}
+          />
+        </div>
+
+        <button 
+          className={`eng-btn-full ${tags['Controller:Global/EM_ControlEnable'] ? 'active' : 'inactive'}`}
+          onClick={() => toggleTag('Controller:Global/EM_ControlEnable')}
+        >
+          {tags['Controller:Global/EM_ControlEnable'] ? 'ENABLED' : 'DISABLED'}
+        </button>
+      </div>
+
+      {/* BOX 2: MOTOR CONTROL */}
+      <div className="eng-box">
+        <div className="eng-header-row">MOTOR CONTROL</div>
+        
+        <div className="eng-field-row">
+          <div className="eng-label-field">TARGET SETPOINT</div>
+          <input 
+            id="mot-input"
+            className="eng-value-input"
+            type="number" 
+            value={motorInput}
+            onChange={(e) => setMotorInput(e.target.value)}
+            onBlur={() => handleWrite('A25_Speed', motorInput)}
+          />
+        </div>
+
+        <div className="eng-btn-grid">
+          <button 
+            className={`eng-btn-half ${tags['SCADA_Tags/VFD_AutoReturnEnable'] ? 'active' : 'inactive'}`}
+            onClick={() => toggleTag('SCADA_Tags/VFD_AutoReturnEnable')}
+          >
+            {tags['SCADA_Tags/VFD_AutoReturnEnable'] ? 'AUTO RET. ON' : 'AUTO RET. OFF'}
+          </button>
+          <button 
+            className={`eng-btn-half ${tags['VFD_OFF1_CONTROL'] ? 'active' : 'inactive'}`}
+            onClick={() => toggleTag('VFD_OFF1_CONTROL')}
+          >
+            START
+          </button>
+        </div>
+
+        <div className="eng-btn-grid">
+          <button 
+            className={`eng-btn-half ${tags['VFD_RESET'] ? 'active' : 'inactive'}`}
+            onClick={() => toggleTag('VFD_RESET')}
+          >
+            RESET FAULTS
+          </button>
+          <button 
+            className={`eng-btn-half ${tags['VFD_OFF3_CONTROL'] ? 'active' : 'inactive'}`}
+            onClick={() => toggleTag('VFD_OFF3_CONTROL')}
+          >
+            FORCE STOP
+          </button>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+export default EngineeringSidebar;
+</file>
+
 <file path="dashboard-ui/src/components/HealthStatus.jsx">
 function HealthStatus({ title, value, isHealthy, healthyText = "OK", unhealthyText = "FAULT" }) {
   const finalIsHealthy = isHealthy !== undefined ? isHealthy : value;
@@ -384,6 +631,120 @@ function PensSidebar({ chartDefinitions, visiblePens, onTogglePen }) {
 }
 
 export default PensSidebar;
+</file>
+
+<file path="dashboard-ui/src/pages/EngineeringDashboardPage.jsx">
+// dashboard-ui/src/pages/HomePage.jsx
+
+import { useState } from 'react';
+import { useOutletContext } from "react-router-dom";
+import { useSystemStatus } from '../context/SystemStatusContext';
+import CommandsSidebar from '../components/CommandsSidebar';
+import FlywheelVisual from '../components/FlywheelVisual';
+import HealthStatus from '../components/HealthStatus';
+import PopoutWindow from '../components/PopoutWindow';
+import { getSystemStatus } from '../constants';
+import EngineeringSidebar from '../components/EngineeringSidebar';
+
+// Reusable component for the new stylized status rows
+const StatusRow = ({ label, value, unit = '', isWarning = false, isHealthy = false }) => {
+    return (
+        <div className="status-box-row">
+            <div className="status-box-label">{label}</div>
+            <div className={`status-box-value ${isWarning ? 'warning' : isHealthy ? 'healthy' : ''}`}>
+                {value !== undefined && value !== null ? value : '---'} {unit}
+            </div>
+        </div>
+    );
+};
+
+function EngineeringDashboardPage() {
+    const { setpoints } = useOutletContext();
+
+    // Consuming Global State instead of local fetching
+    const { liveData, connectionStatus, formatTime } = useSystemStatus();
+
+    // --- DERIVED VALUES (Updated to use NEW A25_ tags and new status logic) ---
+    const tags = liveData.tags || {};
+
+    // Helper for safe number formatting
+    const safeNum = (val, toFixed = 1) => {
+        if (val === undefined || val === null || isNaN(val)) return '---';
+        return Number(val).toFixed(toFixed);
+    };
+
+    return (
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
+
+            <div style={{
+                backgroundColor: '#181818',
+                borderBottom: '1px solid #333',
+                height: '6px',
+                flexShrink: 0
+            }}></div>
+
+            {/* Static Dashboard Layout */}
+            <div className="home-layout" style={{ backgroundColor: '#00151d' }}>
+                <EngineeringSidebar liveData={liveData} />
+
+                <div className="flywheel-section" style={{ position: 'relative', backgroundColor: '#1e1e1e' }}>
+                    <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <FlywheelVisual liveData={liveData} />
+                    </div>
+                </div>
+
+                <div className="sidebar status-sidebar">
+                    {/* SYSTEM STATUS BLOCK */}
+                    <div className="status-box">
+                        <div className="status-box-header">SYSTEM STATUS</div>
+                        <StatusRow label="CURRENT SPEED" value={safeNum(tags['VFD_Sts_MtrSpeedScaled'], 0)} unit="RPM" />
+                        <StatusRow label="CURRENT TORQUE" value={safeNum(tags['VFD_Sts_AcutalTorque'], 1)} unit="%" />
+                        <StatusRow label="GRID FREQUENCY" value={safeNum(tags['VFD_Sts_GridFreq'], 1)} unit="Hz" />
+                        <StatusRow label="GRID VOLTS" value={safeNum(tags['VFD_Sts_GridVolts'], 1)} unit="V" />
+                        <StatusRow label="GRID POWER" value={safeNum(tags['VFD_Sts_GridAppPower'], 1)} unit="kVA" />
+                        <StatusRow label="OUTPUT POWER" value={safeNum(tags['VFD_Sts_OutPowerScaled'], 1)} unit="kW" />
+                        <StatusRow label="AMBIENT TEMP" value={safeNum(tags['TT001.Scaled'], 1)} unit="C" />
+                    </div>
+
+                    {/* MAGLEV STATUS BLOCK */}
+                    <div className="status-box">
+                        <div className="status-box-header">MAGLEV STATUS</div>
+                        <StatusRow label="CURRENT WEIGHT" value={safeNum(tags['WT001.Scaled'], 0)} unit="kg" />
+                        <StatusRow label="TARGET WEIGHT" value={safeNum(tags['EM_SV'], 0)} unit="kg" />
+                        <StatusRow label="SIGNAL OUTPUT" value={safeNum(tags['Ch0Data'], 1)} unit="mV" />
+                    </div>
+
+                    {/* VSD STATUS BLOCK */}
+                    <div className="status-box">
+                        <div className="status-box-header">VSD STATUS</div>
+                        <StatusRow label="CURRENT SPEED" value={safeNum(tags['VFD_Sts_MtrSpeedScaled'], 1)} unit="RPM" />
+                        <StatusRow label="CURRENT TORQUE" value={safeNum(tags['VFD_Sts_AcutalTorque'], 1)} unit="%" />
+                        <StatusRow label="OUTPUT FREQUENCY" value={safeNum(tags['VFD_Sts_OutFreq'], 1)} unit="Hz" />
+                        <StatusRow label="DC BUS VOLTS" value={safeNum(tags['VFD_Sts_DCVolts'], 0)} unit="V" />
+                        <StatusRow label="GRID VOLTS" value={safeNum(tags['VFD_Sts_GridVolts'], 1)} unit="V" />
+                        <StatusRow label="VSD AMBIENT TEMP" value={safeNum(tags['VSD_Sts_AmbTemp'], 1)} unit="C" />
+                        <StatusRow label="OUTPUT POWER" value={safeNum(tags['VFD_Sts_OutPowerScaled'], 1)} unit="kW" />
+                        <StatusRow 
+                            label="TRIPPING FAULT" 
+                            value={tags['VFD_Sts_TripFlt.value'] ? 'FAULT' : 'OK'} 
+                            isWarning={!!tags['VFD_Sts_TripFlt.value']}
+                            isHealthy={!tags['VFD_Sts_TripFlt.value']}
+                        />
+                        <StatusRow label="LATEST WARNING" value={safeNum(tags['VFD_Sts_latestWarning.value'], 1)} unit="" />
+                        <StatusRow 
+                            label="COMMS STATUS" 
+                            value={tags['VFD_Sts_Comms_Healthy'] ? 'Healthy' : 'Fault'} 
+                            isHealthy={!!tags['VFD_Sts_Comms_Healthy']}
+                            isWarning={!tags['VFD_Sts_Comms_Healthy']}
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default EngineeringDashboardPage;
 </file>
 
 <file path="dashboard-ui/src/index.css">
@@ -858,49 +1219,6 @@ useEffect(() => {
 export default PopoutWindow;
 </file>
 
-<file path="dashboard-ui/src/components/ProtectedRoute.jsx">
-// dashboard-ui/src/components/ProtectedRoute.jsx
-import { useLocation, Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-
-function ProtectedRoute({ children, adminOnly = false }) {
-  const { user, token, isLoading } = useAuth();
-  const location = useLocation();
-
-  // 1. If AuthContext says it's loading, show loading screen.
-  if (isLoading) {
-    // Show a more friendly message now that you removed the original loading screen
-    return <div style={{padding: '2rem'}}>Verifying session or loading user details...</div>;
-  }
-
-  // 2. If loading is false, but we still have no token (unauthenticated flow completed)
-  if (!token) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-  
-  // 3. CRITICAL FINAL GUARD: If we have a token, loading is false, but role is missing.
-  // This means re-validation FAILED on the network (e.g. 401, server down, etc.) 
-  // and the final state is bad. If we can't get the role, we should force a log out.
-  if (!user || !user.role) {
-    console.warn("ProtectedRoute: Token found but user/role missing. Forcing logout.");
-    // We should log out here to clear the bad token and redirect to login/App.jsx redirect logic.
-    // This is the only safe exit from the bad state.
-    // NOTE: This relies on AuthContext's `logout` redirecting.
-    const { logout } = useAuth(); 
-    logout(); 
-    return <div style={{padding: '2rem'}}>Session verification failed. Redirecting to login...</div>;
-  }
-  
-  // 4. Role-based restriction
-  if (adminOnly && user.role !== 'Admin') {
-    return <Navigate to="/" replace />; 
-  }
-
-  return children;
-}
-export default ProtectedRoute;
-</file>
-
 <file path="dashboard-ui/src/context/SystemStatusContext.jsx">
 import { createContext, useState, useContext, useEffect, useRef } from 'react';
 import apiClient from '../api';
@@ -1167,190 +1485,6 @@ function SensorWallPage() {
 export default SensorWallPage;
 </file>
 
-<file path="dashboard-ui/src/App.jsx">
-import { useState, useEffect } from 'react';
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from './context/AuthContext';
-import { useSystemStatus } from './context/SystemStatusContext'; // <--- NEW IMPORT
-import apiClient from './api';
-import './App.css';
-
-function App() {
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [isClient, setIsClient] = useState(false);
-  const [setpoints, setSetpoints] = useState({});
-
-  const auth = useAuth();
-  const { token, logout, user } = auth;
-  const navigate = useNavigate();
-  
-  // Consume System Status for Global Overlay
-  const { connectionStatus, formatTime } = useSystemStatus();
-
-  // Redirect Logic
-  useEffect(() => {
-    if (!isClient) return;
-    // Only redirect if NO token. If we have a token but server is down, stay put.
-    if (!token && !user) {
-      navigate('/login', { replace: true });
-    }
-  }, [token, user, isClient, navigate]);
-
-  // Fetch Settings (Only if online)
-  useEffect(() => {
-    const fetchSettings = async () => {
-      if (!token) return;
-      try {
-        const response = await apiClient.get('/api/settings');
-        const settingsObj = response.data.reduce((acc, s) => {
-          acc[s.key.replace('setpoint_', '')] = s.value;
-          return acc;
-        }, {});
-        setSetpoints(settingsObj);
-      } catch (error) {
-        // Quiet fail on settings fetch
-      }
-    };
-    if (connectionStatus.state === 'ONLINE') {
-        fetchSettings();
-    }
-  }, [token, connectionStatus.state]);
-
-  useEffect(() => {
-    setIsClient(true);
-    const timerId = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timerId);
-  }, []);
-
-  const formattedTime = currentTime.toLocaleString('en-US', {
-    weekday: 'short', month: 'short', day: 'numeric',
-    hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false,
-  });
-
-  // --- THE GLOBAL OFFLINE OVERLAY ---
-  const offlineOverlay = connectionStatus.state === 'OFFLINE' && (
-      <div className="connection-overlay">
-          <div className="connection-box">
-              <h2>Communication Lost</h2>
-              <p>
-                  Backend server is unreachable.<br/>
-                  Last connection: <strong>{formatTime(connectionStatus.lastSeen)}</strong>
-              </p>
-              <div className="retry-spinner"></div>
-              <p style={{fontSize: '0.9em', marginTop: '1rem', color: '#888'}}>
-                  System is attempting to reconnect...
-              </p>
-          </div>
-      </div>
-  );
-
-  return (
-    <div className="App" style={{position: 'relative'}}>
-      {/* RENDER OVERLAY ON TOP OF EVERYTHING */}
-      {offlineOverlay}
-
-      <header className="App-header">
-        <div className="logo-container">
-          <img src="/Ohmni_Logo_RGB_Blue_WhiteBG.svg" alt="Ohmni Logo" />
-        </div>
-
-        <nav className="navigation">
-          <NavLink to="/">Home</NavLink>
-          <NavLink to="/operational-details">Operational Details</NavLink>
-          <NavLink to="/engineering">Engineering</NavLink>
-        </nav>
-
-        <div className="header-right-side">
-          {/* NEW DUAL INDICATORS */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '10px' }}>
-            
-            {/* SERVER STATUS */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{
-                width: '8px', height: '8px', borderRadius: '50%',
-                backgroundColor: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c',
-                boxShadow: connectionStatus.state === 'ONLINE' ? '0 0 8px #2ecc71' : 'none'
-              }}></div>
-              <span style={{ fontSize: '0.75em', color: '#888', fontWeight: 'bold' }}>SRV</span>
-            </div>
-
-            {/* PLC STATUS */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{
-                width: '8px', height: '8px', borderRadius: '50%',
-                backgroundColor: (connectionStatus.state === 'ONLINE' && connectionStatus.plcConnected) ? '#2ecc71' : '#e74c3c',
-                boxShadow: (connectionStatus.state === 'ONLINE' && connectionStatus.plcConnected) ? '0 0 8px #2ecc71' : 'none'
-              }}></div>
-              <span style={{ fontSize: '0.75em', color: '#888', fontWeight: 'bold' }}>PLC</span>
-            </div>
-            
-          </div>
-
-          <div className="status-time">{isClient ? formattedTime : 'Loading...'}</div>
-          {token && (
-            <button onClick={logout} className="logout-button">Log Out</button>
-          )}
-        </div>
-      </header>
-
-      <main className="main-content">
-        <Outlet context={{ setpoints, setSetpoints, user: auth.user }} />
-      </main>
-    </div>
-  );
-}
-
-export default App;
-</file>
-
-<file path="dashboard-ui/src/main.jsx">
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import App from './App.jsx';
-import './index.css';
-import { AuthProvider } from './context/AuthContext';
-import { SystemStatusProvider } from './context/SystemStatusContext'; // <--- NEW IMPORT
-import HomePage from './pages/HomePage';
-import OperationalDetailsPage from './pages/OperationalDetailsPage';
-import EngineeringPage from './pages/EngineeringPage';
-import LoginPage from './pages/LoginPage';
-import SensorWallPage from './pages/SensorWallPage';
-import ProtectedRoute from './components/ProtectedRoute';
-
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <App />,
-    children: [
-      { index: true, element: <HomePage /> },
-      { path: "operational-details", element: <OperationalDetailsPage /> },
-      { 
-        path: "engineering", 
-        element: (
-          <ProtectedRoute>
-            <EngineeringPage />
-          </ProtectedRoute>
-        )
-      },
-      { path: "login", element: <LoginPage /> },
-    ],
-  },
-  {
-    path: "/sensor-wall",
-    element: <SensorWallPage />
-  }
-]);
-
-ReactDOM.createRoot(document.getElementById('root')).render(
-    <SystemStatusProvider> 
-      <AuthProvider> 
-        <RouterProvider router={router} />
-      </AuthProvider>
-    </SystemStatusProvider>
-)
-</file>
-
 <file path=".gitignore">
 venv/
 __pycache__/
@@ -1490,6 +1624,262 @@ urllib3==2.5.0
 uvicorn==0.38.0
 watchfiles==1.1.1
 websockets==15.0.1
+</file>
+
+<file path="dashboard-ui/src/components/ProtectedRoute.jsx">
+// dashboard-ui/src/components/ProtectedRoute.jsx
+import { useLocation, Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+
+function ProtectedRoute({ children, adminOnly = false, restrictTo = null }) {
+  const { user, token, isLoading } = useAuth();
+  const location = useLocation();
+
+  // 1. If AuthContext says it's loading, show loading screen.
+  if (isLoading) {
+    // Show a more friendly message now that you removed the original loading screen
+    return <div style={{padding: '2rem'}}>Verifying session or loading user details...</div>;
+  }
+
+  // 2. If loading is false, but we still have no token (unauthenticated flow completed)
+  if (!token) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  
+  // 3. CRITICAL FINAL GUARD: If we have a token, loading is false, but role is missing.
+  // This means re-validation FAILED on the network (e.g. 401, server down, etc.) 
+  // and the final state is bad. If we can't get the role, we should force a log out.
+  if (!user || !user.role) {
+    console.warn("ProtectedRoute: Token found but user/role missing. Forcing logout.");
+    // We should log out here to clear the bad token and redirect to login/App.jsx redirect logic.
+    // This is the only safe exit from the bad state.
+    // NOTE: This relies on AuthContext's `logout` redirecting.
+    const { logout } = useAuth(); 
+    logout(); 
+    return <div style={{padding: '2rem'}}>Session verification failed. Redirecting to login...</div>;
+  }
+  
+  // 4. Role-based restriction
+
+  const allowedRoles = restrictTo || (adminOnly ? ['Admin'] : null);
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    console.warn(`Access Denied: Role '${user.role}' not in allowed list [${allowedRoles}]`);
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+export default ProtectedRoute;
+</file>
+
+<file path="dashboard-ui/src/App.jsx">
+import { useState, useEffect } from 'react';
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from './context/AuthContext';
+import { useSystemStatus } from './context/SystemStatusContext'; // <--- NEW IMPORT
+import apiClient from './api';
+import './App.css';
+
+function App() {
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isClient, setIsClient] = useState(false);
+  const [setpoints, setSetpoints] = useState({});
+
+  const auth = useAuth();
+  const { token, logout, user } = auth;
+  const navigate = useNavigate();
+  
+  // Consume System Status for Global Overlay
+  const { connectionStatus, formatTime } = useSystemStatus();
+
+  // Redirect Logic
+  useEffect(() => {
+    if (!isClient) return;
+    // Only redirect if NO token. If we have a token but server is down, stay put.
+    if (!token && !user) {
+      navigate('/login', { replace: true });
+    }
+  }, [token, user, isClient, navigate]);
+
+  // Fetch Settings (Only if online)
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (!token) return;
+      try {
+        const response = await apiClient.get('/api/settings');
+        const settingsObj = response.data.reduce((acc, s) => {
+          acc[s.key.replace('setpoint_', '')] = s.value;
+          return acc;
+        }, {});
+        setSetpoints(settingsObj);
+      } catch (error) {
+        // Quiet fail on settings fetch
+      }
+    };
+    if (connectionStatus.state === 'ONLINE') {
+        fetchSettings();
+    }
+  }, [token, connectionStatus.state]);
+
+  useEffect(() => {
+    setIsClient(true);
+    const timerId = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timerId);
+  }, []);
+
+  const formattedTime = currentTime.toLocaleString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false,
+  });
+
+  // --- THE GLOBAL OFFLINE OVERLAY ---
+  const offlineOverlay = connectionStatus.state === 'OFFLINE' && (
+      <div className="connection-overlay">
+          <div className="connection-box">
+              <h2>Communication Lost</h2>
+              <p>
+                  Backend server is unreachable.<br/>
+                  Last connection: <strong>{formatTime(connectionStatus.lastSeen)}</strong>
+              </p>
+              <div className="retry-spinner"></div>
+              <p style={{fontSize: '0.9em', marginTop: '1rem', color: '#888'}}>
+                  System is attempting to reconnect...
+              </p>
+          </div>
+      </div>
+  );
+
+  return (
+    <div className="App" style={{position: 'relative'}}>
+      {/* RENDER OVERLAY ON TOP OF EVERYTHING */}
+      {offlineOverlay}
+
+      <header className="App-header">
+        <div className="logo-container">
+          <img src="/Ohmni_Logo_RGB_Blue_WhiteBG.svg" alt="Ohmni Logo" />
+        </div>
+
+        <nav className="navigation">
+          <NavLink to="/">Home</NavLink>
+          <NavLink to="/operational-details">Operational Details</NavLink>
+          {(user?.role === 'Admin' || user?.role === 'Engineer') && (
+            <>
+              <NavLink to="/engineering">Engineering</NavLink>
+              <NavLink to="/configuration">Config</NavLink>
+            </>
+          )}
+        </nav>
+
+        <div className="header-right-side">
+          {/* NEW DUAL INDICATORS */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '10px' }}>
+            
+            {/* SERVER STATUS */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                backgroundColor: connectionStatus.state === 'ONLINE' ? '#2ecc71' : '#e74c3c',
+                boxShadow: connectionStatus.state === 'ONLINE' ? '0 0 8px #2ecc71' : 'none'
+              }}></div>
+              <span style={{ fontSize: '0.75em', color: '#888', fontWeight: 'bold' }}>SRV</span>
+            </div>
+
+            {/* PLC STATUS */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                backgroundColor: (connectionStatus.state === 'ONLINE' && connectionStatus.plcConnected) ? '#2ecc71' : '#e74c3c',
+                boxShadow: (connectionStatus.state === 'ONLINE' && connectionStatus.plcConnected) ? '0 0 8px #2ecc71' : 'none'
+              }}></div>
+              <span style={{ fontSize: '0.75em', color: '#888', fontWeight: 'bold' }}>PLC</span>
+            </div>
+            
+          </div>
+
+          <div className="status-time">{isClient ? formattedTime : 'Loading...'}</div>
+          {token ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.8em', color: '#41D1FF' }}>{user?.username} ({user?.role})</span>
+              <button onClick={logout} className="logout-button">Log Out</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => navigate('/login')}
+              className="logout-button"
+              style={{ borderColor: '#41D1FF', color: '#41D1FF' }}
+            >
+              Log In
+            </button>
+          )}
+        </div>
+      </header>
+
+      <main className="main-content">
+        <Outlet context={{ setpoints, setSetpoints, user: auth.user }} />
+      </main>
+    </div>
+  );
+}
+
+export default App;
+</file>
+
+<file path="dashboard-ui/src/main.jsx">
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import App from './App.jsx';
+import './index.css';
+import { AuthProvider } from './context/AuthContext';
+import { SystemStatusProvider } from './context/SystemStatusContext';
+import HomePage from './pages/HomePage';
+import OperationalDetailsPage from './pages/OperationalDetailsPage';
+import EngineeringPage from './pages/EngineeringPage'; // now CONFIG page 
+import EngineeringDashboardPage from './pages/EngineeringDashboardPage'; //
+import LoginPage from './pages/LoginPage';
+import SensorWallPage from './pages/SensorWallPage';
+import ProtectedRoute from './components/ProtectedRoute';
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <App />,
+    children: [
+      { index: true, element: <HomePage /> },
+      { path: "operational-details", element: <OperationalDetailsPage /> },
+      {
+        path: "engineering",
+        element: (
+          <ProtectedRoute restrictTo={['Engineer', 'Admin']}>
+            <EngineeringDashboardPage />
+          </ProtectedRoute>
+        )
+      },
+      { 
+        path: "configuration", 
+        element: (
+          <ProtectedRoute restrictTo={['Engineer', 'Admin']}>
+            <EngineeringPage /> {/* Repurposed to Configuration Page */}
+          </ProtectedRoute>
+        )
+      },
+      { path: "login", element: <LoginPage /> },
+    ],
+  },
+  {
+    path: "/sensor-wall",
+    element: <SensorWallPage />
+  }
+]);
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+    <SystemStatusProvider> 
+      <AuthProvider> 
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </SystemStatusProvider>
+)
 </file>
 
 <file path="dashboard-ui/src/components/StreamingChart.jsx">
@@ -1906,323 +2296,6 @@ export const setGlobalLogout = (logoutFn) => {
 export const getGlobalLogout = () => globalLogout;
 </file>
 
-<file path="dashboard-ui/src/pages/EngineeringPage.jsx">
-import { useState, useEffect } from 'react';
-import { useOutletContext } from "react-router-dom";
-import apiClient from '../api';
-import { useAuth } from '../context/AuthContext'; // Keep useAuth for robust role check
-
-// User manager
-function UserManager() {
-    const [users, setUsers] = useState([]);
-    const [isFetching, setIsFetching] = useState(true);
-    const [editingUser, setEditingUser] = useState(null); // Tracks which user is being edited.
-    const [newUser, setNewUser] = useState({ username: '', password: '', role: 'Operator' });
-
-    const fetchUsers = async () => {
-        setIsFetching(true);
-        try {
-            const response = await apiClient.get('/api/admin/users');
-            setUsers(response.data);
-        } catch (err) {
-            console.error('Failed to fetch users:', err);
-        } finally {
-            setIsFetching(false);
-        }
-    };
-
-    useEffect(() => { fetchUsers(); }, []);
-
-    const handleCreate = async (e) => {
-        e.preventDefault();
-        
-        // Clean username one last time before sending
-        const cleanName = newUser.username.trim().replace(/\s/g, '');
-        
-        if (cleanName.length < 3) {
-            alert("Username must be at least 3 characters.");
-            return;
-        }
-
-        try {
-            await apiClient.post('/api/admin/users', { 
-                username: cleanName,
-                password: newUser.password,
-                role: newUser.role,
-                is_active: true // Explicitly send this to avoid 400 errors
-            });
-            setNewUser({ username: '', password: '', role: 'Operator' });
-            fetchUsers();
-            alert("User created successfully.");
-        } catch (err) { 
-            // Show the specific error from the backend if available
-            const msg = err.response?.data?.detail || "Error creating user.";
-            alert(msg); 
-        }
-    };
-
-    const handleUpdate = async (username) => {
-        try {
-            await apiClient.put(`/api/admin/users/${username}`, editingUser);
-            setEditingUser(null);
-            fetchUsers();
-            alert("User updated.");
-        } catch (err) { alert("Update failed."); }
-    };
-
-    const handleDelete = async (username) => {
-        if (!window.confirm(`Delete user ${username}?`)) return;
-        try {
-            await apiClient.delete(`/api/admin/users/${username}`);
-            fetchUsers();
-        } catch (err) { alert(err.response?.data?.detail || "Delete failed."); }
-    };
-
-    if (isFetching) return <div className="card"><h2>Loading User Management...</h2></div>
-
-    return (
-        <div className="card" style={{ marginTop: '2rem' }}>
-            <h2>User Management (Admin)</h2>
-            <p>Manage system access levels and passwords.</p>
-            
-            <table className="tag-table">
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Role</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {users.map(u => (
-                        <tr key={u.username}>
-                            <td>{u.username}</td>
-                            <td>
-                                {editingUser?.username === u.username ? (
-                                    <select 
-                                        value={editingUser.role} 
-                                        onChange={e => setEditingUser({...editingUser, role: e.target.value})}
-                                        className="status-toggle" style={{backgroundColor: '#1e1e1e', color: 'white'}}
-                                    >
-                                        <option value="Operator">Operator</option>
-                                        <option value="Engineer">Engineer</option>
-                                        <option value="Admin">Admin</option>
-                                    </select>
-                                ) : u.role}
-                            </td>
-                            <td style={{ display: 'flex', gap: '10px' }}>
-                                {editingUser?.username === u.username ? (
-                                    <>
-                                        <button onClick={() => handleUpdate(u.username)} style={{backgroundColor: '#27ae60'}}>Save</button>
-                                        <button onClick={() => setEditingUser(null)}>Cancel</button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <button onClick={() => setEditingUser({username: u.username, role: u.role, password: ''})}>Edit</button>
-                                        <button onClick={() => handleDelete(u.username)} style={{backgroundColor: '#c0392b'}}>Delete</button>
-                                    </>
-                                )}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-
-            <h3 style={{ marginTop: '2rem', borderTop: '1px solid #444', paddingTop: '1rem' }}>Create New User</h3>
-            <form onSubmit={handleCreate} className="form-group-with-button" style={{ gridTemplateColumns: '1fr 1fr 1fr 80px' }}>
-                <input 
-                    placeholder="Username (No spaces)" 
-                    value={newUser.username} 
-                    onChange={e => {
-                        // Remove spaces immediately as the user types
-                        const val = e.target.value.replace(/\s/g, '');
-                        setNewUser({...newUser, username: val});
-                    }} 
-                    required 
-                />
-                <input 
-                    type="password" 
-                    placeholder="Password" 
-                    value={newUser.password} 
-                    onChange={e => setNewUser({...newUser, password: e.target.value})} 
-                    required 
-                />
-                <select 
-                    value={newUser.role} 
-                    onChange={e => setNewUser({...newUser, role: e.target.value})}
-                    style={{ padding: '0.8rem', borderRadius: '6px', backgroundColor: '#1e1e1e', color: 'white', border: '1px solid #555' }}
-                >
-                    <option value="Operator">Operator</option>
-                    <option value="Engineer">Engineer</option>
-                    <option value="Admin">Admin</option>
-                </select>
-                <button type="submit">Add</button>
-            </form>
-        </div>
-    );
-}
-
-// Setpoint
-function SetpointManager() {
-    const { setpoints, setSetpoints } = useOutletContext();
-    const [localSettings, setLocalSettings] = useState(setpoints); 
-
-    // Sync local state when global setpoints load, but only if user isn't actively editing
-    useEffect(() => { 
-        if (setpoints) setLocalSettings(setpoints); 
-    }, [setpoints]);
-
-    if (!setpoints || Object.keys(setpoints).length === 0) return <div className="card"><h2>Loading Setpoints...</h2></div>;
-
-    const handleInputChange = (key, value) => {
-        setLocalSettings(prev => ({ ...prev, [key]: value }));
-    };
-
-    const handleSave = async (key) => {
-        const rawValue = localSettings[key];
-        const numValue = rawValue === '' ? 0 : parseFloat(rawValue);
-        
-        try {
-            await apiClient.put(`/api/settings/setpoint_${key}`, { key: `setpoint_${key}`, value: numValue });
-            setSetpoints(prev => ({ ...prev, [key]: numValue }));
-            setLocalSettings(prev => ({ ...prev, [key]: numValue }));
-            alert(`Setting '${key}' saved successfully!`);
-        } catch (err) { 
-            alert('Failed to update setting.'); 
-            console.error("Failed to save setting:", err);
-        }
-    };
-    
-    const getValue = (val) => (val === undefined || val === null) ? '' : val;
-
-    return (
-        <div className="card">
-            <h2>Command Setpoints (Engineer)</h2>
-            <p>Configure the value sent to the PLC for each command.</p>
-            {['charge', 'discharge', 'shutdown', 'idle'].map((key) => (
-                <div className="form-group-with-button" key={key}>
-                    <label>{key.charAt(0).toUpperCase() + key.slice(1)} Value:</label>
-                    <input 
-                        type="number" 
-                        value={getValue(localSettings[key])} 
-                        onChange={(e) => handleInputChange(key, e.target.value)} 
-                    />
-                    <button onClick={() => handleSave(key)}>Save</button>
-                </div>
-            ))}
-        </div>
-    );
-}
-
-// === RESTORING THE MISSING TAG MANAGER COMPONENT ===
-function TagManager() {
-    const [tags, setTags] = useState([]);
-    const [isFetching, setIsFetching] = useState(true);
-    const [isError, setIsError] = useState(false); 
-
-    useEffect(() => {
-        const fetchTags = async () => {
-            setIsFetching(true);
-            setIsError(false);
-            try {
-                const response = await apiClient.get('/api/tags');
-                setTags(response.data);
-                setIsError(false);
-            } catch (err) { 
-                console.error('Failed to fetch tags for TagManager:', err.response?.status, err.message); 
-                setIsError(true); 
-            } finally {
-                setIsFetching(false);
-            }
-        };
-        fetchTags();
-    }, []);
-
-    if (isFetching) {
-        return (
-            <div className="card" style={{marginTop: '2rem'}}>
-                <h2>Tag Polling Configuration (Admin)</h2>
-                <p>Loading configuration...</p>
-            </div>
-        );
-    }
-    
-    if (isError) {
-        return (
-            <div className="card" style={{marginTop: '2rem', borderLeft: '5px solid #e74c3c'}}>
-                <h2>Tag Polling Configuration (Admin)</h2>
-                <p style={{color: '#e74c3c'}}>
-                    Configuration data inaccessible. (Check console for error).
-                </p>
-            </div>
-        );
-    }
-
-    return (
-        <div className="card" style={{marginTop: '2rem'}}>
-            <h2>Tag Polling Configuration (Admin)</h2>
-            <table className="tag-table">
-                <thead><tr><th>ID</th><th>Tag Name</th><th>Data Type</th><th>Status</th></tr></thead>
-                <tbody>
-                    {tags.map(tag => (
-                        <tr key={tag.id}>
-                            <td>{tag.id}</td><td>{tag.tag}</td><td>{tag.datatype}</td>
-                            <td><button className={`status-toggle ${tag.is_active ? 'active' : 'inactive'}`} onClick={() => handleToggle(tag.id, tag.is_active)}>{tag.is_active ? 'ACTIVE' : 'INACTIVE'}</button></td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
-}
-// === END TAG MANAGER RESTORATION ===
-
-function EngineeringPage() {
-    // We rely on useAuth() now, as the sync-login fix ensures it holds the most accurate, non-null user data.
-    const { user } = useAuth(); 
-    
-    // Check if the primary data structure (user object) has resolved.
-    if (!user) {
-        // This state handles the brief moment after login but before the context has propagated.
-        return (
-            <div className="engineering-layout">
-                <div className="card" style={{width: '100%', maxWidth: '600px'}}>
-                    <h2>Authenticating Role...</h2>
-                    <p>Please wait while the final permissions are verified.</p>
-                </div>
-            </div>
-        );
-    }
-    
-    // Robust role evaluation based on data guaranteed by the AuthContext user
-    const role = user.role;
-    const isEngineer = role === 'Engineer' || role === 'Admin';
-    const isAdmin = role === 'Admin';
-
-    return (
-        <div className="engineering-layout">
-            <div>
-                {/* 1. Show SetpointManager if Engineer or Admin */}
-                {isEngineer && <SetpointManager />}
-                
-                {/* 2. Show TagManager and User Manager if Admin */}
-                {isAdmin && <TagManager />}
-                {isAdmin && <UserManager />}
-                
-                {/* 3. Access Denied if authenticated but role is neither */}
-                {(!isEngineer && !isAdmin) && (
-                    <div className="card">
-                        <h2>Access Denied</h2>
-                        <p>Your current role ({role}) does not have permission to view this page.</p>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-export default EngineeringPage;
-</file>
-
 <file path="dashboard-ui/src/api.js">
 // src/api.js
 import axios from 'axios';
@@ -2273,6 +2346,314 @@ apiClient.interceptors.response.use(
 )
 
 export default apiClient;
+</file>
+
+<file path="dashboard-ui/src/pages/EngineeringPage.jsx">
+// REPURPOSED TO CONFIG PAGE.
+
+import { useState, useEffect, useRef } from 'react';
+import apiClient from '../api';
+import { useAuth } from '../context/AuthContext'; // Keep useAuth for robust role check
+import TagBrowserWidget from '../components/widgets/TagBrowserWidget';
+
+// User manager
+function UserManager() {
+    const [users, setUsers] = useState([]);
+    const [isFetching, setIsFetching] = useState(true);
+    const [editingUser, setEditingUser] = useState(null); // Tracks which user is being edited.
+    const [newUser, setNewUser] = useState({ username: '', password: '', role: 'Operator' });
+
+    const fetchUsers = async () => {
+        setIsFetching(true);
+        try {
+            const response = await apiClient.get('/api/admin/users');
+            setUsers(response.data);
+        } catch (err) {
+            console.error('Failed to fetch users:', err);
+        } finally {
+            setIsFetching(false);
+        }
+    };
+
+    useEffect(() => { fetchUsers(); }, []);
+
+    const handleCreate = async (e) => {
+        e.preventDefault();
+
+        // Clean username one last time before sending
+        const cleanName = newUser.username.trim().replace(/\s/g, '');
+
+        if (cleanName.length < 3) {
+            alert("Username must be at least 3 characters.");
+            return;
+        }
+
+        try {
+            await apiClient.post('/api/admin/users', {
+                username: cleanName,
+                password: newUser.password,
+                role: newUser.role,
+                is_active: true // Explicitly send this to avoid 400 errors
+            });
+            setNewUser({ username: '', password: '', role: 'Operator' });
+            fetchUsers();
+            alert("User created successfully.");
+        } catch (err) {
+            // Show the specific error from the backend if available
+            const msg = err.response?.data?.detail || "Error creating user.";
+            alert(msg);
+        }
+    };
+
+    const handleUpdate = async (username) => {
+        try {
+            await apiClient.put(`/api/admin/users/${username}`, editingUser);
+            setEditingUser(null);
+            fetchUsers();
+            alert("User updated.");
+        } catch (err) { alert("Update failed."); }
+    };
+
+    const handleDelete = async (username) => {
+        if (!window.confirm(`Delete user ${username}?`)) return;
+        try {
+            await apiClient.delete(`/api/admin/users/${username}`);
+            fetchUsers();
+        } catch (err) { alert(err.response?.data?.detail || "Delete failed."); }
+    };
+
+    if (isFetching) return <div className="card"><h2>Loading User Management...</h2></div>
+
+    return (
+        <div className="card" style={{ marginTop: '2rem' }}>
+            <h2>User Management (Admin)</h2>
+            <p>Manage system access levels and passwords.</p>
+
+            <table className="tag-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {users.map(u => (
+                        <tr key={u.username}>
+                            <td>{u.username}</td>
+                            <td>
+                                {editingUser?.username === u.username ? (
+                                    <select
+                                        value={editingUser.role}
+                                        onChange={e => setEditingUser({ ...editingUser, role: e.target.value })}
+                                        className="status-toggle" style={{ backgroundColor: '#1e1e1e', color: 'white' }}
+                                    >
+                                        <option value="Operator">Operator</option>
+                                        <option value="Engineer">Engineer</option>
+                                        <option value="Admin">Admin</option>
+                                    </select>
+                                ) : u.role}
+                            </td>
+                            <td style={{ display: 'flex', gap: '10px' }}>
+                                {editingUser?.username === u.username ? (
+                                    <>
+                                        <button onClick={() => handleUpdate(u.username)} style={{ backgroundColor: '#27ae60' }}>Save</button>
+                                        <button onClick={() => setEditingUser(null)}>Cancel</button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button onClick={() => setEditingUser({ username: u.username, role: u.role, password: '' })}>Edit</button>
+                                        <button onClick={() => handleDelete(u.username)} style={{ backgroundColor: '#c0392b' }}>Delete</button>
+                                    </>
+                                )}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+
+            <h3 style={{ marginTop: '2rem', borderTop: '1px solid #444', paddingTop: '1rem' }}>Create New User</h3>
+            <form onSubmit={handleCreate} className="form-group-with-button" style={{ gridTemplateColumns: '1fr 1fr 1fr 80px' }}>
+                <input
+                    placeholder="Username (No spaces)"
+                    value={newUser.username}
+                    onChange={e => {
+                        // Remove spaces immediately as the user types
+                        const val = e.target.value.replace(/\s/g, '');
+                        setNewUser({ ...newUser, username: val });
+                    }}
+                    required
+                />
+                <input
+                    type="password"
+                    placeholder="Password"
+                    value={newUser.password}
+                    onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+                    required
+                />
+                <select
+                    value={newUser.role}
+                    onChange={e => setNewUser({ ...newUser, role: e.target.value })}
+                    style={{ padding: '0.8rem', borderRadius: '6px', backgroundColor: '#1e1e1e', color: 'white', border: '1px solid #555' }}
+                >
+                    <option value="Operator">Operator</option>
+                    <option value="Engineer">Engineer</option>
+                    <option value="Admin">Admin</option>
+                </select>
+                <button type="submit">Add</button>
+            </form>
+        </div>
+    );
+}
+
+// === RESTORING THE MISSING TAG MANAGER COMPONENT ===
+function TagManager({ onRefreshTagBrowser }) {
+    const [tags, setTags] = useState([]);
+    const [isFetching, setIsFetching] = useState(true);
+    const [isError, setIsError] = useState(false);
+
+    const fetchTags = async () => {
+        setIsFetching(true);
+        setIsError(false);
+        try {
+            const response = await apiClient.get('/api/tags');
+            setTags(response.data);
+            setIsError(false);
+        } catch (err) {
+            console.error('Failed to fetch tags for TagManager:', err.response?.status, err.message);
+            setIsError(true);
+        } finally {
+            setIsFetching(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchTags();
+    }, []);
+
+    // Expose refresh to parent via ref or just let parent pass a dependency/prop 
+    // Wait, the parent just passes a key to force re-render, or we can use an exposed method via ref.
+    // Instead of ref, let's just make the parent responsible for refreshing.
+
+    const handleToggle = async (tagId, currentState) => {
+        try {
+            await apiClient.put(`/api/tags/${tagId}`, { is_active: !currentState });
+            fetchTags();
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleDeleteTag = async (tagId) => {
+        if (!window.confirm("Delete this tag? It will stop polling immediately.")) return;
+        try {
+            await apiClient.delete(`/api/tags/${tagId}`);
+            fetchTags();
+            if (onRefreshTagBrowser) onRefreshTagBrowser(); // Tell browser to update its DB list
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    if (isFetching && tags.length === 0) {
+        return (
+            <div className="card" style={{ marginTop: '2rem' }}>
+                <h2>Tag Polling Configuration (Admin)</h2>
+                <p>Loading configuration...</p>
+            </div>
+        );
+    }
+
+    if (isError && tags.length === 0) {
+        return (
+            <div className="card" style={{ marginTop: '2rem', borderLeft: '5px solid #e74c3c' }}>
+                <h2>Tag Polling Configuration (Admin)</h2>
+                <p style={{ color: '#e74c3c' }}>
+                    Configuration data inaccessible. (Check console for error).
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="card" style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column' }}>
+            <h2>Tag Polling Configuration (Admin)</h2>
+            <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid #444', borderRadius: '6px' }}>
+                <table className="tag-table compact-table" style={{ margin: 0 }}>
+                    <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                        <tr><th>ID</th><th>Tag Name</th><th>Data Type</th><th>Status</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        {tags.map(tag => (
+                            <tr key={tag.id}>
+                                <td>{tag.id}</td><td>{tag.tag}</td><td>{tag.datatype}</td>
+                                <td><button className={`status-toggle ${tag.is_active ? 'active' : 'inactive'}`} onClick={() => handleToggle(tag.id, tag.is_active)} style={{ padding: '0.2rem 0.5rem', fontSize: '0.85em' }}>{tag.is_active ? 'ACTIVE' : 'INACTIVE'}</button></td>
+                                <td><button onClick={() => handleDeleteTag(tag.id)} style={{ padding: '0.2rem 0.6rem', fontSize: '0.85em', backgroundColor: '#c0392b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Del</button></td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+// === END TAG MANAGER RESTORATION ===
+
+function EngineeringPage() {
+    // We rely on useAuth() now, as the sync-login fix ensures it holds the most accurate, non-null user data.
+    const { user } = useAuth();
+
+    // Check if the primary data structure (user object) has resolved.
+    if (!user) {
+        // This state handles the brief moment after login but before the context has propagated.
+        return (
+            <div className="engineering-layout">
+                <div className="card" style={{ width: '100%', maxWidth: '600px' }}>
+                    <h2>Authenticating Role...</h2>
+                    <p>Please wait while the final permissions are verified.</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Robust role evaluation based on data guaranteed by the AuthContext user
+    const role = user.role;
+    const isEngineer = role === 'Engineer' || role === 'Admin';
+    const isAdmin = role === 'Admin';
+
+    // Provide a key to force re-render TagManager when a tag is added in the browser
+    const [tagManagerKey, setTagManagerKey] = useState(0);
+    // Provide a way to refresh TagBrowser when a tag is deleted in TagManager
+    const [tagBrowserKey, setTagBrowserKey] = useState(0);
+
+    return (
+        <div className="config-layout">
+            {/* 1. Show TagManager and User Manager if Admin */}
+            {isAdmin && (
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <TagBrowserWidget
+                        key={`browser-${tagBrowserKey}`}
+                        onTagsUpdated={() => setTagManagerKey(k => k + 1)}
+                    />
+                    <TagManager
+                        key={`manager-${tagManagerKey}`}
+                        onRefreshTagBrowser={() => setTagBrowserKey(k => k + 1)}
+                    />
+                </div>
+            )}
+            {isAdmin && <UserManager />}
+
+            {/* 2. Access Denied if authenticated but role is neither */}
+            {(!isEngineer && !isAdmin) && (
+                <div className="card">
+                    <h2>Access Denied</h2>
+                    <p>Your current role ({role}) does not have permission to view this page.</p>
+                </div>
+            )}
+        </div>
+    );
+}
+export default EngineeringPage;
 </file>
 
 <file path="dashboard-ui/src/constants/index.js">
@@ -2377,7 +2758,7 @@ export const tagColorMap = Object.fromEntries(
   --text-main: #dcdcdc;
   --text-dim: #a0a0a0;
   --accent-blue: #41D1FF;
-  
+
   /* Status Colors */
   --color-healthy: #2ecc71;
   --color-fault: #e74c3c;
@@ -2389,139 +2770,603 @@ export const tagColorMap = Object.fromEntries(
   --radius: 8px;
 }
 
-body { margin: 0; }
-.App { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
-.main-content { flex-grow: 1; overflow-y: auto; }
-
-/* Custom Scrollbar for Dark Theme */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: #2d2d2d; }
-::-webkit-scrollbar-thumb { background: #555; border-radius: 5px; }
-::-webkit-scrollbar-thumb:hover { background: #777; }
-
-/* --- HEADER & NAVIGATION --- */
-.App-header { display: flex; align-items: center; background-color: #2d2d2d; padding: 0 2rem; height: 60px; border-bottom: 1px solid #444; flex-shrink: 0; }
-.logo-container img { height: 40px; }
-.navigation { flex-grow: 1; display: flex; justify-content: center; gap: 1rem; }
-.navigation a { color: #a0a0a0; text-decoration: none; font-size: 1.1em; padding: 0.5rem 1rem; border-radius: 6px; transition: background-color 0.2s; }
-.navigation a.active, .navigation a:hover { color: #ffffff; background-color: #444; }
-.header-right-side { display: flex; align-items: center; gap: 1.5rem; margin-left: auto; }
-.status-time { color: #a0a0a0; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.logout-button { background-color: #3a3a3a; color: #a0a0a0; border: 1px solid #555; border-radius: 6px; padding: 0.5rem 1rem; font-size: 1em; cursor: pointer; transition: all 0.2s; }
-.logout-button:hover { background-color: #c0392b; color: white; border-color: #e74c3c; }
-
-/* --- GENERIC COMPONENTS --- */
-.sidebar { background-color: #2d2d2d; border-radius: 8px; overflow-y: auto; }
-.card { background-color: #2d2d2d; border-radius: 8px; padding: 1.5rem; }
-
-/* --- HOME PAGE --- */
-.home-layout { 
-  display: grid; 
-  grid-template-columns: 300px 1fr 350px; 
-  height: calc(100vh - 60px); 
-  overflow: hidden; 
+body {
+  margin: 0;
 }
 
-.commands-sidebar { padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
-.commands-sidebar h2 { margin: 0 0 1rem 0; font-size: 1.5em; font-weight: 600; border-bottom: 1px solid #444; padding-bottom: 1rem; }
-.commands-sidebar button { width: 100%; padding: 1.2rem; font-size: 1.5em; border-radius: 8px; border: 1px solid #555; background-color: #3a3a3a; color: #dcdcdc; cursor: pointer; transition: background-color 0.2s; }
-.commands-sidebar button:hover { background-color: #4a4a4a; }
-.commands-sidebar button:disabled { background-color: #2a2a2a; color: #666; cursor: not-allowed; border-color: #444; }
+.App {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
 
-.status-sidebar { padding: 2rem; }
-.status-group { margin-bottom: 2rem; }
-.status-group h2 { margin: 0 0 1rem 0; font-size: 1.5em; font-weight: 600; border-bottom: 1px solid #444; padding-bottom: 1rem; }
-.status-item { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 0; border-bottom: 1px solid #444; font-size: 1.1em; }
-.status-item:last-child { border-bottom: none; }
-.status-item span:first-child { color: #a0a0a0; }
-.status-item span:last-child { font-weight: bold; font-size: 1.1em; font-variant-numeric: tabular-nums; }
-.debug-item span:first-child { color: #f0a !important; font-style: italic; }
-.status-compact-value {
-  font-weight: bold; 
-  font-size: 1em !important; /* Slightly reduced from 1.1em */
+.main-content {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+/* Custom Scrollbar for Dark Theme */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #2d2d2d;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+/* --- HEADER & NAVIGATION --- */
+.App-header {
+  display: flex;
+  align-items: center;
+  background-color: #2d2d2d;
+  padding: 0 2rem;
+  height: 60px;
+  border-bottom: 1px solid #444;
+  flex-shrink: 0;
+}
+
+.logo-container img {
+  height: 40px;
+}
+
+.navigation {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.navigation a {
+  color: #a0a0a0;
+  text-decoration: none;
+  font-size: 1.1em;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.navigation a.active,
+.navigation a:hover {
+  color: #ffffff;
+  background-color: #444;
+}
+
+.header-right-side {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-left: auto;
+}
+
+.status-time {
+  color: #a0a0a0;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap; /* CRITICAL: Prevents wrapping */
+}
+
+.logout-button {
+  background-color: #3a3a3a;
+  color: #a0a0a0;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 1em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-button:hover {
+  background-color: #c0392b;
+  color: white;
+  border-color: #e74c3c;
+}
+
+/* --- GENERIC COMPONENTS --- */
+.sidebar {
+  background-color: #2d2d2d;
+  overflow-y: auto; /* ENABLE VERTICAL SCROLLING */
+  height: 100%;    /* Fill the height of the grid row */
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 20px; /* Give some breathing room at the bottom */
+}
+
+/* Custom scrollbar for sidebars so they look "Industrial" and slim */
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 3px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: #41D1FF;
+}
+
+
+.card {
+  background-color: #2d2d2d;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+/* --- HOME PAGE --- */
+.home-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr 350px;
+  height: calc(100vh - 66px);
+  overflow: hidden;
+}
+
+.commands-sidebar {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.commands-sidebar h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.5em;
+  font-weight: 600;
+  border-bottom: 1px solid #444;
+  padding-bottom: 1rem;
+}
+
+.commands-sidebar button {
+  width: 100%;
+  padding: 1.2rem;
+  font-size: 1.5em;
+  border-radius: 8px;
+  border: 1px solid #555;
+  background-color: #3a3a3a;
+  color: #dcdcdc;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.commands-sidebar button:hover {
+  background-color: #4a4a4a;
+}
+
+.commands-sidebar button:disabled {
+  background-color: #2a2a2a;
+  color: #666;
+  cursor: not-allowed;
+  border-color: #444;
+}
+
+.status-sidebar {
+  padding: 1rem 2rem 2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* --- UNIVERSAL INDUSTRIAL SIDEBAR STYLES --- */
+.sidebar.status-sidebar {
+  padding: 15px !important;
+  background-color: #1a1a1a !important;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Reusing the look of the Command boxes for Status boxes */
+.status-box {
+  border: 1px solid #333;
+  background-color: #252525;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
+}
+
+.status-box-header {
+  background-color: #f0f0f0; /* Same as Engineering Command headers */
+  color: #1e1e1e;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.85rem;
+  padding: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.status-box-row {
+  display: flex;
+  margin: 0 10px 10px 10px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #1e1e1e; /* Matches Flywheel Visual Background */
+  min-height: 38px;
+}
+
+/* First row inside a box needs top margin */
+.status-box-row:first-of-type {
+  margin-top: 10px;
+}
+
+.status-box-label {
+  flex: 1.5;
+  padding: 8px;
+  font-size: 0.7rem;
+  color: #ffffff; /* White font as requested earlier */
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid #444;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.status-box-value {
+  flex: 1;
+  color: #41D1FF; /* Theme Accent Blue */
+  text-align: right;
+  padding: 8px;
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Alert States */
+.status-box-value.warning { color: #e74c3c; }
+.status-box-value.healthy { color: #2ecc71; }
+
+/* --------------------------------------------------------- */
+
+.debug-item span:first-child {
+  color: #f0a !important;
+  font-style: italic;
+}
+
+.status-compact-value {
+  font-weight: bold;
+  font-size: 1em !important;
+  /* Slightly reduced from 1.1em */
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  /* CRITICAL: Prevents wrapping */
 }
 
 /* --------------------------------------------------------- */
 
-.health-item { display: flex; justify-content: space-between; align-items: center; font-size: 1.1em; margin-bottom: 0.8rem; }
-.health-indicator { font-weight: bold; padding: 0.2rem 0.6rem; border-radius: 5px; }
-.health-item.healthy .health-indicator { background-color: #27ae60; color: white; }
-.health-item.unhealthy .health-indicator { background-color: #c0392b; color: white; }
-.health-item.unknown .health-indicator { background-color: #7f8c8d; color: white; }
-
-/* --- OPERATIONAL DETAILS PAGE --- */
-.details-layout-final { 
-  display: grid; grid-template-columns: 250px 1fr 350px; 
-  height: calc(100vh - 60px); 
-  gap: 1rem; padding: 1rem; box-sizing: border-box;
+.health-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.1em;
+  margin-bottom: 0.8rem;
 }
 
-.charts-container-final { display: flex; flex-direction: column; gap: 1.5rem; overflow-y: auto; padding-right: 0.5rem; }
-.pens-sidebar { padding: 1rem; }
-.pen-group h4 { margin: 0 0 1rem 0; border-bottom: 1px solid #555; padding-bottom: 0.5rem; }
-.pen-item { display: flex; align-items: center; margin-bottom: 0.75rem; font-size: 0.9em; }
-.pen-color-swatch { width: 15px; height: 15px; margin-right: 0.75rem; border: 1px solid #555; border-radius: 3px; }
-.pen-item input { margin-right: 0.5rem; }
-.pen-item label { cursor: pointer; user-select: none; }
+.health-indicator {
+  font-weight: bold;
+  padding: 0.2rem 0.6rem;
+  border-radius: 5px;
+}
 
-.chart-card-container { display: grid; grid-template-columns: 220px 1fr; gap: 1rem; background-color: #2d2d2d; padding: 1rem; border-radius: 8px; height: 350px; }
-.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; height: 40px; }
-.chart-header h3 { margin: 0; font-size: 1.2em; display: flex; align-items: center; gap: 0.5rem; }
-.live-badge { background-color: #c0392b; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 4px; animation: pulse 2s infinite; }
-@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+.health-item.healthy .health-indicator {
+  background-color: #27ae60;
+  color: white;
+}
 
-.individual-time-selector { display: flex; align-items: center; gap: 0.5rem; }
-.individual-time-selector select { padding: 0.3rem; border-radius: 4px; background-color: #3a3a3a; color: #dcdcdc; border: 1px solid #555; }
-.chart-wrapper { height: calc(100% - 45px); position: relative; width: 100%; }
+.health-item.unhealthy .health-indicator {
+  background-color: #c0392b;
+  color: white;
+}
 
-.sensor-sidebar { padding: 1rem; }
-.sensor-list { display: flex; flex-direction: column; gap: 0.8rem; }
-.sensor-item { display: flex; justify-content: space-between; align-items: center; font-size: 1em; border-bottom: 1px solid #444; padding-bottom: 0.8rem; }
-.sensor-item:last-child { border-bottom: none; }
-.sensor-value { font-variant-numeric: tabular-nums; font-family: monospace; font-size: 1.1em; color: #41D1FF; }
+.health-item.unknown .health-indicator {
+  background-color: #7f8c8d;
+  color: white;
+}
+
+/* --- OPERATIONAL DETAILS PAGE --- */
+.details-layout-final {
+  display: grid;
+  grid-template-columns: 250px 1fr 350px;
+  height: calc(100vh - 60px);
+  gap: 1rem;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.charts-container-final {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.pens-sidebar {
+  padding: 1rem;
+}
+
+.pen-group h4 {
+  margin: 0 0 1rem 0;
+  border-bottom: 1px solid #555;
+  padding-bottom: 0.5rem;
+}
+
+.pen-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-size: 0.9em;
+}
+
+.pen-color-swatch {
+  width: 15px;
+  height: 15px;
+  margin-right: 0.75rem;
+  border: 1px solid #555;
+  border-radius: 3px;
+}
+
+.pen-item input {
+  margin-right: 0.5rem;
+}
+
+.pen-item label {
+  cursor: pointer;
+  user-select: none;
+}
+
+.chart-card-container {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 1rem;
+  background-color: #2d2d2d;
+  padding: 1rem;
+  border-radius: 8px;
+  height: 350px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  height: 40px;
+}
+
+.chart-header h3 {
+  margin: 0;
+  font-size: 1.2em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.live-badge {
+  background-color: #c0392b;
+  color: white;
+  font-size: 0.7em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+.individual-time-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.individual-time-selector select {
+  padding: 0.3rem;
+  border-radius: 4px;
+  background-color: #3a3a3a;
+  color: #dcdcdc;
+  border: 1px solid #555;
+}
+
+.chart-wrapper {
+  height: calc(100% - 45px);
+  position: relative;
+  width: 100%;
+}
+
+.sensor-sidebar {
+  padding: 1rem;
+}
+
+.sensor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.sensor-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1em;
+  border-bottom: 1px solid #444;
+  padding-bottom: 0.8rem;
+}
+
+.sensor-item:last-child {
+  border-bottom: none;
+}
+
+.sensor-value {
+  font-variant-numeric: tabular-nums;
+  font-family: monospace;
+  font-size: 1.1em;
+  color: #41D1FF;
+}
 
 /* --- ENGINEERING & LOGIN PAGES --- */
-.engineering-layout, .login-container { padding: 2rem; display: flex; justify-content: center; width: 100%; box-sizing: border-box; }
-.engineering-layout > div, .login-container form { width: 100%; max-width: 600px; }
-.form-group { display: flex; flex-direction: column; margin-bottom: 1.5rem; }
-.form-group label { margin-bottom: 0.5rem; color: #a0a0a0; }
-.form-group input { padding: 0.8rem; border-radius: 6px; background-color: #1e1e1e; color: #dcdcdc; border: 1px solid #555; font-size: 1.1em; }
-.form-group-with-button { display: grid; grid-template-columns: 1fr 120px 80px; gap: 1rem; align-items: center; margin-bottom: 1rem; }
-.tag-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-.tag-table th, .tag-table td { padding: 0.8rem; text-align: left; border-bottom: 1px solid #444; }
-.tag-table th { background-color: #3a3a3a; }
-.status-toggle { border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 5px; font-weight: bold; width: 100%; }
-.status-toggle.active { background-color: #27ae60; color: white; }
-.status-toggle.inactive { background-color: #7f8c8d; color: #ddd; }
-.error-message { color: #e74c3c; font-weight: bold; margin-bottom: 1rem; }
+.engineering-layout,
+.login-container {
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.engineering-layout>div,
+.login-container form {
+  width: 100%;
+  max-width: 600px;
+}
+
+.config-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 2rem;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+.compact-table th,
+.compact-table td {
+  padding: 0.4rem 0.8rem !important;
+  font-size: 0.9em;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  margin-bottom: 0.5rem;
+  color: #a0a0a0;
+}
+
+.form-group input {
+  padding: 0.8rem;
+  border-radius: 6px;
+  background-color: #1e1e1e;
+  color: #dcdcdc;
+  border: 1px solid #555;
+  font-size: 1.1em;
+}
+
+.form-group-with-button {
+  display: grid;
+  grid-template-columns: 1fr 120px 80px;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.tag-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.tag-table th,
+.tag-table td {
+  padding: 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid #444;
+}
+
+.tag-table th {
+  background-color: #3a3a3a;
+}
+
+.status-toggle {
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  font-weight: bold;
+  width: 100%;
+}
+
+.status-toggle.active {
+  background-color: #27ae60;
+  color: white;
+}
+
+.status-toggle.inactive {
+  background-color: #7f8c8d;
+  color: #ddd;
+}
+
+.error-message {
+  color: #e74c3c;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
 
 /* --- RESPONSIVE MEDIA QUERIES --- */
 @media (max-width: 1200px) {
-  .home-layout, .details-layout-final {
-    grid-template-columns: 1fr; /* Stack vertically */
+
+  .home-layout,
+  .details-layout-final {
+    grid-template-columns: 1fr;
+    /* Stack vertically */
     height: auto;
     overflow-y: auto;
   }
-  .sidebar, .chart-card-container {
+
+  .sidebar,
+  .chart-card-container {
     height: auto;
     min-height: 400px;
   }
+
   .flywheel-container {
     padding: 3rem 0;
   }
+
   /* On mobile/tablet, stack the specific chart sidebar */
   .chart-card-container {
     grid-template-columns: 1fr;
     grid-template-rows: auto 400px;
   }
+
   .App-header {
     flex-wrap: wrap;
     height: auto;
     padding: 1rem;
     gap: 1rem;
   }
+
   .header-right-side {
     margin-left: 0;
     width: 100%;
@@ -2530,57 +3375,63 @@ body { margin: 0; }
 }
 
 /* --- OPERATIONAL DETAILS PAGE LAYOUT --- */
-.details-layout-final { 
-  display: grid; 
+.details-layout-final {
+  display: grid;
   /* Fixed Width Sidebar | Flexible Charts | Fixed Width Sidebar */
-  grid-template-columns: 250px 1fr 300px; 
-  height: calc(100vh - 60px); 
-  gap: 1rem; 
-  padding: 1rem; 
+  grid-template-columns: 250px 1fr 300px;
+  height: calc(100vh - 60px);
+  gap: 1rem;
+  padding: 1rem;
   box-sizing: border-box;
-  overflow: hidden; /* Prevent the whole page from scrolling */
+  overflow: hidden;
+  /* Prevent the whole page from scrolling */
 }
 
 /* Middle Column: The Scrollable Chart Area */
-.charts-container-final { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 1.5rem; 
-  overflow-y: auto; /* Only this middle part scrolls */
-  padding-right: 0.5rem; 
-  min-height: 0; /* Crucial for nested flex scrolling */
+.charts-container-final {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+  /* Only this middle part scrolls */
+  padding-right: 0.5rem;
+  min-height: 0;
+  /* Crucial for nested flex scrolling */
 }
 
 /* Individual Chart Card */
-.chart-card-container { 
-  display: flex; 
-  flex-direction: column; 
-  background-color: #2d2d2d; 
-  padding: 1rem; 
-  border-radius: 8px; 
+.chart-card-container {
+  display: flex;
+  flex-direction: column;
+  background-color: #2d2d2d;
+  padding: 1rem;
+  border-radius: 8px;
   /* Fixed height for each chart card ensures they don't collapse or explode */
-  height: 400px; 
-  flex-shrink: 0; /* Don't let them shrink smaller than 400px */
+  height: 400px;
+  flex-shrink: 0;
+  /* Don't let them shrink smaller than 400px */
 }
 
-.chart-header { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  margin-bottom: 1rem; 
-  height: 40px; 
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  height: 40px;
 }
 
 /* The wrapper around the Canvas */
-.chart-wrapper { 
-  flex-grow: 1; 
-  position: relative; 
-  width: 100%; 
-  min-height: 0; /* CRITICAL FIX: Stops chart from growing infinitely */
+.chart-wrapper {
+  flex-grow: 1;
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  /* CRITICAL FIX: Stops chart from growing infinitely */
 }
 
 /* Message styling for Loading / No Data */
-.no-data-message, .loading-message {
+.no-data-message,
+.loading-message {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -2590,11 +3441,12 @@ body { margin: 0; }
 }
 
 /* Sidebars */
-.sidebar { 
-  background-color: #2d2d2d; 
-  border-radius: 8px; 
-  overflow-y: auto; 
-  height: 100%; /* Fill the grid cell */
+.sidebar {
+  background-color: #2d2d2d;
+  border-radius: 8px;
+  overflow-y: auto;
+  height: 100%;
+  /* Fill the grid cell */
 }
 
 /* Right Sidebar specific */
@@ -2627,6 +3479,7 @@ body { margin: 0; }
   font-size: 0.8em;
   border-radius: 4px;
 }
+
 .maximize-btn:hover {
   background-color: #41D1FF;
   color: #000;
@@ -2636,8 +3489,10 @@ body { margin: 0; }
 /* 2. Stacked Items (Label Top, Value Bottom) for readability */
 .sensor-item {
   display: flex;
-  flex-direction: column; /* Stack vertically */
-  align-items: flex-start; /* Align left */
+  flex-direction: column;
+  /* Stack vertically */
+  align-items: flex-start;
+  /* Align left */
   border-bottom: 1px solid #444;
   padding: 0.8rem 0;
 }
@@ -2651,8 +3506,10 @@ body { margin: 0; }
 }
 
 .sensor-value {
-  font-size: 1.3em; /* Larger font for value */
-  font-family: 'Courier New', monospace; /* Monospace for alignment */
+  font-size: 1.3em;
+  /* Larger font for value */
+  font-family: 'Courier New', monospace;
+  /* Monospace for alignment */
   color: #41D1FF;
   font-weight: 600;
 }
@@ -2676,7 +3533,8 @@ body { margin: 0; }
 /* When maximized, switch list to a Grid */
 .sensor-sidebar.maximized .sensor-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Auto-fit grid */
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  /* Auto-fit grid */
   gap: 1.5rem;
   padding-top: 1rem;
 }
@@ -2686,7 +3544,8 @@ body { margin: 0; }
   padding: 1rem;
   border-radius: 8px;
   border: 1px solid #444;
-  border-bottom: 1px solid #444; /* Reset border */
+  border-bottom: 1px solid #444;
+  /* Reset border */
 }
 
 .sensor-sidebar.maximized .sensor-label {
@@ -2694,13 +3553,20 @@ body { margin: 0; }
 }
 
 .sensor-sidebar.maximized .sensor-value {
-  font-size: 1.8em; /* Even bigger on big screen */
+  font-size: 1.8em;
+  /* Even bigger on big screen */
   margin-top: 0.5rem;
 }
 
 /* Scrollbar within sidebar */
-.sensor-sidebar::-webkit-scrollbar { width: 6px; }
-.sensor-sidebar::-webkit-scrollbar-thumb { background-color: #555; border-radius: 3px; }
+.sensor-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sensor-sidebar::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 3px;
+}
 
 /* --- SCADA ALARM OVERLAYS --- */
 .connection-overlay {
@@ -2709,8 +3575,10 @@ body { margin: 0; }
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.75); /* Dim the background */
-  backdrop-filter: blur(3px); /* Blur the dashboard */
+  background-color: rgba(0, 0, 0, 0.75);
+  /* Dim the background */
+  backdrop-filter: blur(3px);
+  /* Blur the dashboard */
   z-index: 9999;
   display: flex;
   flex-direction: column;
@@ -2722,7 +3590,8 @@ body { margin: 0; }
   background-color: #1a1a1a;
   padding: 2.5rem;
   border-radius: 12px;
-  border: 2px solid #e74c3c; /* Red Border */
+  border: 2px solid #e74c3c;
+  /* Red Border */
   text-align: center;
   box-shadow: 0 0 30px rgba(231, 76, 60, 0.3);
   animation: pulse-border 2s infinite;
@@ -2754,67 +3623,87 @@ body { margin: 0; }
 }
 
 @keyframes pulse-border {
-  0% { box-shadow: 0 0 10px rgba(231, 76, 60, 0.2); }
-  50% { box-shadow: 0 0 25px rgba(231, 76, 60, 0.6); }
-  100% { box-shadow: 0 0 10px rgba(231, 76, 60, 0.2); }
+  0% {
+    box-shadow: 0 0 10px rgba(231, 76, 60, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 25px rgba(231, 76, 60, 0.6);
+  }
+
+  100% {
+    box-shadow: 0 0 10px rgba(231, 76, 60, 0.2);
+  }
 }
 
 .schematic-health-card {
-    position: absolute;
-    width: 180px; /* Fixed width to prevent title wrapping */
-    background-color: white; 
-    border: 1px solid #ccc;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    border-radius: 3px;
-    z-index: 100;
-    text-align: center;
-    overflow: hidden; /* Ensure nothing spills out */
+  position: absolute;
+  width: 180px;
+  /* Fixed width to prevent title wrapping */
+  background-color: white;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+  z-index: 100;
+  text-align: center;
+  overflow: hidden;
+  /* Ensure nothing spills out */
 }
 
 .schematic-card-title {
-    /* Black text, middle-center-top */
-    color: black;
-    font-size: 0.8em;
-    font-weight: 500;
-    padding: 4px 0;
-    /* The line in the image appears to be a bottom border */
-    border-bottom: 1px solid #eee; 
-    white-space: nowrap; /* CRITICAL: Ensures text stays on one line */
-    overflow: hidden;
-    text-overflow: ellipsis;
+  /* Black text, middle-center-top */
+  color: black;
+  font-size: 0.8em;
+  font-weight: 500;
+  padding: 4px 0;
+  /* The line in the image appears to be a bottom border */
+  border-bottom: 1px solid #eee;
+  white-space: nowrap;
+  /* CRITICAL: Ensures text stays on one line */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .schematic-status-container {
-    padding: 5px;
-    background-color: white; /* Outer container is white */
+  padding: 5px;
+  background-color: white;
+  /* Outer container is white */
 }
 
 .schematic-health-indicator {
-    /* Inner rectangle where the boolean result sits */
-    background-color: white; /* Inner rectangle is also white */
-    border: 1px solid #ccc; 
-    border-radius: 2px;
-    padding: 5px 0;
-    font-size: 1.3em;
-    font-weight: bold;
-    /* Use a custom dark blue/black color for the default text */
-    color: black; 
+  /* Inner rectangle where the boolean result sits */
+  background-color: white;
+  /* Inner rectangle is also white */
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  padding: 5px 0;
+  font-size: 1.3em;
+  font-weight: bold;
+  /* Use a custom dark blue/black color for the default text */
+  color: black;
 }
 
 /* Overrides for Health Status colors */
 .schematic-health-indicator.healthy {
-    color: #2ecc71 !important; /* Green text for Healthy */
+  color: #2ecc71 !important;
+  /* Green text for Healthy */
 }
+
 .schematic-health-indicator.unhealthy {
-    color: #e74c3c !important; /* Red text for Fault */
+  color: #e74c3c !important;
+  /* Red text for Fault */
 }
+
 .schematic-health-indicator.unknown {
-    color: #888 !important; /* Gray text for N/A */
+  color: #888 !important;
+  /* Gray text for N/A */
 }
 
 /* Ensure old dark theme classes are neutralized */
-.flywheel-data-card, .flywheel-card-title, .flywheel-card-value {
-    display: none !important;
+.flywheel-data-card,
+.flywheel-card-title,
+.flywheel-card-value {
+  display: none !important;
 }
 
 #popout-root canvas {
@@ -2828,11 +3717,343 @@ body { margin: 0; }
   font-size: 0.85em;
   font-weight: bold;
 }
-.status-pill.online { background: rgba(46, 204, 113, 0.2); color: #2ecc71; border: 1px solid #2ecc71; }
-.status-pill.offline { background: rgba(231, 76, 60, 0.2); color: #e74c3c; border: 1px solid #e74c3c; animation: blinker 1.5s linear infinite; }
+
+.status-pill.online {
+  background: rgba(46, 204, 113, 0.2);
+  color: #2ecc71;
+  border: 1px solid #2ecc71;
+}
+
+.status-pill.offline {
+  background: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
+  animation: blinker 1.5s linear infinite;
+}
 
 @keyframes blinker {
-  50% { opacity: 0.4; }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.login-link-btn {
+  background-color: transparent;
+  color: var(--accent-blue);
+  border: 1px solid var(--accent-blue);
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.login-link-btn:hover {
+  background-color: var(--accent-blue);
+  color: #000;
+}
+
+.engineering-sidebar-spec {
+  background-color: #001f29 !important;
+  /* Deep Navy/Teal */
+  padding: 10px !important;
+}
+
+.eng-section {
+  border: 1px solid #444;
+  margin-bottom: 15px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.eng-header {
+  background: #eef2f3;
+  color: #001f29;
+  font-size: 0.8em;
+  text-align: center;
+  margin: 0;
+  padding: 4px;
+  font-weight: bold;
+}
+
+.eng-input-group {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.eng-input-group label {
+  font-size: 0.7em;
+  color: #41D1FF;
+  margin-bottom: 5px;
+}
+
+.input-with-unit {
+  position: relative;
+  width: 100%;
+}
+
+.input-with-unit input {
+  width: 100%;
+  background: #000;
+  border: 1px solid #41D1FF;
+  color: #41D1FF;
+  text-align: right;
+  padding: 8px 35px 8px 5px;
+  font-family: monospace;
+  font-size: 1.2em;
+}
+
+.input-with-unit span {
+  position: absolute;
+  right: 8px;
+  top: 10px;
+  font-size: 0.7em;
+  color: #444;
+}
+
+.eng-button-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  padding: 5px;
+}
+
+.btn-status-red {
+  background: #c0392b;
+  color: white;
+  font-size: 0.8em;
+  height: 40px;
+}
+
+.btn-green {
+  background: #27ae60;
+  color: white;
+  border: none;
+}
+
+.btn-green-solid {
+  background: #008000;
+  color: white;
+  margin: 5px;
+  width: calc(100% - 10px);
+}
+
+.btn-red-outline {
+  border: 2px solid #e74c3c;
+  color: #e74c3c;
+  background: transparent;
+}
+
+.btn-grey {
+  background: #333;
+  color: #666;
+  font-size: 0.7em;
+}
+
+/* --- Engineering Page Box Styling (Fixed) --- */
+.eng-box {
+  border: 1px solid #333;
+  background-color: #252525;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
+}
+
+.eng-header-row {
+  background-color: #1a1a1a;
+  color: #41D1FF;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+  padding: 12px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #333;
+  letter-spacing: 1px;
+  margin-bottom: 15px;
+}
+
+.eng-field-row {
+  display: flex;
+  margin: 0 15px 15px 15px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #1e1e1e;
+  overflow: hidden;
+}
+
+.eng-label-field {
+  flex: 1.5;
+  padding: 10px;
+  font-size: 0.75rem;
+  color: #a0a0a0;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid #444;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.eng-value-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  text-align: right;
+  padding: 10px;
+  font-family: monospace;
+  font-size: 1rem;
+  outline: none;
+  width: 100%;
+}
+
+.eng-box .eng-btn-full {
+  margin: 0 15px 15px 15px;
+  padding: 12px;
+  border: 1px solid #444;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  letter-spacing: 0.5px;
+  width: calc(100% - 30px);
+}
+
+.eng-box .eng-btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 0 15px 15px 15px;
+}
+
+.eng-box .eng-btn-half {
+  border: 1px solid #444;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 45px;
+  padding: 8px 6px;
+  line-height: 1.3;
+  transition: all 0.2s ease;
+  letter-spacing: 0.5px;
+  width: 100%;
+}
+
+/* Status Colors */
+.eng-box .eng-btn-full.active,
+.eng-box .eng-btn-half.active {
+  background-color: rgba(39, 174, 96, 0.15) !important;
+  color: #2ecc71 !important;
+  border-color: #27ae60 !important;
+  opacity: 1;
+}
+
+.eng-box .eng-btn-full.inactive,
+.eng-box .eng-btn-half.inactive {
+  background-color: #2a2a2a !important;
+  color: #888 !important;
+  border-color: #444 !important;
+  opacity: 1;
+}
+
+.eng-box .eng-btn-full:hover,
+.eng-box .eng-btn-half:hover {
+  filter: brightness(1.2);
+}
+
+/* --- TAG BROWSER WIDGET --- */
+.tag-tree-ul {
+  list-style-type: none;
+  padding-left: 1.5rem;
+  margin: 0.2rem 0;
+  border-left: 1px dashed #444;
+}
+
+.tag-browser-content>.tag-tree-ul {
+  padding-left: 0;
+  border-left: none;
+}
+
+.tag-folder {
+  margin-bottom: 0.3rem;
+}
+
+.folder-name {
+  cursor: pointer;
+  font-weight: 600;
+  color: #dcdcdc;
+  padding: 0.2rem;
+  user-select: none;
+  transition: color 0.2s;
+}
+
+.folder-name:hover {
+  color: #41D1FF;
+}
+
+.tag-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.3rem 0.6rem;
+  margin: 0.2rem 0;
+  background-color: #252525;
+  border: 1px solid #333;
+  border-radius: 4px;
+  font-size: 0.9em;
+  transition: all 0.2s;
+}
+
+.tag-item:hover {
+  background-color: #2d2d2d;
+  border-color: #555;
+}
+
+.tag-item.tag-in-db {
+  border-left: 3px solid #27ae60;
+  opacity: 0.7;
+}
+
+.tag-name-display {
+  font-family: monospace;
+  color: #41D1FF;
+}
+
+.tag-datatype {
+  color: #888;
+  font-size: 0.85em;
+  margin-left: 0.5rem;
+}
+
+.add-tag-btn {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+}
+
+.add-tag-btn:hover {
+  background-color: #2ecc71;
+  transform: scale(1.1);
 }
 </file>
 
@@ -2853,7 +4074,7 @@ function CommandsSidebar({ setpoints, liveData }) {
   const En_Startup = liveData?.tags?.['A25_En_Startup'] || 0;
 
   // 1. Base check: Must be logged in/ token should exist.
-  const isUserAuthenticated = !!token && (user?.role === 'Engineer' || user?.role === 'Admin');
+  const isUserAuthenticated = !!token && (user?.role === 'Engineer' || user?.role === 'Admin' || user?.role === 'Operator');
 
   // 2. Button specific logic.
   const canCharge = isUserAuthenticated && En_Charge == 1;
@@ -2893,7 +4114,7 @@ function CommandsSidebar({ setpoints, liveData }) {
       {/* Guest access warning */}
       {!isUserAuthenticated && (
         <p className="auth-warning">
-          Please log in with an Engineer or Admin account to send commands.
+          Please log in to send commands.
         </p>
       )}
 
@@ -3054,11 +4275,6 @@ function HomePage() {
   const cycles = tags['A25_Cycles'] || 0;
   const runHours = tags['A25_RunHours'] || 0;
   
-  // New logic to determine status based on boolean tags
-  const getFlywheelStatusFromBooleans = (tags) => {
-    return STATUS_MAP[status] ?? "Unknown";
-  };
-
    return (
     <div style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
 
@@ -3080,47 +4296,37 @@ function HomePage() {
             </div>
 
             <div className="sidebar status-sidebar">
-                <div className="status-group">
-                    <h2>Status Overview</h2>
+                <div className="status-box">
+                    <div className="status-box-header">System Overview</div>
                     
-                    <div className="status-item">
-                        <span>Flywheel Status</span>
-                        <span className="status-compact-value">{flywheelStatusText}</span>
+                    <div className="status-box-row">
+                        <div className="status-box-label">Flywheel Status</div>
+                        <div className="status-box-value">{flywheelStatusText}</div>
                     </div>
-                    
-                    <div className="status-item">
-                        <span>Power</span>
-                        <span className="status-compact-value">{power.toFixed(2)} kW</span>
+
+                    <div className="status-box-row">
+                        <div className="status-box-label">Power</div>
+                        <div className="status-box-value">{power.toFixed(2)} kW</div>
                     </div>
-                    
-                    <div className="status-item">
-                        <span>Energy Stored</span>
-                        <span className="status-compact-value">{energy.toFixed(1)} kWh</span>
+
+                    <div className="status-box-row">
+                        <div className="status-box-label">Energy Stored</div>
+                        <div className="status-box-value">{energy.toFixed(1)} kWh</div>
                     </div>
-                    
-                    <div className="status-item">
-                        <span>State of Charge</span>
-                        <span className="status-compact-value">{soc.toFixed(0)} %</span>
+
+                    <div className="status-box-row">
+                        <div className="status-box-label">State of Charge</div>
+                        <div className="status-box-value">{soc.toFixed(0)} %</div>
                     </div>
-                    
-                    <div className="status-item">
-                        <span>Speed</span>
-                        <span className="status-compact-value">{speed.toFixed(0)} RPM</span>
+
+                    <div className="status-box-row">
+                        <div className="status-box-label">Speed</div>
+                        <div className="status-box-value">{speed.toFixed(0)} RPM</div>
                     </div>
-                    
-                    <div className="status-item">
-                        <span>Total Energy Transferred</span>
-                        <span className="status-compact-value">{totalEnergy.toFixed(1)} kWh</span>
-                    </div>
-                    
-                    <div className="status-item">
-                        <span>Total Cycles</span>
-                        <span className="status-compact-value">{cycles}</span>
-                    </div>
-                    
-                    <div className="status-item">
-                        <span>Run Hours</span>
-                        <span className="status-compact-value">{runHours.toFixed(1)} h</span>
+
+                    <div className="status-box-row">
+                        <div className="status-box-label">Run Hours</div>
+                        <div className="status-box-value">{runHours.toFixed(1)} h</div>
                     </div>
                 </div>
             </div>
@@ -3130,6 +4336,408 @@ function HomePage() {
 }
 
 export default HomePage;
+</file>
+
+<file path="dashboard-ui/src/pages/OperationalDetailsPage.jsx">
+import { useState, useEffect, useCallback } from 'react';
+import { Line } from 'react-chartjs-2';
+import { 
+    Chart as ChartJS, 
+    CategoryScale, 
+    LinearScale, 
+    PointElement, 
+    LineElement, 
+    Title, 
+    Tooltip, 
+    Legend, 
+    TimeScale 
+} from 'chart.js';
+import 'chartjs-adapter-date-fns';
+import { subSeconds, subHours, subDays, subMonths, startOfYear } from 'date-fns';
+import { getSystemStatus } from '../constants';
+
+// import PensSidebar from '../components/PensSidebar';    -- Staging the removal of penssidebar
+import StreamingChart from '../components/StreamingChart';
+import PopoutWindow from '../components/PopoutWindow';
+import { chartDefinitions, tagColorMap } from '../constants';
+import apiClient from '../api'; 
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, TimeScale);
+
+const staticChartOptions = {
+    responsive: true, 
+    maintainAspectRatio: false, 
+    parsing: false, 
+    normalized: true,
+    plugins: { 
+        legend: { display: true, position: 'top', labels: { color: '#a0a0a0' } } 
+    },
+    scales: {
+        x: { 
+            type: 'time', 
+            time: { tooltipFormat: 'PP pp' },
+            displayFormats: {
+                hour: 'MMM d, h a',
+                day: 'MMM d',
+                week: 'MMM d',
+                month: 'MMM yyyy'
+            },
+            ticks: { color: '#a0a0a0', maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, 
+            grid: { color: '#333' } 
+        },
+        y: {
+            type: 'linear',
+            display: true,
+            position: 'left', // Main axis for Temp, Vibration, Power, etc.
+            ticks: { color: '#a0a0a0' },
+            grid: { color: '#333' }
+        },
+        y1: { 
+            type: 'linear',
+            display: true,
+            position: 'right',
+            min: 0,
+            max: 9000,
+            title: {
+                display: true,
+                text: 'Speed (RPM)',
+                color: '#a0a0a0'
+            },
+            ticks: { color: '#a0a0a0' }, 
+            grid: { drawOnChartArea: false } 
+        }
+    },
+    animation: { duration: 0 }
+};
+
+const getDurationInSeconds = (timeRangeKey) => {
+    const value = parseInt(timeRangeKey.slice(0, -1));
+    const unit = timeRangeKey.slice(-1);
+    if (unit === 's') return value;
+    if (unit === 'm') return value * 60;
+    return 0; 
+};
+
+const getStartEndTime = (timeRangeKey) => {
+    const now = new Date();
+    let startTime = null;
+
+    if (timeRangeKey === '1h') startTime = subHours(now, 1);
+    else if (timeRangeKey === '24h') startTime = subHours(now, 24);
+    else if (timeRangeKey === '7d') startTime = subDays(now, 7);
+    else if (timeRangeKey === '1mo') startTime = subMonths(now, 1);
+    else if (timeRangeKey === 'YTD') startTime = startOfYear(now);
+    // CHANGE: Reduce All Time to 1 year or 90 days depending on your needs.
+    // If you look back 5 years but only have 1 month of data, the line looks like a tiny dot.
+    else if (timeRangeKey === 'All') startTime = subDays(now, 365); 
+
+    return { startTime, endTime: now };
+};
+
+// --- UPDATED: LiveSensorTable with Pop-out Logic ---
+const TELEMETRY_TAGS_TO_DISPLAY = [
+    { label: "Power", tag: "A25_Power", unit: "kW" },
+    { label: "Speed", tag: "A25_Speed", unit: "RPM" },
+    { label: "Flywheel Status", tag: "A25_Status", unit: "Status" }, // Handled specially
+    { label: "Upper Bearing Temp.", tag: "TT001.Scaled", unit: "°C" },
+    { label: "Lower Bearing Temp.", tag: "TT002.Scaled", unit: "°C" },
+    { label: "Motor Temp.", tag: "TT003.Scaled", unit: "°C" },
+    { label: "Upper Vibration", tag: "VT001.Scaled", unit: "" },
+    { label: "Lower Vibration", tag: "VT002.Scaled", unit: "" },
+    { label: "Load Cell", tag: "WT001.Scaled", unit: "kg" },
+    { label: "Pressure", tag: "PT001.Scaled", unit: "" },
+    { label: "Load Cell Target", tag: "EM_SV", unit: "kg" },
+];
+
+function LiveSensorTable({ tags }) {
+
+    const handlePopout = () => {
+        // Calculate center of screen
+        const width = 1000;
+        const height = 800;
+        const left = (window.screen.width / 2) - (width / 2);
+        const top = (window.screen.height / 2) - (height / 2);
+        
+        // Open the dedicated route in a new window
+        window.open(
+            '/sensor-wall', 
+            'SensorWallWindow', 
+            `width=${width},height=${height},left=${left},top=${top},resizable,scrollbars`
+        );
+    };
+
+    if (!tags || Object.keys(tags).length === 0) return <div className="sidebar sensor-sidebar">Loading Telemetry...</div>;
+
+    const statusCode = tags['A25_Status'] ?? 0;
+    const derivedFlywheelStatus = getSystemStatus(statusCode).text;
+
+    return (
+        <div className="sidebar sensor-sidebar">
+            <div className="sidebar-header-row">
+                <h2>Telemetry</h2> {/* <--- Updated Title */}
+                <button 
+                    className="maximize-btn" 
+                    onClick={handlePopout}
+                >
+                    ❐ View All Tags
+                </button>
+            </div>
+            
+            <div className="sensor-list">
+                {TELEMETRY_TAGS_TO_DISPLAY.map(({ label, tag, unit }) => {
+                    const value = tags[tag];
+                    let displayValue;
+                    
+                    if (tag === "A25_Status") {
+                        displayValue = derivedFlywheelStatus;
+                    } else if (typeof value === 'number') {
+                        // All numeric values display to 2 decimal places (or just the number)
+                        displayValue = `${value.toFixed(value % 1 !== 0 ? 2 : 0)} ${unit}`;
+                    } else if (typeof value === 'boolean' || unit === 'Bool') {
+                         displayValue = value ? 'TRUE' : 'FALSE';
+                    } else {
+                        displayValue = String(value);
+                    }
+                    
+                    return (
+                        <div className="sensor-item" key={tag}>
+                            <span className="sensor-label">{label}</span>
+                            <span className="sensor-value">
+                                {displayValue}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+const IndividualTimeSelector = ({ onSelect }) => {
+    const ranges = {
+        '1m': '1 Minute (Live)',
+        '5m': '5 Minutes (Live)',
+        '30m':'30 Minutes (Live)',
+        '1h': '1 Hour (History)',
+        '24h': '24 Hours (History)',
+        '7d': '7 Days (History)',
+        '1mo': '1 Month (History)',
+        'YTD': 'Year to Date',
+        'All': 'All Time'
+    };
+
+    return (
+        <div className="individual-time-selector">
+            <span>Range:</span>
+            <select onChange={(e) => onSelect(e.target.value)} defaultValue="5m">
+                {Object.entries(ranges).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                ))}
+            </select>
+        </div>
+    );
+};
+
+// --- UPDATED: HistorianChart with Pop-out Logic ---
+function HistorianChart({ title, visibleTags, fetchHistoricalData }) {
+    const [timeRange, setTimeRange] = useState('5m'); 
+    const [staticData, setStaticData] = useState({ datasets: [] });
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [isPoppedOut, setIsPoppedOut] = useState(false);
+
+    const isStreamingMode = ['1m', '5m', '30m'].includes(timeRange);
+
+    useEffect(() => {
+        if (isStreamingMode || visibleTags.length === 0) return;
+
+        const loadHistory = async () => {
+            setIsLoadingHistory(true);
+            const data = await fetchHistoricalData(title, visibleTags, timeRange);
+            setStaticData(data);
+            setIsLoadingHistory(false);
+        };
+
+        loadHistory();
+    }, [timeRange, visibleTags, isStreamingMode, title, fetchHistoricalData]);
+
+    // The Inner Content
+    const chartContent = (
+        <div className="chart-card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div className="chart-header">
+                <h3>
+                    {title} 
+                    {isStreamingMode ? 
+                        <span className="live-badge" style={{marginLeft:'10px'}}>LIVE</span> : 
+                        <span style={{marginLeft:'10px', fontSize:'0.7em', color:'#a0a0a0'}}>HISTORICAL</span>
+                    }
+                </h3>
+                <div style={{display:'flex', gap:'10px'}}>
+                    <IndividualTimeSelector onSelect={setTimeRange} />
+                    <button className="maximize-btn" onClick={() => setIsPoppedOut(!isPoppedOut)}>
+                        {isPoppedOut ? 'Dock' : '❐ Maximise Chart'}
+                    </button>
+                </div>
+            </div>
+
+            <div className="chart-wrapper" style={{flexGrow: 1, minHeight: 0}}>
+                {visibleTags.length === 0 ? (
+                    <div className="no-data-message">No Pens Selected</div>
+                ) : isStreamingMode ? (
+                    <StreamingChart 
+                        selectedTags={visibleTags}
+                        displayRangeSec={getDurationInSeconds(timeRange)}
+                        tagColorMap={tagColorMap}
+                    />
+                ) : (
+                    isLoadingHistory ? (
+                        <div className="loading-message">Loading History...</div>
+                    ) : (
+                        <Line
+                            key={visibleTags.join('-')}
+                            options={staticChartOptions}
+                            data={staticData}></Line>
+                    )
+                )}
+            </div>
+        </div>
+    );
+
+    if (isPoppedOut) {
+        return (
+            <>
+                {/* Placeholder in main window remains the same */}
+                <PopoutWindow title={title} onClose={() => setIsPoppedOut(false)}>
+                    {/* --- FIX CONTAINER HERE --- */}
+                    <div style={{
+                        height: '100vh', 
+                        width: '100vw',
+                        padding: '2rem', 
+                        boxSizing: 'border-box', 
+                        backgroundColor: '#1e1e1e',
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}>
+                        <div style={{ flexGrow: 1, position: 'relative' }}>
+                            {chartContent}
+                        </div>
+                    </div>
+                </PopoutWindow>
+            </>
+        );
+    }
+
+    return (
+        <div className="chart-card-container">
+            {chartContent}
+        </div>
+    );
+}
+
+function OperationalDetailsPage() {
+    const [liveTags, setLiveTags] = useState({});
+    const [visiblePens, setVisiblePens] = useState(() => {
+        const initial = {};
+        chartDefinitions.forEach(def => {
+            initial[def.title] = def.tags; 
+        });
+        return initial;
+    });
+    const [historicalCache, setHistoricalCache] = useState({});
+    const fetchHistoricalData = useCallback(async (chartTitle, visibleTags, timeRange) => {
+        // Create unique key for the cache entry
+        const cacheKey = `${chartTitle}-${timeRange}-${visibleTags.join(',')}`;
+        
+        // 1. Check Cache
+        if (historicalCache[cacheKey]) {
+            return historicalCache[cacheKey];
+        }
+        
+        // 2. Fetch from API
+        try {
+            const { startTime, endTime } = getStartEndTime(timeRange);
+            const params = new URLSearchParams();
+            visibleTags.forEach(tag => params.append('tags', tag));
+            if (startTime) params.append('start_time', startTime.toISOString());
+            params.append('end_time', endTime.toISOString());
+
+            const response = await apiClient.get('/api/historian', { params });
+            const data = response.data;
+            
+            // Convert data into chart datasets (same logic as before)
+            const newDatasets = visibleTags.map(tagName => ({
+                label: tagName,
+                data: data[tagName]?.map(p => ({ x: new Date(p.ts).getTime(), y: p.value })) || [],
+                borderColor: tagColorMap[tagName] || '#888',
+                backgroundColor: (tagColorMap[tagName] || '#888') + '80',
+                yAxisID: tagName === 'A25_Speed' ? 'y1' : 'y',
+                tension: 0.2, 
+                pointRadius: 0, 
+                borderWidth: 2,
+            }));
+            const chartData = { datasets: newDatasets };
+
+            // 3. Update Cache
+            setHistoricalCache(prev => ({ ...prev, [cacheKey]: chartData }));
+            return chartData;
+
+        } catch (error) {
+            console.error(`History fetch failed for ${chartTitle}:`, error);
+            return { datasets: [] };
+        }
+    }, [historicalCache, setHistoricalCache]);
+
+    useEffect(() => {
+        const fetchLive = async () => {
+            try {
+                const resp = await apiClient.get('/api/live-data');
+                setLiveTags(resp.data.tags || {});
+            } catch (err) { 
+                console.error("Live data error:", err); 
+            }
+        };
+        fetchLive(); 
+        const intervalId = setInterval(fetchLive, 1000); 
+        return () => clearInterval(intervalId);
+    }, []);
+
+    const handleTogglePen = (chartTitle, penName) => {
+        setVisiblePens(prev => {
+            const currentList = prev[chartTitle] || [];
+            if (currentList.includes(penName)) {
+                return { ...prev, [chartTitle]: currentList.filter(p => p !== penName) };
+            } else {
+                return { ...prev, [chartTitle]: [...currentList, penName] };
+            }
+        });
+    };
+
+    return (
+        <div className="details-layout-final" style={{
+            gridTemplateColumns: '1fr 300px',
+            gap: '1.5rem'
+        }}>
+            {/* Commented Penssidebar to reduce clutter. */}
+            {/* <PensSidebar 
+                chartDefinitions={chartDefinitions} 
+                visiblePens={visiblePens} 
+                onTogglePen={handleTogglePen} 
+            /> */}
+            <div className="charts-container-final">
+                {chartDefinitions.map(chart => (
+                    <HistorianChart 
+                        key={chart.title}
+                        title={chart.title} 
+                        visibleTags={visiblePens[chart.title] || []}
+                        fetchHistoricalData={fetchHistoricalData}
+                    />
+                ))}
+            </div>
+            <LiveSensorTable tags={liveTags} />
+        </div>
+    );
+}
+
+export default OperationalDetailsPage;
 </file>
 
 <file path="main_api.py">
@@ -3184,7 +4792,12 @@ WRITEABLE_TAGS = {
     "A25_CMD_Discharge", 
     "A25_CMD_Shutdown", 
     "A25_CMD_Startup",
-    "EM_SV"
+    "EM_SV",
+    "Controller:Global/EM_ControlEnable",
+    "SCADA_Tags/VFD_AutoReturnEnable",
+    "VFD_OFF1_CONTROL",
+    "VFD_RESET",
+    "VFD_OFF3_CONTROL"
 }
 
 
@@ -3244,6 +4857,10 @@ class Tag(BaseModel):
 
 class TagUpdate(BaseModel):
     is_active: bool
+
+class TagCreate(BaseModel):
+    tag: str
+    datatype: str
 
 class TagWriteRequest(BaseModel):
     tag_name: str
@@ -3797,6 +5414,80 @@ def update_tag(tag_id: int, u: TagUpdate, user: User = Depends(get_current_activ
     finally:
         release_db_conn(conn)
 
+@app.post("/api/tags", response_model=Tag, dependencies=[Depends(get_current_active_admin)])
+def create_tag(t: TagCreate):
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            # Check if exists
+            cur.execute("SELECT id FROM historian.tag_lookup WHERE tag = %s", (t.tag,))
+            if cur.fetchone():
+                raise HTTPException(400, "Tag already exists in database")
+                
+            cur.execute(
+                "INSERT INTO historian.tag_lookup (tag, datatype, is_active) VALUES (%s, %s, %s) RETURNING id, tag, datatype, is_active",
+                (t.tag, t.datatype, True)
+            )
+            res = cur.fetchone()
+            conn.commit()
+            sync_tags_with_db()
+            return Tag(id=res[0], tag=res[1], datatype=res[2], is_active=res[3])
+    finally:
+        release_db_conn(conn)
+
+@app.delete("/api/tags/{tag_id}", dependencies=[Depends(get_current_active_admin)])
+def delete_tag(tag_id: int):
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM historian.tag_lookup WHERE id = %s RETURNING id", (tag_id,))
+            res = cur.fetchone()
+            if not res:
+                raise HTTPException(404, "Tag not found")
+            conn.commit()
+            sync_tags_with_db()
+            return {"status": "deleted"}
+    finally:
+        release_db_conn(conn)
+
+@app.get("/api/plc-browse", dependencies=[Depends(get_current_active_engineer)])
+def browse_plc():
+    c = PLC()
+    c.IPAddress = PLC_IP
+    try:
+        tags = c.GetTagList()
+        # Parse tags into a tree
+        tree = {}
+        if not tags: return tree
+        for tag in tags:
+            parts = tag.TagName.split('.')
+            current = tree
+            for i, part in enumerate(parts):
+                if i == len(parts) - 1:
+                    # Leaf
+                    if '__tags__' not in current:
+                        current['__tags__'] = []
+                        
+                    raw_dt = getattr(tag, 'DataType', str(getattr(tag, 'DataTypeValue', 'unknown'))).lower()
+                    
+                    current['__tags__'].append({
+                        "name": tag.TagName,
+                        "tag_name_only": part,
+                        "datatype": raw_dt
+                    })
+                else:
+                    if part not in current:
+                        current[part] = {}
+                    current = current[part]
+        return tree
+    except Exception as e:
+        raise HTTPException(500, f"Error browsing PLC: {e}")
+    finally:
+        try: c.Close()
+        except: pass
+
 @app.get("/api/historian")
 def get_historian(tags: List[str] = Query(None), start_time: Optional[str] = None, end_time: Optional[str] = None):
     if not tags: return {}
@@ -3934,408 +5625,6 @@ def update_setting_endpoint(key: str, s: Setting, user: User = Depends(get_curre
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
-</file>
-
-<file path="dashboard-ui/src/pages/OperationalDetailsPage.jsx">
-import { useState, useEffect, useCallback } from 'react';
-import { Line } from 'react-chartjs-2';
-import { 
-    Chart as ChartJS, 
-    CategoryScale, 
-    LinearScale, 
-    PointElement, 
-    LineElement, 
-    Title, 
-    Tooltip, 
-    Legend, 
-    TimeScale 
-} from 'chart.js';
-import 'chartjs-adapter-date-fns';
-import { subSeconds, subHours, subDays, subMonths, startOfYear } from 'date-fns';
-import { getSystemStatus } from '../constants';
-
-// import PensSidebar from '../components/PensSidebar';    -- Staging the removal of penssidebar
-import StreamingChart from '../components/StreamingChart';
-import PopoutWindow from '../components/PopoutWindow';
-import { chartDefinitions, tagColorMap } from '../constants';
-import apiClient from '../api'; 
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, TimeScale);
-
-const staticChartOptions = {
-    responsive: true, 
-    maintainAspectRatio: false, 
-    parsing: false, 
-    normalized: true,
-    plugins: { 
-        legend: { display: true, position: 'top', labels: { color: '#a0a0a0' } } 
-    },
-    scales: {
-        x: { 
-            type: 'time', 
-            time: { tooltipFormat: 'PP pp' },
-            displayFormats: {
-                hour: 'MMM d, h a',
-                day: 'MMM d',
-                week: 'MMM d',
-                month: 'MMM yyyy'
-            },
-            ticks: { color: '#a0a0a0', maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, 
-            grid: { color: '#333' } 
-        },
-        y: {
-            type: 'linear',
-            display: true,
-            position: 'left', // Main axis for Temp, Vibration, Power, etc.
-            ticks: { color: '#a0a0a0' },
-            grid: { color: '#333' }
-        },
-        y1: { 
-            type: 'linear',
-            display: true,
-            position: 'right',
-            min: 0,
-            max: 9000,
-            title: {
-                display: true,
-                text: 'Speed (RPM)',
-                color: '#a0a0a0'
-            },
-            ticks: { color: '#a0a0a0' }, 
-            grid: { drawOnChartArea: false } 
-        }
-    },
-    animation: { duration: 0 }
-};
-
-const getDurationInSeconds = (timeRangeKey) => {
-    const value = parseInt(timeRangeKey.slice(0, -1));
-    const unit = timeRangeKey.slice(-1);
-    if (unit === 's') return value;
-    if (unit === 'm') return value * 60;
-    return 0; 
-};
-
-const getStartEndTime = (timeRangeKey) => {
-    const now = new Date();
-    let startTime = null;
-
-    if (timeRangeKey === '1h') startTime = subHours(now, 1);
-    else if (timeRangeKey === '24h') startTime = subHours(now, 24);
-    else if (timeRangeKey === '7d') startTime = subDays(now, 7);
-    else if (timeRangeKey === '1mo') startTime = subMonths(now, 1);
-    else if (timeRangeKey === 'YTD') startTime = startOfYear(now);
-    // CHANGE: Reduce All Time to 1 year or 90 days depending on your needs.
-    // If you look back 5 years but only have 1 month of data, the line looks like a tiny dot.
-    else if (timeRangeKey === 'All') startTime = subDays(now, 365); 
-
-    return { startTime, endTime: now };
-};
-
-// --- UPDATED: LiveSensorTable with Pop-out Logic ---
-const TELEMETRY_TAGS_TO_DISPLAY = [
-    { label: "Power", tag: "A25_Power", unit: "kW" },
-    { label: "Speed", tag: "A25_Speed", unit: "RPM" },
-    { label: "Flywheel Status", tag: "A25_Status", unit: "Status" }, // Handled specially
-    { label: "Upper Bearing Temp.", tag: "TT001.Scaled", unit: "°C" },
-    { label: "Lower Bearing Temp.", tag: "TT002.Scaled", unit: "°C" },
-    { label: "Motor Temp.", tag: "TT003.Scaled", unit: "°C" },
-    { label: "Upper Vibration", tag: "VT001.Scaled", unit: "" },
-    { label: "Lower Vibration", tag: "VT002.Scaled", unit: "" },
-    { label: "Load Cell", tag: "WT001.Scaled", unit: "kg" },
-    { label: "Pressure", tag: "PT001.Scaled", unit: "" },
-    { label: "Load Cell Target", tag: "EM_SV", unit: "kg" },
-];
-
-function LiveSensorTable({ tags }) {
-
-    const handlePopout = () => {
-        // Calculate center of screen
-        const width = 1000;
-        const height = 800;
-        const left = (window.screen.width / 2) - (width / 2);
-        const top = (window.screen.height / 2) - (height / 2);
-        
-        // Open the dedicated route in a new window
-        window.open(
-            '/sensor-wall', 
-            'SensorWallWindow', 
-            `width=${width},height=${height},left=${left},top=${top},resizable,scrollbars`
-        );
-    };
-
-    if (!tags || Object.keys(tags).length === 0) return <div className="sidebar sensor-sidebar">Loading Telemetry...</div>;
-
-    const statusCode = tags['A25_Status'] ?? 0;
-    const derivedFlywheelStatus = getSystemStatus(statusCode).text;
-
-    return (
-        <div className="sidebar sensor-sidebar">
-            <div className="sidebar-header-row">
-                <h2>Telemetry</h2> {/* <--- Updated Title */}
-                <button 
-                    className="maximize-btn" 
-                    onClick={handlePopout}
-                >
-                    ❐ View All Tags
-                </button>
-            </div>
-            
-            <div className="sensor-list">
-                {TELEMETRY_TAGS_TO_DISPLAY.map(({ label, tag, unit }) => {
-                    const value = tags[tag];
-                    let displayValue;
-                    
-                    if (tag === "A25_Status") {
-                        displayValue = derivedFlywheelStatus;
-                    } else if (typeof value === 'number') {
-                        // All numeric values display to 2 decimal places (or just the number)
-                        displayValue = `${value.toFixed(value % 1 !== 0 ? 2 : 0)} ${unit}`;
-                    } else if (typeof value === 'boolean' || unit === 'Bool') {
-                         displayValue = value ? 'TRUE' : 'FALSE';
-                    } else {
-                        displayValue = String(value);
-                    }
-                    
-                    return (
-                        <div className="sensor-item" key={tag}>
-                            <span className="sensor-label">{label}</span>
-                            <span className="sensor-value">
-                                {displayValue}
-                            </span>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-}
-
-const IndividualTimeSelector = ({ onSelect }) => {
-    const ranges = {
-        '1m': '1 Minute (Live)',
-        '5m': '5 Minutes (Live)',
-        '30m':'30 Minutes (Live)',
-        '1h': '1 Hour (History)',
-        '24h': '24 Hours (History)',
-        '7d': '7 Days (History)',
-        '1mo': '1 Month (History)',
-        'YTD': 'Year to Date',
-        'All': 'All Time'
-    };
-
-    return (
-        <div className="individual-time-selector">
-            <span>Range:</span>
-            <select onChange={(e) => onSelect(e.target.value)} defaultValue="5m">
-                {Object.entries(ranges).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                ))}
-            </select>
-        </div>
-    );
-};
-
-// --- UPDATED: HistorianChart with Pop-out Logic ---
-function HistorianChart({ title, visibleTags, fetchHistoricalData }) {
-    const [timeRange, setTimeRange] = useState('5m'); 
-    const [staticData, setStaticData] = useState({ datasets: [] });
-    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-    const [isPoppedOut, setIsPoppedOut] = useState(false);
-
-    const isStreamingMode = ['1m', '5m', '30m'].includes(timeRange);
-
-    useEffect(() => {
-        if (isStreamingMode || visibleTags.length === 0) return;
-
-        const loadHistory = async () => {
-            setIsLoadingHistory(true);
-            const data = await fetchHistoricalData(title, visibleTags, timeRange);
-            setStaticData(data);
-            setIsLoadingHistory(false);
-        };
-
-        loadHistory();
-    }, [timeRange, visibleTags, isStreamingMode, title, fetchHistoricalData]);
-
-    // The Inner Content
-    const chartContent = (
-        <div className="chart-card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div className="chart-header">
-                <h3>
-                    {title} 
-                    {isStreamingMode ? 
-                        <span className="live-badge" style={{marginLeft:'10px'}}>LIVE</span> : 
-                        <span style={{marginLeft:'10px', fontSize:'0.7em', color:'#a0a0a0'}}>HISTORICAL</span>
-                    }
-                </h3>
-                <div style={{display:'flex', gap:'10px'}}>
-                    <IndividualTimeSelector onSelect={setTimeRange} />
-                    <button className="maximize-btn" onClick={() => setIsPoppedOut(!isPoppedOut)}>
-                        {isPoppedOut ? 'Dock' : '❐ Maximise Chart'}
-                    </button>
-                </div>
-            </div>
-
-            <div className="chart-wrapper" style={{flexGrow: 1, minHeight: 0}}>
-                {visibleTags.length === 0 ? (
-                    <div className="no-data-message">No Pens Selected</div>
-                ) : isStreamingMode ? (
-                    <StreamingChart 
-                        selectedTags={visibleTags}
-                        displayRangeSec={getDurationInSeconds(timeRange)}
-                        tagColorMap={tagColorMap}
-                    />
-                ) : (
-                    isLoadingHistory ? (
-                        <div className="loading-message">Loading History...</div>
-                    ) : (
-                        <Line
-                            key={visibleTags.join('-')}
-                            options={staticChartOptions}
-                            data={staticData}></Line>
-                    )
-                )}
-            </div>
-        </div>
-    );
-
-    if (isPoppedOut) {
-        return (
-            <>
-                {/* Placeholder in main window remains the same */}
-                <PopoutWindow title={title} onClose={() => setIsPoppedOut(false)}>
-                    {/* --- FIX CONTAINER HERE --- */}
-                    <div style={{
-                        height: '100vh', 
-                        width: '100vw',
-                        padding: '2rem', 
-                        boxSizing: 'border-box', 
-                        backgroundColor: '#1e1e1e',
-                        display: 'flex',
-                        flexDirection: 'column'
-                    }}>
-                        <div style={{ flexGrow: 1, position: 'relative' }}>
-                            {chartContent}
-                        </div>
-                    </div>
-                </PopoutWindow>
-            </>
-        );
-    }
-
-    return (
-        <div className="chart-card-container">
-            {chartContent}
-        </div>
-    );
-}
-
-function OperationalDetailsPage() {
-    const [liveTags, setLiveTags] = useState({});
-    const [visiblePens, setVisiblePens] = useState(() => {
-        const initial = {};
-        chartDefinitions.forEach(def => {
-            initial[def.title] = def.tags; 
-        });
-        return initial;
-    });
-    const [historicalCache, setHistoricalCache] = useState({});
-    const fetchHistoricalData = useCallback(async (chartTitle, visibleTags, timeRange) => {
-        // Create unique key for the cache entry
-        const cacheKey = `${chartTitle}-${timeRange}-${visibleTags.join(',')}`;
-        
-        // 1. Check Cache
-        if (historicalCache[cacheKey]) {
-            return historicalCache[cacheKey];
-        }
-        
-        // 2. Fetch from API
-        try {
-            const { startTime, endTime } = getStartEndTime(timeRange);
-            const params = new URLSearchParams();
-            visibleTags.forEach(tag => params.append('tags', tag));
-            if (startTime) params.append('start_time', startTime.toISOString());
-            params.append('end_time', endTime.toISOString());
-
-            const response = await apiClient.get('/api/historian', { params });
-            const data = response.data;
-            
-            // Convert data into chart datasets (same logic as before)
-            const newDatasets = visibleTags.map(tagName => ({
-                label: tagName,
-                data: data[tagName]?.map(p => ({ x: new Date(p.ts).getTime(), y: p.value })) || [],
-                borderColor: tagColorMap[tagName] || '#888',
-                backgroundColor: (tagColorMap[tagName] || '#888') + '80',
-                yAxisID: tagName === 'A25_Speed' ? 'y1' : 'y',
-                tension: 0.2, 
-                pointRadius: 0, 
-                borderWidth: 2,
-            }));
-            const chartData = { datasets: newDatasets };
-
-            // 3. Update Cache
-            setHistoricalCache(prev => ({ ...prev, [cacheKey]: chartData }));
-            return chartData;
-
-        } catch (error) {
-            console.error(`History fetch failed for ${chartTitle}:`, error);
-            return { datasets: [] };
-        }
-    }, [historicalCache, setHistoricalCache]);
-
-    useEffect(() => {
-        const fetchLive = async () => {
-            try {
-                const resp = await apiClient.get('/api/live-data');
-                setLiveTags(resp.data.tags || {});
-            } catch (err) { 
-                console.error("Live data error:", err); 
-            }
-        };
-        fetchLive(); 
-        const intervalId = setInterval(fetchLive, 1000); 
-        return () => clearInterval(intervalId);
-    }, []);
-
-    const handleTogglePen = (chartTitle, penName) => {
-        setVisiblePens(prev => {
-            const currentList = prev[chartTitle] || [];
-            if (currentList.includes(penName)) {
-                return { ...prev, [chartTitle]: currentList.filter(p => p !== penName) };
-            } else {
-                return { ...prev, [chartTitle]: [...currentList, penName] };
-            }
-        });
-    };
-
-    return (
-        <div className="details-layout-final" style={{
-            gridTemplateColumns: '1fr 300px',
-            gap: '1.5rem'
-        }}>
-            {/* Commented Penssidebar to reduce clutter. */}
-            {/* <PensSidebar 
-                chartDefinitions={chartDefinitions} 
-                visiblePens={visiblePens} 
-                onTogglePen={handleTogglePen} 
-            /> */}
-            <div className="charts-container-final">
-                {chartDefinitions.map(chart => (
-                    <HistorianChart 
-                        key={chart.title}
-                        title={chart.title} 
-                        visibleTags={visiblePens[chart.title] || []}
-                        fetchHistoricalData={fetchHistoricalData}
-                    />
-                ))}
-            </div>
-            <LiveSensorTable tags={liveTags} />
-        </div>
-    );
-}
-
-export default OperationalDetailsPage;
 </file>
 
 </files>

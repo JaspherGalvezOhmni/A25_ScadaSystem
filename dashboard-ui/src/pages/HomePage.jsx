@@ -55,47 +55,37 @@ function HomePage() {
             </div>
 
             <div className="sidebar status-sidebar">
-                <div className="status-group">
-                    <h2>Status Overview</h2>
+                <div className="status-box">
+                    <div className="status-box-header">System Overview</div>
                     
-                    <div className="status-item">
-                        <span>Flywheel Status</span>
-                        <span className="status-compact-value">{flywheelStatusText}</span>
+                    <div className="status-box-row">
+                        <div className="status-box-label">Flywheel Status</div>
+                        <div className="status-box-value">{flywheelStatusText}</div>
                     </div>
-                    
-                    <div className="status-item">
-                        <span>Power</span>
-                        <span className="status-compact-value">{power.toFixed(2)} kW</span>
+
+                    <div className="status-box-row">
+                        <div className="status-box-label">Power</div>
+                        <div className="status-box-value">{power.toFixed(2)} kW</div>
                     </div>
-                    
-                    <div className="status-item">
-                        <span>Energy Stored</span>
-                        <span className="status-compact-value">{energy.toFixed(1)} kWh</span>
+
+                    <div className="status-box-row">
+                        <div className="status-box-label">Energy Stored</div>
+                        <div className="status-box-value">{energy.toFixed(1)} kWh</div>
                     </div>
-                    
-                    <div className="status-item">
-                        <span>State of Charge</span>
-                        <span className="status-compact-value">{soc.toFixed(0)} %</span>
+
+                    <div className="status-box-row">
+                        <div className="status-box-label">State of Charge</div>
+                        <div className="status-box-value">{soc.toFixed(0)} %</div>
                     </div>
-                    
-                    <div className="status-item">
-                        <span>Speed</span>
-                        <span className="status-compact-value">{speed.toFixed(0)} RPM</span>
+
+                    <div className="status-box-row">
+                        <div className="status-box-label">Speed</div>
+                        <div className="status-box-value">{speed.toFixed(0)} RPM</div>
                     </div>
-                    
-                    <div className="status-item">
-                        <span>Total Energy Transferred</span>
-                        <span className="status-compact-value">{totalEnergy.toFixed(1)} kWh</span>
-                    </div>
-                    
-                    <div className="status-item">
-                        <span>Total Cycles</span>
-                        <span className="status-compact-value">{cycles}</span>
-                    </div>
-                    
-                    <div className="status-item">
-                        <span>Run Hours</span>
-                        <span className="status-compact-value">{runHours.toFixed(1)} h</span>
+
+                    <div className="status-box-row">
+                        <div className="status-box-label">Run Hours</div>
+                        <div className="status-box-value">{runHours.toFixed(1)} h</div>
                     </div>
                 </div>
             </div>

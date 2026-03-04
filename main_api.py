@@ -115,6 +115,10 @@ class Tag(BaseModel):
 class TagUpdate(BaseModel):
     is_active: bool
 
+class TagCreate(BaseModel):
+    tag: str
+    datatype: str
+
 class TagWriteRequest(BaseModel):
     tag_name: str
     value: Union[float, int, bool]
@@ -666,6 +670,80 @@ def update_tag(tag_id: int, u: TagUpdate, user: User = Depends(get_current_activ
             raise HTTPException(404, "Tag not found")
     finally:
         release_db_conn(conn)
+
+@app.post("/api/tags", response_model=Tag, dependencies=[Depends(get_current_active_admin)])
+def create_tag(t: TagCreate):
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            # Check if exists
+            cur.execute("SELECT id FROM historian.tag_lookup WHERE tag = %s", (t.tag,))
+            if cur.fetchone():
+                raise HTTPException(400, "Tag already exists in database")
+                
+            cur.execute(
+                "INSERT INTO historian.tag_lookup (tag, datatype, is_active) VALUES (%s, %s, %s) RETURNING id, tag, datatype, is_active",
+                (t.tag, t.datatype, True)
+            )
+            res = cur.fetchone()
+            conn.commit()
+            sync_tags_with_db()
+            return Tag(id=res[0], tag=res[1], datatype=res[2], is_active=res[3])
+    finally:
+        release_db_conn(conn)
+
+@app.delete("/api/tags/{tag_id}", dependencies=[Depends(get_current_active_admin)])
+def delete_tag(tag_id: int):
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM historian.tag_lookup WHERE id = %s RETURNING id", (tag_id,))
+            res = cur.fetchone()
+            if not res:
+                raise HTTPException(404, "Tag not found")
+            conn.commit()
+            sync_tags_with_db()
+            return {"status": "deleted"}
+    finally:
+        release_db_conn(conn)
+
+@app.get("/api/plc-browse", dependencies=[Depends(get_current_active_engineer)])
+def browse_plc():
+    c = PLC()
+    c.IPAddress = PLC_IP
+    try:
+        tags = c.GetTagList()
+        # Parse tags into a tree
+        tree = {}
+        if not tags: return tree
+        for tag in tags:
+            parts = tag.TagName.split('.')
+            current = tree
+            for i, part in enumerate(parts):
+                if i == len(parts) - 1:
+                    # Leaf
+                    if '__tags__' not in current:
+                        current['__tags__'] = []
+                        
+                    raw_dt = getattr(tag, 'DataType', str(getattr(tag, 'DataTypeValue', 'unknown'))).lower()
+                    
+                    current['__tags__'].append({
+                        "name": tag.TagName,
+                        "tag_name_only": part,
+                        "datatype": raw_dt
+                    })
+                else:
+                    if part not in current:
+                        current[part] = {}
+                    current = current[part]
+        return tree
+    except Exception as e:
+        raise HTTPException(500, f"Error browsing PLC: {e}")
+    finally:
+        try: c.Close()
+        except: pass
 
 @app.get("/api/historian")
 def get_historian(tags: List[str] = Query(None), start_time: Optional[str] = None, end_time: Optional[str] = None):
