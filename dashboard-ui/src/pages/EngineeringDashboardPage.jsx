@@ -89,11 +89,11 @@ function EngineeringDashboardPage() {
                         <StatusRow label="OUTPUT POWER" value={safeNum(tags['VFD_Sts_OutPowerScaled'], 1)} unit="kW" />
                         <StatusRow 
                             label="TRIPPING FAULT" 
-                            value={tags['VFD_Sts_TripFlt.value'] ? 'FAULT' : 'OK'} 
-                            isWarning={!!tags['VFD_Sts_TripFlt.value']}
-                            isHealthy={!tags['VFD_Sts_TripFlt.value']}
+                            value={tags['VFD_Sts_TripFlt'] ? 'FAULT' : 'OK'} 
+                            isWarning={!!tags['VFD_Sts_TripFlt']}
+                            isHealthy={!tags['VFD_Sts_TripFlt']}
                         />
-                        <StatusRow label="LATEST WARNING" value={safeNum(tags['VFD_Sts_latestWarning.value'], 1)} unit="" />
+                        <StatusRow label="LATEST WARNING" value={safeNum(tags['VFD_Sts_LatestWarning'], 1)} unit="" />
                         <StatusRow 
                             label="COMMS STATUS" 
                             value={tags['VFD_Sts_Comms_Healthy'] ? 'Healthy' : 'Fault'} 

@@ -50,8 +50,8 @@ WRITEABLE_TAGS = {
     "A25_CMD_Shutdown", 
     "A25_CMD_Startup",
     "EM_SV",
-    "Controller:Global/EM_ControlEnable",
-    "SCADA_Tags/VFD_AutoReturnEnable",
+    "EM_ControlEnable",
+    "VFD_AutoReturnEnable",
     "VFD_OFF1_CONTROL",
     "VFD_RESET",
     "VFD_OFF3_CONTROL"
@@ -195,7 +195,7 @@ def get_current_active_admin(current_user: User = Depends(get_current_user)):
     return current_user
 
 def get_current_active_engineer(current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["Engineer", "Admin"]: raise HTTPException(403, "Engineer required")
+    if current_user.role not in ["Engineer", "Admin", "Operator"]: raise HTTPException(403, "Engineer required")
     return current_user
 
 def require_api_key(x_api_key: str = Header(None)):
@@ -713,26 +713,33 @@ def delete_tag(tag_id: int):
 def browse_plc():
     c = PLC()
     c.IPAddress = PLC_IP
+    c.ProcessorSlot = 0 
     try:
-        tags = c.GetTagList()
-        # Parse tags into a tree
+        ret = c.GetTagList()
+        if ret.Status != 'Success':
+            raise HTTPException(500, f"PLC Error: {ret.Status}")
+        
+        tags = ret.Value
         tree = {}
         if not tags: return tree
+        
         for tag in tags:
+            # tag is a Tag object from pylogix
             parts = tag.TagName.split('.')
             current = tree
             for i, part in enumerate(parts):
                 if i == len(parts) - 1:
-                    # Leaf
                     if '__tags__' not in current:
                         current['__tags__'] = []
-                        
-                    raw_dt = getattr(tag, 'DataType', str(getattr(tag, 'DataTypeValue', 'unknown'))).lower()
+                    
+                    # DataType is usually an int, pylogix Tag object doesn't 
+                    # always have a string name for it ready
+                    dt = str(getattr(tag, 'DataType', 'Unknown'))
                     
                     current['__tags__'].append({
                         "name": tag.TagName,
                         "tag_name_only": part,
-                        "datatype": raw_dt
+                        "datatype": dt
                     })
                 else:
                     if part not in current:
@@ -740,10 +747,10 @@ def browse_plc():
                     current = current[part]
         return tree
     except Exception as e:
+        print(f"PLC Browse Exception: {e}")
         raise HTTPException(500, f"Error browsing PLC: {e}")
     finally:
-        try: c.Close()
-        except: pass
+        c.Close()
 
 @app.get("/api/historian")
 def get_historian(tags: List[str] = Query(None), start_time: Optional[str] = None, end_time: Optional[str] = None):

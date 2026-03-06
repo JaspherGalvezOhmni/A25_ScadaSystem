@@ -52,10 +52,10 @@ function EngineeringSidebar({ liveData }) {
         </div>
 
         <button 
-          className={`eng-btn-full ${tags['Controller:Global/EM_ControlEnable'] ? 'active' : 'inactive'}`}
-          onClick={() => toggleTag('Controller:Global/EM_ControlEnable')}
+          className={`eng-btn-full ${tags['EM_ControlEnable'] ? 'active' : 'inactive'}`}
+          onClick={() => toggleTag('EM_ControlEnable')}
         >
-          {tags['Controller:Global/EM_ControlEnable'] ? 'ENABLED' : 'DISABLED'}
+          {tags['EM_ControlEnable'] ? 'ENABLED' : 'DISABLED'}
         </button>
       </div>
 
@@ -71,16 +71,16 @@ function EngineeringSidebar({ liveData }) {
             type="number" 
             value={motorInput}
             onChange={(e) => setMotorInput(e.target.value)}
-            onBlur={() => handleWrite('A25_Speed', motorInput)}
+            onBlur={() => handleWrite('VSD_SPEED_REF', motorInput)}
           />
         </div>
 
         <div className="eng-btn-grid">
           <button 
-            className={`eng-btn-half ${tags['SCADA_Tags/VFD_AutoReturnEnable'] ? 'active' : 'inactive'}`}
-            onClick={() => toggleTag('SCADA_Tags/VFD_AutoReturnEnable')}
+            className={`eng-btn-half ${tags['VFD_AutoReturnEnable'] ? 'active' : 'inactive'}`}
+            onClick={() => toggleTag('VFD_AutoReturnEnable')}
           >
-            {tags['SCADA_Tags/VFD_AutoReturnEnable'] ? 'AUTO RET. ON' : 'AUTO RET. OFF'}
+            {tags['VFD_AutoReturnEnable'] ? 'AUTO RET. ON' : 'AUTO RET. OFF'}
           </button>
           <button 
             className={`eng-btn-half ${tags['VFD_OFF1_CONTROL'] ? 'active' : 'inactive'}`}
