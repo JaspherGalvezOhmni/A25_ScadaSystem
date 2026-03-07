@@ -31,7 +31,7 @@ const router = createBrowserRouter([
       { 
         path: "configuration", 
         element: (
-          <ProtectedRoute restrictTo={['Engineer', 'Admin']}>
+          <ProtectedRoute restrictTo={['Engineer', 'Admin', 'Operator']}>
             <EngineeringPage /> {/* Repurposed to Configuration Page */}
           </ProtectedRoute>
         )

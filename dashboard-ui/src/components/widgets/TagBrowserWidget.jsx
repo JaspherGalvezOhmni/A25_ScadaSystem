@@ -42,7 +42,7 @@ const TagTree = ({ node, path = '', onTagSelect, dbTagNames }) => {
 };
 
 
-function TagBrowserWidget({ onTagsUpdated }) {
+function TagBrowserWidget({ onTagsUpdated, style }) {
     const [plcTree, setPlcTree] = useState(null);
     const [dbTagNames, setDbTagNames] = useState(new Set()); // Tags actively polled by DB
     const [isLoading, setIsLoading] = useState(false);
@@ -92,30 +92,35 @@ function TagBrowserWidget({ onTagsUpdated }) {
     };
 
     return (
-        <div className="card tag-browser-widget" style={{ display: 'flex', flexDirection: 'column', marginTop: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div className="card tag-browser-widget" style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            height: '100%',
+            marginTop: 0, // Force remove the old margin
+            ...style      // Spread the passed style
+        }}>
+            <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                marginBottom: '1rem',
+                height: '40px' // Matches the other columns
+            }}>
                 <h2 style={{ margin: 0 }}>PLC Tag Browser</h2>
-                <button
-                    onClick={fetchData}
-                    disabled={isLoading}
-                    style={{ padding: '0.4rem 0.8rem', backgroundColor: '#3a3a3a' }}
-                >
-                    {isLoading ? 'Refreshing...' : 'Refresh'}
+                <button onClick={fetchData} style={{ padding: '0.4rem 0.8rem', backgroundColor: '#3a3a3a' }}>
+                    Refresh
                 </button>
             </div>
 
-            {error && <p className="error-message">{error}</p>}
-
-            <div className="tag-browser-content" style={{ flexGrow: 1, overflowY: 'auto', maxHeight: '400px', border: '1px solid #444', borderRadius: '6px', padding: '1rem', backgroundColor: '#1e1e1e' }}>
-                {isLoading && !error && <div className="loading-message">Loading PLC Structure...</div>}
-
-                {plcTree && Object.keys(plcTree).length > 0 && (
-                    <TagTree node={plcTree} onTagSelect={handleTagSelect} dbTagNames={dbTagNames} />
-                )}
-
-                {(!plcTree || Object.keys(plcTree).length === 0) && !isLoading && !error && (
-                    <div style={{ color: '#888', fontStyle: 'italic' }}>No tags found or PLC offline.</div>
-                )}
+            <div className="tag-browser-content" style={{ 
+                flexGrow: 1, 
+                overflowY: 'auto', 
+                border: '1px solid #444', 
+                borderRadius: '6px', 
+                padding: '1rem', 
+                backgroundColor: '#1e1e1e' 
+            }}>
+                {plcTree && <TagTree node={plcTree} onTagSelect={handleTagSelect} dbTagNames={dbTagNames} />}
             </div>
         </div>
     );

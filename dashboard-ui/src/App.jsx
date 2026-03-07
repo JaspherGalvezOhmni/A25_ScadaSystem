@@ -93,6 +93,11 @@ function App() {
               <NavLink to="/configuration">Config</NavLink>
             </>
           )}
+          {(user?.role === 'Operator') && (
+            <>
+              <NavLink to="/configuration">Config</NavLink>
+            </>
+          )}
         </nav>
 
         <div className="header-right-side">

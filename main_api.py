@@ -687,7 +687,7 @@ def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 @app.get("/api/tags", response_model=List[Tag])
-def get_tags(user: User = Depends(get_current_active_admin)):
+def get_tags(user: User = Depends(get_current_active_engineer)):
     conn = None
     try:
         conn = get_db_conn()
@@ -928,6 +928,45 @@ def update_setting_endpoint(key: str, s: Setting, user: User = Depends(get_curre
         return s
     finally:
         release_db_conn(conn)
+
+# --- MAINTENANCE ENDPOINTS ---
+
+@app.delete("/api/admin/maintenance/reset-tags", dependencies=[Depends(get_current_active_admin)])
+def reset_all_tags():
+    """
+    DANGER: Purges all tags from lookup and all historical data via Cascade.
+    """
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            # This triggers the ON DELETE CASCADE we set up earlier for historian rows
+            cur.execute("TRUNCATE TABLE historian.tag_lookup CASCADE")
+            # Reset the ID sequence to 1
+            cur.execute("ALTER TABLE historian.tag_lookup ALTER COLUMN id RESTART WITH 1")
+            conn.commit()
+        sync_tags_with_db()
+        return {"status": "System purged and reset"}
+    except Exception as e:
+        if conn: conn.rollback()
+        raise HTTPException(500, f"Reset failed: {str(e)}")
+    finally:
+        if conn: release_db_conn(conn)
+
+@app.delete("/api/user/prefs/reset")
+def reset_my_prefs(current_user: User = Depends(get_current_user)):
+    """
+    Resets the current user's UI preferences to empty.
+    """
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute("UPDATE app.users SET ui_prefs = '{}' WHERE username = %s", (current_user.username,))
+            conn.commit()
+        return {"status": "Preferences reset to default"}
+    finally:
+        if conn: release_db_conn(conn)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

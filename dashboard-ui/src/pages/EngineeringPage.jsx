@@ -1,15 +1,16 @@
-// REPURPOSED TO CONFIG PAGE.
-
-import { useState, useEffect, useRef } from 'react';
+// src/pages/EngineeringPage.jsx
+import { useState, useEffect } from 'react';
 import apiClient from '../api';
-import { useAuth } from '../context/AuthContext'; // Keep useAuth for robust role check
+import { useAuth } from '../context/AuthContext'; 
 import TagBrowserWidget from '../components/widgets/TagBrowserWidget';
 
-// User manager
+// ==========================================
+// 1. User Manager (Admin Only)
+// ==========================================
 function UserManager() {
     const [users, setUsers] = useState([]);
     const [isFetching, setIsFetching] = useState(true);
-    const [editingUser, setEditingUser] = useState(null); // Tracks which user is being edited.
+    const [editingUser, setEditingUser] = useState(null); // Tracking username being edited
     const [newUser, setNewUser] = useState({ username: '', password: '', role: 'Operator' });
 
     const fetchUsers = async () => {
@@ -17,227 +18,137 @@ function UserManager() {
         try {
             const response = await apiClient.get('/api/admin/users');
             setUsers(response.data);
-        } catch (err) {
-            console.error('Failed to fetch users:', err);
-        } finally {
-            setIsFetching(false);
-        }
+        } catch (err) { console.error(err); } finally { setIsFetching(false); }
     };
 
     useEffect(() => { fetchUsers(); }, []);
-
-    const handleCreate = async (e) => {
-        e.preventDefault();
-
-        // Clean username one last time before sending
-        const cleanName = newUser.username.trim().replace(/\s/g, '');
-
-        if (cleanName.length < 3) {
-            alert("Username must be at least 3 characters.");
-            return;
-        }
-
-        try {
-            await apiClient.post('/api/admin/users', {
-                username: cleanName,
-                password: newUser.password,
-                role: newUser.role,
-                is_active: true // Explicitly send this to avoid 400 errors
-            });
-            setNewUser({ username: '', password: '', role: 'Operator' });
-            fetchUsers();
-            alert("User created successfully.");
-        } catch (err) {
-            // Show the specific error from the backend if available
-            const msg = err.response?.data?.detail || "Error creating user.";
-            alert(msg);
-        }
-    };
 
     const handleUpdate = async (username) => {
         try {
             await apiClient.put(`/api/admin/users/${username}`, editingUser);
             setEditingUser(null);
             fetchUsers();
-            alert("User updated.");
-        } catch (err) { alert("Update failed."); }
+        } catch (err) { alert("Update failed"); }
     };
 
-    const handleDelete = async (username) => {
-        if (!window.confirm(`Delete user ${username}?`)) return;
+    const handleCreate = async (e) => {
+        e.preventDefault();
         try {
-            await apiClient.delete(`/api/admin/users/${username}`);
+            await apiClient.post('/api/admin/users', { ...newUser, is_active: true });
+            setNewUser({ username: '', password: '', role: 'Operator' });
             fetchUsers();
-        } catch (err) { alert(err.response?.data?.detail || "Delete failed."); }
+        } catch (err) { alert(err.response?.data?.detail || "Error"); }
     };
 
-    if (isFetching) return <div className="card"><h2>Loading User Management...</h2></div>
+    if (isFetching) return <div className="card">Loading Users...</div>;
 
     return (
-        <div className="card" style={{ marginTop: '2rem' }}>
-            <h2>User Management (Admin)</h2>
-            <p>Manage system access levels and passwords.</p>
-
-            <table className="tag-table">
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Role</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {users.map(u => (
-                        <tr key={u.username}>
-                            <td>{u.username}</td>
-                            <td>
-                                {editingUser?.username === u.username ? (
-                                    <select
-                                        value={editingUser.role}
-                                        onChange={e => setEditingUser({ ...editingUser, role: e.target.value })}
-                                        className="status-toggle" style={{ backgroundColor: '#1e1e1e', color: 'white' }}
-                                    >
-                                        <option value="Operator">Operator</option>
-                                        <option value="Engineer">Engineer</option>
-                                        <option value="Admin">Admin</option>
-                                    </select>
-                                ) : u.role}
-                            </td>
-                            <td style={{ display: 'flex', gap: '10px' }}>
-                                {editingUser?.username === u.username ? (
-                                    <>
-                                        <button onClick={() => handleUpdate(u.username)} style={{ backgroundColor: '#27ae60' }}>Save</button>
-                                        <button onClick={() => setEditingUser(null)}>Cancel</button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <button onClick={() => setEditingUser({ username: u.username, role: u.role, password: '' })}>Edit</button>
-                                        <button onClick={() => handleDelete(u.username)} style={{ backgroundColor: '#c0392b' }}>Delete</button>
-                                    </>
-                                )}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-
-            <h3 style={{ marginTop: '2rem', borderTop: '1px solid #444', paddingTop: '1rem' }}>Create New User</h3>
-            <form onSubmit={handleCreate} className="form-group-with-button" style={{ gridTemplateColumns: '1fr 1fr 1fr 80px' }}>
-                <input
-                    placeholder="Username (No spaces)"
-                    value={newUser.username}
-                    onChange={e => {
-                        // Remove spaces immediately as the user types
-                        const val = e.target.value.replace(/\s/g, '');
-                        setNewUser({ ...newUser, username: val });
-                    }}
-                    required
-                />
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={newUser.password}
-                    onChange={e => setNewUser({ ...newUser, password: e.target.value })}
-                    required
-                />
-                <select
-                    value={newUser.role}
-                    onChange={e => setNewUser({ ...newUser, role: e.target.value })}
-                    style={{ padding: '0.8rem', borderRadius: '6px', backgroundColor: '#1e1e1e', color: 'white', border: '1px solid #555' }}
-                >
-                    <option value="Operator">Operator</option>
-                    <option value="Engineer">Engineer</option>
-                    <option value="Admin">Admin</option>
-                </select>
-                <button type="submit">Add</button>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+            <h2 style={{ marginBottom: '1rem', borderBottom: '1px solid #444', paddingBottom: '0.5rem' }}>Account Management</h2>
+            <div style={{ flexGrow: 1, overflowY: 'auto', marginBottom: '1rem' }}>
+                <table className="tag-table compact-table">
+                    <thead><tr><th>User</th><th>Role</th><th>Action</th></tr></thead>
+                    <tbody>
+                        {users.map(u => (
+                            <tr key={u.username}>
+                                <td>{u.username}</td>
+                                <td>
+                                    {editingUser?.username === u.username ? (
+                                        <select 
+                                            value={editingUser.role} 
+                                            onChange={e => setEditingUser({...editingUser, role: e.target.value})}
+                                            style={{backgroundColor: '#1e1e1e', color: 'white', border: '1px solid #555'}}
+                                        >
+                                            <option value="Operator">Operator</option>
+                                            <option value="Engineer">Engineer</option>
+                                            <option value="Admin">Admin</option>
+                                        </select>
+                                    ) : u.role}
+                                </td>
+                                <td>
+                                    <div style={{display: 'flex', gap: '5px'}}>
+                                        {editingUser?.username === u.username ? (
+                                            <button onClick={() => handleUpdate(u.username)} style={{ backgroundColor: '#27ae60', padding: '2px 8px' }}>Save</button>
+                                        ) : (
+                                            <button onClick={() => setEditingUser({username: u.username, role: u.role})} style={{ backgroundColor: '#3498db', padding: '2px 8px' }}>Edit</button>
+                                        )}
+                                        <button onClick={async () => {
+                                            if(window.confirm(`Delete ${u.username}?`)) {
+                                                await apiClient.delete(`/api/admin/users/${u.username}`);
+                                                fetchUsers();
+                                            }
+                                        }} style={{ backgroundColor: '#c0392b', padding: '2px 8px' }}>Del</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+            <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #444', paddingTop: '1rem' }}>
+                <input placeholder="New Username" value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value.replace(/\s/g, '') })} required style={{ padding: '8px' }} />
+                <input type="password" placeholder="Password" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} required style={{ padding: '8px' }} />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <select value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })} style={{ flexGrow: 1, padding: '8px' }}>
+                        <option value="Operator">Operator</option><option value="Engineer">Engineer</option><option value="Admin">Admin</option>
+                    </select>
+                    <button type="submit" style={{ backgroundColor: '#27ae60' }}>Create</button>
+                </div>
             </form>
         </div>
     );
 }
 
-// === RESTORING THE MISSING TAG MANAGER COMPONENT ===
+// ==========================================
+// 2. Tag Manager (Admin Only)
+// ==========================================
 function TagManager({ onRefreshTagBrowser }) {
     const [tags, setTags] = useState([]);
     const [isFetching, setIsFetching] = useState(true);
-    const [isError, setIsError] = useState(false);
 
     const fetchTags = async () => {
         setIsFetching(true);
-        setIsError(false);
         try {
             const response = await apiClient.get('/api/tags');
             setTags(response.data);
-            setIsError(false);
-        } catch (err) {
-            console.error('Failed to fetch tags for TagManager:', err.response?.status, err.message);
-            setIsError(true);
-        } finally {
-            setIsFetching(false);
-        }
+        } catch (err) { console.error(err); } finally { setIsFetching(false); }
     };
 
-    useEffect(() => {
-        fetchTags();
-    }, []);
+    useEffect(() => { fetchTags(); }, []);
 
-    // Expose refresh to parent via ref or just let parent pass a dependency/prop 
-    // Wait, the parent just passes a key to force re-render, or we can use an exposed method via ref.
-    // Instead of ref, let's just make the parent responsible for refreshing.
-
-    const handleToggle = async (tagId, currentState) => {
-        try {
-            await apiClient.put(`/api/tags/${tagId}`, { is_active: !currentState });
-            fetchTags();
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const handleDeleteTag = async (tagId) => {
-        if (!window.confirm("Delete this tag? It will stop polling immediately.")) return;
-        try {
-            await apiClient.delete(`/api/tags/${tagId}`);
-            fetchTags();
-            if (onRefreshTagBrowser) onRefreshTagBrowser(); // Tell browser to update its DB list
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    if (isFetching && tags.length === 0) {
-        return (
-            <div className="card" style={{ marginTop: '2rem' }}>
-                <h2>Tag Polling Configuration (Admin)</h2>
-                <p>Loading configuration...</p>
-            </div>
-        );
-    }
-
-    if (isError && tags.length === 0) {
-        return (
-            <div className="card" style={{ marginTop: '2rem', borderLeft: '5px solid #e74c3c' }}>
-                <h2>Tag Polling Configuration (Admin)</h2>
-                <p style={{ color: '#e74c3c' }}>
-                    Configuration data inaccessible. (Check console for error).
-                </p>
-            </div>
-        );
-    }
+    if (isFetching && tags.length === 0) return <div className="card">Loading Tags...</div>;
 
     return (
-        <div className="card" style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column' }}>
-            <h2>Tag Polling Configuration (Admin)</h2>
-            <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid #444', borderRadius: '6px' }}>
-                <table className="tag-table compact-table" style={{ margin: 0 }}>
-                    <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-                        <tr><th>ID</th><th>Tag Name</th><th>Data Type</th><th>Status</th><th>Actions</th></tr>
-                    </thead>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <h2 style={{ marginBottom: '1rem', borderBottom: '1px solid #444', paddingBottom: '0.5rem', flexShrink: 0 }}>Active Tag Polling List</h2>
+            <div style={{ flexGrow: 1, overflowY: 'auto', paddingBottom: '20px' }}>
+                <table className="tag-table compact-table">
+                    <thead><tr><th>Tag</th><th>Status</th><th>Delete?</th></tr></thead>
                     <tbody>
                         {tags.map(tag => (
                             <tr key={tag.id}>
-                                <td>{tag.id}</td><td>{tag.tag}</td><td>{tag.datatype}</td>
-                                <td><button className={`status-toggle ${tag.is_active ? 'active' : 'inactive'}`} onClick={() => handleToggle(tag.id, tag.is_active)} style={{ padding: '0.2rem 0.5rem', fontSize: '0.85em' }}>{tag.is_active ? 'ACTIVE' : 'INACTIVE'}</button></td>
-                                <td><button onClick={() => handleDeleteTag(tag.id)} style={{ padding: '0.2rem 0.6rem', fontSize: '0.85em', backgroundColor: '#c0392b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Del</button></td>
+                                <td style={{ fontSize: '0.85em', wordBreak: 'break-all' }}>{tag.tag}</td>
+                                <td>
+                                    <button 
+                                        className={`status-toggle ${tag.is_active ? 'active' : 'inactive'}`}
+                                        onClick={async () => {
+                                            await apiClient.put(`/api/tags/${tag.id}`, { is_active: !tag.is_active });
+                                            fetchTags();
+                                        }}
+                                        style={{ fontSize: '0.7em', padding: '2px 5px' }}
+                                    >
+                                        {tag.is_active ? 'ON' : 'OFF'}
+                                    </button>
+                                </td>
+                                <td>
+                                    <button onClick={async () => {
+                                        if(window.confirm("Delete tag? This will delete all data associated with this tag! If you only wish to pause polling, click status")) {
+                                            await apiClient.delete(`/api/tags/${tag.id}`);
+                                            fetchTags();
+                                            onRefreshTagBrowser();
+                                        }
+                                    }} style={{ backgroundColor: '#c0392b', padding: '2px 8px' }}>X</button>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
@@ -246,60 +157,161 @@ function TagManager({ onRefreshTagBrowser }) {
         </div>
     );
 }
-// === END TAG MANAGER RESTORATION ===
 
+// ==========================================
+// 3. Main Engineering Page Component
+// ==========================================
 function EngineeringPage() {
-    // We rely on useAuth() now, as the sync-login fix ensures it holds the most accurate, non-null user data.
     const { user } = useAuth();
-
-    // Check if the primary data structure (user object) has resolved.
-    if (!user) {
-        // This state handles the brief moment after login but before the context has propagated.
-        return (
-            <div className="engineering-layout">
-                <div className="card" style={{ width: '100%', maxWidth: '600px' }}>
-                    <h2>Authenticating Role...</h2>
-                    <p>Please wait while the final permissions are verified.</p>
-                </div>
-            </div>
-        );
-    }
-
-    // Robust role evaluation based on data guaranteed by the AuthContext user
-    const role = user.role;
-    const isEngineer = role === 'Engineer' || role === 'Admin';
-    const isAdmin = role === 'Admin';
-
-    // Provide a key to force re-render TagManager when a tag is added in the browser
-    const [tagManagerKey, setTagManagerKey] = useState(0);
-    // Provide a way to refresh TagBrowser when a tag is deleted in TagManager
     const [tagBrowserKey, setTagBrowserKey] = useState(0);
+    const [tagManagerKey, setTagManagerKey] = useState(0);
+
+    if (!user) return <div className="engineering-layout"><div className="card"><h2>Authenticating...</h2></div></div>;
+
+    const isAdmin = user.role === 'Admin';
 
     return (
-        <div className="config-layout">
-            {/* 1. Show TagManager and User Manager if Admin */}
-            {isAdmin && (
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <TagBrowserWidget
-                        key={`browser-${tagBrowserKey}`}
-                        onTagsUpdated={() => setTagManagerKey(k => k + 1)}
-                    />
-                    <TagManager
-                        key={`manager-${tagManagerKey}`}
-                        onRefreshTagBrowser={() => setTagBrowserKey(k => k + 1)}
-                    />
-                </div>
-            )}
-            {isAdmin && <UserManager />}
+        <div style={{ padding: '30px', height: 'calc(100vh - 66px)', boxSizing: 'border-box', overflow: 'hidden' }}>
+            <div style={{ maxWidth: '1750px', margin: '0 auto', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ 
+                    display: 'grid', 
+                    // Standardizing column widths and ensuring they don't overlap
+                    gridTemplateColumns: isAdmin ? 'repeat(3, 1fr)' : '1fr',
+                    gap: '25px',
+                    flexGrow: 1,
+                    minHeight: 0 // Crucial for internal scrolling
+                }}>
+                    
+                    {/* COLUMN 1: TAG BROWSER */}
+                    {isAdmin && (
+                        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                            {/* Pass a style prop to override the internal card margin */}
+                            <TagBrowserWidget 
+                                key={`browser-${tagBrowserKey}`} 
+                                onTagsUpdated={() => setTagManagerKey(k => k + 1)}
+                                style={{ margin: 0, height: '100%' }} 
+                            />
+                        </div>
+                    )}
 
-            {/* 2. Access Denied if authenticated but role is neither */}
-            {(!isEngineer && !isAdmin) && (
-                <div className="card">
-                    <h2>Access Denied</h2>
-                    <p>Your current role ({role}) does not have permission to view this page.</p>
+                    {/* COLUMN 2: ACTIVE TAGS */}
+                    {isAdmin && (
+                        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                            <TagManager 
+                                key={`manager-${tagManagerKey}`} 
+                                onRefreshTagBrowser={() => setTagBrowserKey(k => k + 1)} 
+                            />
+                        </div>
+                    )}
+
+                    {/* COLUMN 3: TOOLS & USERS */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%', overflowY: 'auto', paddingRight: '5px' }}>
+                        <div className="card"><h2 style={{ marginBottom: '15px' }}>Data Exports</h2><ExportControls /></div>
+                        <div className="card">
+                            <h2 style={{ marginBottom: '15px' }}>Personalisation (Layout and Pens)</h2>
+                            <button onClick={async () => {
+                                if(window.confirm("Reset layout?")) { await apiClient.delete('/api/user/prefs/reset'); window.location.reload(); }
+                            }} style={{ width: '100%', backgroundColor: '#34495e' }}>Reset Dashboards Preferences</button>
+                        </div>
+                        {isAdmin && <UserManager />}
+                        {isAdmin && (
+                            <div className="card" style={{ border: '1px solid #c0392b' }}>
+                                <h2 style={{ color: '#e74c3c' }}>RESET TAG LIST</h2>
+                                <p>WARNING! Tags are CASCADED and this action will PURGE all historical data for ALL TAGS.</p>
+                                <button onClick={async () => {
+                                    if (window.prompt("Type 'PURGE' to proceed:") === 'PURGE') {
+                                        await apiClient.delete('/api/admin/maintenance/reset-tags');
+                                        window.location.reload();
+                                    }
+                                }} style={{ width: '100%', backgroundColor: '#c0392b', marginTop: '10px' }}>Purge Database</button>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 }
+
+function ExportControls() {
+    const [range, setRange] = useState('1h');
+    const [isExporting, setIsExporting] = useState(false);
+
+    const downloadCSV = async () => {
+        setIsExporting(true);
+        try {
+            // 1. Get currently active tags
+            const tagRes = await apiClient.get('/api/tags');
+            const activeTags = tagRes.data.map(t => t.tag);
+            
+            // 2. Calculate Start/End time based on selection
+            const now = new Date();
+            let start = new Date();
+            if (range === '1h') start.setHours(now.getHours() - 1);
+            else if (range === '24h') start.setHours(now.getHours() - 24);
+            else if (range === '7d') start.setDate(now.getDate() - 7);
+            else if (range === '1mo') start.setMonth(now.getMonth() - 1);
+            else if (range === '1y') start.setFullYear(now.getFullYear() - 1);
+            else if (range === 'All') start = new Date(2000, 0, 1); // Way back
+
+            const params = new URLSearchParams();
+            activeTags.forEach(t => params.append('tags', t));
+            params.append('start_time', start.toISOString());
+            params.append('end_time', now.toISOString());
+
+            // 3. Fetch data from backend
+            // NOTE: The backend will automatically aggregate this data for us 
+            // because of your tiered logic in get_historian!
+            const dataRes = await apiClient.get('/api/historian', { params });
+            const data = dataRes.data;
+
+            // 4. Transform to CSV
+            let csv = "Timestamp,Tag,Value\n";
+            Object.keys(data).forEach(tag => {
+                data[tag].forEach(p => {
+                    csv += `${p.ts},${tag},${p.value}\n`;
+                });
+            });
+
+            // 5. Trigger Download
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `A25_Data_Export_${range}_${new Date().getTime()}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error("Export Error:", e);
+            alert("Export failed. Range might be too large for browser memory.");
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.9em', color: '#aaa' }}>Export Range</span>
+                <select value={range} onChange={e => setRange(e.target.value)} style={{ padding: '5px' }}>
+                    <option value="1h">Last Hour</option>
+                    <option value="24h">Last 24 Hours</option>
+                    <option value="7d">Last 7 Days</option>
+                    <option value="1mo">Last Month</option>
+                    <option value="1y">Last Year</option>
+                    <option value="All">All Time</option>
+                </select>
+            </div>
+            <button 
+                onClick={downloadCSV} 
+                disabled={isExporting}
+                style={{ backgroundColor: '#27ae60', cursor: isExporting ? 'not-allowed' : 'pointer' }}
+            >
+                {isExporting ? 'Processing...' : 'Download CSV'}
+            </button>
+            <button style={{ backgroundColor: '#2980b9' }}>Generate Report PDF</button>
+        </div>
+    );
+}
+
 export default EngineeringPage;

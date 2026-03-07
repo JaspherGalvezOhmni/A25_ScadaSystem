@@ -23,35 +23,42 @@ function StreamingChart({ allTags, visibleTags, displayRangeSec, tagColorMap, li
   const [chartData, setChartData] = useState({ datasets: [] });
   const [isLoading, setIsLoading] = useState(true);
 
-  const pollInterval = 1000; // 10Hz
-
-  // --- DUAL MODE CONFIGURATION ---
-  // "Safe Mode" (<= 5 mins): Standard rendering. Reliable.
-  // "Performance Mode" (> 5 mins): Decimation ON, Parsing OFF. Fast.
   const isPerformanceMode = displayRangeSec > 300;
 
   const chartOptions = useMemo(() => {
-    // BASE OPTIONS
-    const opts = {
+    return {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
       spanGaps: false,
       plugins: {
-        legend: { display: true },
-        position: 'top',
-        align: 'end',
-        labels: {
-          color: '#a0a0a0',
-          boxWidth: 12,
-          usePointStyle: 'circle',
-          padding: 10,
-          font: { size: 11 }
-        },
-        onClick: (e, legendItem, legend) => {
-          if (onTogglePen) {
-            onTogglePen(legendItem.text);
+        legend: {
+          display: true,
+          position: 'top',
+          align: 'end',
+          labels: {
+            color: '#a0a0a0',
+            boxWidth: 12,
+            usePointStyle: 'circle',
+            padding: 10,
+            font: { size: 11 }
+          },
+          // FIX: Proper legend click handler for Chart.js 4+
+          onClick: (e, legendItem, legend) => {
+            const index = legendItem.datasetIndex;
+            const ci = legend.chart;
+            const tagName = ci.data.datasets[index].label;
+
+            if (onTogglePen) {
+              // This triggers the DB save and state update in OperationalDetailsPage
+              onTogglePen(tagName);
+            }
           }
+        },
+        tooltip: {
+            enabled: true,
+            mode: 'index',
+            intersect: false,
         },
         decimation: { enabled: false }
       },
@@ -59,11 +66,6 @@ function StreamingChart({ allTags, visibleTags, displayRangeSec, tagColorMap, li
         x: {
           type: "time",
           time: { unit: "second", tooltipFormat: "HH:mm:ss.SSS" },
-          displayFormats: {
-            second: 'HH:mm:ss',
-            minute: 'HH:mm',
-            hour: 'MMM d, HH"mm',
-          },
           ticks: { color: '#a0a0a0', maxRotation: 0, autoSkip: true, maxTicksLimit: 10, source: 'auto' },
           grid: { color: '#333' }
         },
@@ -86,73 +88,35 @@ function StreamingChart({ allTags, visibleTags, displayRangeSec, tagColorMap, li
       },
       elements: {
         line: { tension: 0, borderWidth: 2 },
-        point: { radius: 0, hoverRadius: 5 } // Default hidden
+        point: { radius: 0, hoverRadius: 5 }
       }
     };
+  }, [onTogglePen]); // Simplified dependencies to avoid logic loops
 
-    if (isPerformanceMode) {
-      // --- PERFORMANCE MODE (> 5 mins) ---
-      opts.parsing = false; // Trust our x: ms data
-      opts.normalized = true;
-      opts.plugins.decimation = {
-        enabled: true,
-        algorithm: 'min-max',
-        samples: 500,
-      };
-    } else {
-      // --- SAFE MODE (<= 5 mins) ---
-      opts.parsing = true; // Let Chart.js parse the ISO strings/Date objs
-      // Show dots only if range is very short (1 min or less)
-      if (displayRangeSec <= 120) {
-        opts.elements.point.radius = 2;
-      }
-    }
-
-    return opts;
-  }, [isPerformanceMode, displayRangeSec]);
-
+  // ... (mergeAndSetData remains the same)
   const mergeAndSetData = (incomingData, endTime, windowSeconds) => {
     const newRawData = { ...rawDataRef.current };
-
     allTags.forEach((tag) => {
       if (!newRawData[tag]) newRawData[tag] = [];
-      const existingTimestamps = new Set(newRawData[tag].map((p) => p.ts));
-
+      const existingTs = new Set(newRawData[tag].map((p) => p.ts));
       if (incomingData[tag] && Array.isArray(incomingData[tag])) {
         incomingData[tag].forEach((newPoint) => {
-          if (existingTimestamps.has(newPoint.ts)) return;
-          // Basic validation
-          if (newPoint.value === null || newPoint.value === undefined) return;
-          const numericValue = parseFloat(newPoint.value);
-          if (isNaN(numericValue)) return;
-
-          newRawData[tag].push({ ts: newPoint.ts, value: numericValue });
+          if (existingTs.has(newPoint.ts)) return;
+          const numVal = parseFloat(newPoint.value);
+          if (!isNaN(numVal)) newRawData[tag].push({ ts: newPoint.ts, value: numVal });
         });
       }
-
-      // Prune old
       const cutoff = subSeconds(endTime, windowSeconds).getTime();
-      newRawData[tag] = newRawData[tag].filter(
-        (p) => new Date(p.ts).getTime() >= cutoff
-      );
-
+      newRawData[tag] = newRawData[tag].filter(p => new Date(p.ts).getTime() >= cutoff);
       newRawData[tag].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
     });
-
     rawDataRef.current = newRawData;
 
     const datasets = allTags.map((tag) => {
       const rawPoints = rawDataRef.current[tag] || [];
-
-      // DATA TRANSFORMATION BASED ON MODE
-      let dataPoints;
-      if (isPerformanceMode) {
-        // Performance Mode: Needs {x: Milliseconds, y: Value}
-        dataPoints = rawPoints.map(p => ({ x: new Date(p.ts).getTime(), y: p.value }));
-      } else {
-        // Safe Mode: Needs {x: ISO String, y: Value} (Standard parsing)
-        dataPoints = rawPoints.map(p => ({ x: p.ts, y: p.value }));
-      }
+      const dataPoints = isPerformanceMode 
+        ? rawPoints.map(p => ({ x: new Date(p.ts).getTime(), y: p.value }))
+        : rawPoints.map(p => ({ x: p.ts, y: p.value }));
 
       return {
         label: tag,
@@ -162,75 +126,44 @@ function StreamingChart({ allTags, visibleTags, displayRangeSec, tagColorMap, li
         yAxisID: tag === 'A25_Speed' ? 'y1' : 'y',
       };
     });
-
     setChartData({ datasets });
   };
 
   useEffect(() => {
     rawDataRef.current = {};
     setIsLoading(true);
-
     let isMounted = true;
-
     const runProcess = async () => {
       const now = new Date();
-
-      // 1. Initial Backfill
       try {
         const start = subSeconds(now, displayRangeSec);
         const params = new URLSearchParams();
         allTags.forEach(tag => params.append('tags', tag));
         params.append('start_time', start.toISOString());
         params.append('end_time', now.toISOString());
-
         const histResponse = await apiClient.get('/api/historian', { params });
         if (isMounted) {
           mergeAndSetData(histResponse.data, now, displayRangeSec);
           setIsLoading(false);
         }
-      } catch (e) {
-        if (isMounted) setIsLoading(false);
-      }
+      } catch (e) { if (isMounted) setIsLoading(false); }
     };
-
     runProcess();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [allTags, displayRangeSec]);
 
-  // 2. Live Data Injection
   useEffect(() => {
     if (isLoading || !liveTags || Object.keys(liveTags).length === 0) return;
-
     const now = new Date();
     const incomingData = {};
-
     allTags.forEach(tag => {
-      if (liveTags[tag] !== undefined) {
-        // Create the structure expected by mergeAndSetData
-        incomingData[tag] = [{ ts: now.toISOString(), value: liveTags[tag] }];
-      }
+      if (liveTags[tag] !== undefined) incomingData[tag] = [{ ts: now.toISOString(), value: liveTags[tag] }];
     });
-
-    if (Object.keys(incomingData).length > 0) {
-      mergeAndSetData(incomingData, now, displayRangeSec);
-    }
+    if (Object.keys(incomingData).length > 0) mergeAndSetData(incomingData, now, displayRangeSec);
   }, [liveTags, isLoading, allTags, displayRangeSec]);
 
-  if (isLoading) {
-    return (
-      <div style={{
-        height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#a0a0a0', flexDirection: 'column', gap: '10px'
-      }}>
-        <span>Loading Data...</span>
-      </div>
-    );
-  }
+  if (isLoading) return <div className="loading-message">Loading Data...</div>;
 
-  // Key forces full re-mount when switching between Safe/Performance modes
   return (
     <Line
       key={isPerformanceMode ? 'perf' : 'safe'}
@@ -238,12 +171,13 @@ function StreamingChart({ allTags, visibleTags, displayRangeSec, tagColorMap, li
         ...chartData,
         datasets: chartData.datasets.map(ds => ({
           ...ds,
+          // CRITICAL: This is what actually hides/shows the line in real-time
           hidden: !visibleTags.includes(ds.label)
         }))
       }}
       options={chartOptions}
     />
   );
-};
+}
 
 export default StreamingChart;
