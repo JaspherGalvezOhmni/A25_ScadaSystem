@@ -143,6 +143,9 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
     password: Optional[str] = None
 
+class UserPrefsUpdate(BaseModel):
+    prefs: dict
+
 # --- HELPERS ---
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -604,13 +607,9 @@ def update_user(username: str, u: UserUpdate):
     
 @app.delete("/api/admin/users/{username}", dependencies=[Depends(get_current_active_admin)])
 def delete_user(username: str, current_user: User = Depends(get_current_active_admin)):
-    # 1. Protect the MASTER account (Hardcoded name)
     MASTER_ACCOUNT = "admin" 
-    
     if username.lower() == MASTER_ACCOUNT:
         raise HTTPException(403, "Security: The Master Admin account cannot be deleted.")
-
-    # 2. Prevent deleting yourself (if you aren't the master but are an admin)
     if username == current_user.username:
         raise HTTPException(400, "Security: You cannot delete your own session account.")
 
@@ -618,14 +617,57 @@ def delete_user(username: str, current_user: User = Depends(get_current_active_a
     try:
         conn = get_db_conn()
         with conn.cursor() as cur:
+            # FIX: Added the SQL command and indented correctly
             cur.execute("DELETE FROM app.users WHERE username = %s", (username,))
             conn.commit()
         return {"status": "deleted"}
     except Exception as e:
         if conn: conn.rollback()
-        raise HTTPException(500, f"Database error: {e}")
+        raise HTTPException(400, f"Database error: {str(e)}")
     finally:
-        release_db_conn(conn)
+        if conn: release_db_conn(conn)
+
+# --- USER PREFS ENDPOINTS (Standardized for your Frontend) ---
+
+@app.get("/api/user/prefs")
+def get_user_prefs(current_user: User = Depends(get_current_user)):
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute("SELECT ui_prefs FROM app.users WHERE username = %s", (current_user.username,))
+            res = cur.fetchone()
+            # If DB is null or empty, return expected JSON structure
+            if res and res[0]:
+                return {"prefs": res[0]}
+            return {"prefs": {}}
+    except Exception as e:
+        print(f"🔴 DB Error (get_user_prefs): {e}")
+        raise HTTPException(500, "Database error")
+    finally:
+        if conn: release_db_conn(conn)
+
+@app.put("/api/user/prefs")
+def update_user_prefs(prefs_update: UserPrefsUpdate, current_user: User = Depends(get_current_user)):
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            # FIX: Use psycopg2's Json wrapper instead of manually doing json.dumps
+            # This ensures Postgres treats it as a JSONB object correctly.
+            from psycopg2.extras import Json
+            cur.execute(
+                "UPDATE app.users SET ui_prefs = %s WHERE username = %s",
+                (Json(prefs_update.prefs), current_user.username)
+            )
+            conn.commit()
+        return {"status": "success"}
+    except Exception as e:
+        if conn: conn.rollback()
+        print(f"🔴 DB Error (update_user_prefs): {e}")
+        raise HTTPException(500, f"Database error: {str(e)}")
+    finally:
+        if conn: release_db_conn(conn)
 
 @app.get("/")
 def health_check(): return {"status": "online", "ts": datetime.now().isoformat()}
