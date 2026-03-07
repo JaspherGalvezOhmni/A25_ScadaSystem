@@ -100,133 +100,6 @@ test_db_read.py
 <files>
 This section contains the contents of the repository's files.
 
-<file path="dashboard-ui/src/components/widgets/TagBrowserWidget.jsx">
-import React, { useState, useEffect } from 'react';
-import apiClient from '../../api';
-
-// Recursive component to display tree nodes
-const TagTree = ({ node, path = '', onTagSelect, dbTagNames }) => {
-    const folders = Object.keys(node).filter(k => k !== '__tags__');
-    const tags = node.__tags__ || [];
-
-    return (
-        <ul className="tag-tree-ul">
-            {/* Render Folders/Structures */}
-            {folders.map(folderName => (
-                <li key={folderName} className="tag-folder">
-                    <details open>
-                        <summary className="folder-name">{folderName}</summary>
-                        <TagTree
-                            node={node[folderName]}
-                            path={`${path}/${folderName}`}
-                            onTagSelect={onTagSelect}
-                            dbTagNames={dbTagNames}
-                        />
-                    </details>
-                </li>
-            ))}
-
-            {/* Render Tags (Leaf Nodes) */}
-            {tags.map(tag => {
-                const isInDb = dbTagNames.has(tag.name);
-                return (
-                    <li
-                        key={tag.name}
-                        className={`tag-item ${isInDb ? 'tag-in-db' : ''}`}
-                        onClick={() => onTagSelect(tag, isInDb)}
-                    >
-                        <span className="tag-name-display">{tag.tag_name_only} <span className="tag-datatype">({tag.datatype})</span></span>
-                        {!isInDb && <button className="add-tag-btn">+</button>}
-                    </li>
-                );
-            })}
-        </ul>
-    );
-};
-
-
-function TagBrowserWidget({ onTagsUpdated }) {
-    const [plcTree, setPlcTree] = useState(null);
-    const [dbTagNames, setDbTagNames] = useState(new Set()); // Tags actively polled by DB
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
-
-    // Fetch both PLC tags and the current list of tags in the DB lookup table
-    const fetchData = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            // 1. Fetch PLC structure (Admin endpoint used by Engineer/Admin roles)
-            const plcResponse = await apiClient.get('/api/plc-browse');
-            setPlcTree(plcResponse.data);
-
-            // 2. Fetch current DB tags (to show which tags are ready for history/live display)
-            const dbResponse = await apiClient.get('/api/tags');
-            const dbTags = new Set(dbResponse.data.map(t => t.tag));
-            setDbTagNames(dbTags);
-
-        } catch (e) {
-            console.error("Tag Browser failed:", e);
-            setError("Failed to fetch tags. Ensure PLC and DB are reachable, and you are logged in as Admin/Engineer.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // We expose a method to let the parent trigger a refresh if a tag is deleted
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const handleTagSelect = async (tag, isInDb) => {
-        if (isInDb) return; // Already there
-
-        try {
-            await apiClient.post('/api/tags', { tag: tag.name, datatype: tag.datatype });
-            // Refresh local state and inform parent
-            const dbResponse = await apiClient.get('/api/tags');
-            const dbTags = new Set(dbResponse.data.map(t => t.tag));
-            setDbTagNames(dbTags);
-            if (onTagsUpdated) onTagsUpdated();
-
-        } catch (e) {
-            alert(e.response?.data?.detail || "Failed to add tag");
-        }
-    };
-
-    return (
-        <div className="card tag-browser-widget" style={{ display: 'flex', flexDirection: 'column', marginTop: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h2 style={{ margin: 0 }}>PLC Tag Browser</h2>
-                <button
-                    onClick={fetchData}
-                    disabled={isLoading}
-                    style={{ padding: '0.4rem 0.8rem', backgroundColor: '#3a3a3a' }}
-                >
-                    {isLoading ? 'Refreshing...' : 'Refresh'}
-                </button>
-            </div>
-
-            {error && <p className="error-message">{error}</p>}
-
-            <div className="tag-browser-content" style={{ flexGrow: 1, overflowY: 'auto', maxHeight: '400px', border: '1px solid #444', borderRadius: '6px', padding: '1rem', backgroundColor: '#1e1e1e' }}>
-                {isLoading && !error && <div className="loading-message">Loading PLC Structure...</div>}
-
-                {plcTree && Object.keys(plcTree).length > 0 && (
-                    <TagTree node={plcTree} onTagSelect={handleTagSelect} dbTagNames={dbTagNames} />
-                )}
-
-                {(!plcTree || Object.keys(plcTree).length === 0) && !isLoading && !error && (
-                    <div style={{ color: '#888', fontStyle: 'italic' }}>No tags found or PLC offline.</div>
-                )}
-            </div>
-        </div>
-    );
-}
-
-export default TagBrowserWidget;
-</file>
-
 <file path="dashboard-ui/public/A25+Leaders.svg">
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
@@ -449,120 +322,131 @@ l-135 -124 -97 -3 c-143 -3 -138 -8 -138 158 0 76 3 141 7 144 10 11 521 8
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
 </file>
 
-<file path="dashboard-ui/src/components/EngineeringSidebar.jsx">
+<file path="dashboard-ui/src/components/widgets/TagBrowserWidget.jsx">
 import React, { useState, useEffect } from 'react';
-import apiClient from '../api';
+import apiClient from '../../api';
 
-function EngineeringSidebar({ liveData }) {
-  const tags = liveData?.tags || {};
+// Recursive component to display tree nodes
+const TagTree = ({ node, path = '', onTagSelect, dbTagNames }) => {
+    const folders = Object.keys(node).filter(k => k !== '__tags__');
+    const tags = node.__tags__ || [];
 
-  // Local state for smooth typing
-  const [maglevInput, setMaglevInput] = useState(tags['EM_SV'] || 0);
-  const [motorInput, setMotorInput] = useState(tags['A25_Speed'] || 0);
+    return (
+        <ul className="tag-tree-ul">
+            {/* Render Folders/Structures */}
+            {folders.map(folderName => (
+                <li key={folderName} className="tag-folder">
+                    <details open>
+                        <summary className="folder-name">{folderName}</summary>
+                        <TagTree
+                            node={node[folderName]}
+                            path={`${path}/${folderName}`}
+                            onTagSelect={onTagSelect}
+                            dbTagNames={dbTagNames}
+                        />
+                    </details>
+                </li>
+            ))}
 
-  // Sync inputs with live data only when not typing
-  useEffect(() => {
-    if (document.activeElement.id !== 'mag-input') setMaglevInput(tags['EM_SV'] || 0);
-    if (document.activeElement.id !== 'mot-input') setMotorInput(tags['A25_Speed'] || 0);
-  }, [tags]);
+            {/* Render Tags (Leaf Nodes) */}
+            {tags.map(tag => {
+                const isInDb = dbTagNames.has(tag.name);
+                return (
+                    <li
+                        key={tag.name}
+                        className={`tag-item ${isInDb ? 'tag-in-db' : ''}`}
+                        onClick={() => onTagSelect(tag, isInDb)}
+                    >
+                        <span className="tag-name-display">{tag.tag_name_only} <span className="tag-datatype">({tag.datatype})</span></span>
+                        {!isInDb && <button className="add-tag-btn">+</button>}
+                    </li>
+                );
+            })}
+        </ul>
+    );
+};
 
-  const handleWrite = async (tagName, value) => {
-    try {
-      // Logic for bool vs float
-      const finalValue = typeof value === 'boolean' ? (value ? 1 : 0) : parseFloat(value);
-      await apiClient.post('/api/write-tag', { 
-        tag_name: tagName, 
-        value: finalValue 
-      });
-    } catch (error) {
-      console.error("Write error", error);
-    }
-  };
 
-  const toggleTag = (tagName) => {
-    const currentState = tags[tagName] === true || tags[tagName] === 1;
-    handleWrite(tagName, !currentState);
-  };
+function TagBrowserWidget({ onTagsUpdated }) {
+    const [plcTree, setPlcTree] = useState(null);
+    const [dbTagNames, setDbTagNames] = useState(new Set()); // Tags actively polled by DB
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-  return (
-    <div className="sidebar commands-sidebar" style={{ gap: '20px', padding: '15px' }}>
-      
-      {/* BOX 1: MAGLEV CONTROL */}
-      <div className="eng-box">
-        <div className="eng-header-row">MAGLEV CONTROL</div>
-        
-        <div className="eng-field-row">
-          <div className="eng-label-field">TARGET SETPOINT</div>
-          <input 
-            id="mag-input"
-            className="eng-value-input"
-            type="number" 
-            value={maglevInput}
-            onChange={(e) => setMaglevInput(e.target.value)}
-            onBlur={() => handleWrite('EM_SV', maglevInput)}
-          />
+    // Fetch both PLC tags and the current list of tags in the DB lookup table
+    const fetchData = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            // 1. Fetch PLC structure (Admin endpoint used by Engineer/Admin roles)
+            const plcResponse = await apiClient.get('/api/plc-browse');
+            setPlcTree(plcResponse.data);
+
+            // 2. Fetch current DB tags (to show which tags are ready for history/live display)
+            const dbResponse = await apiClient.get('/api/tags');
+            const dbTags = new Set(dbResponse.data.map(t => t.tag));
+            setDbTagNames(dbTags);
+
+        } catch (e) {
+            console.error("Tag Browser failed:", e);
+            setError("Failed to fetch tags. Ensure PLC and DB are reachable, and you are logged in as Admin/Engineer.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // We expose a method to let the parent trigger a refresh if a tag is deleted
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const handleTagSelect = async (tag, isInDb) => {
+        if (isInDb) return; // Already there
+
+        try {
+            await apiClient.post('/api/tags', { tag: tag.name, datatype: tag.datatype });
+            // Refresh local state and inform parent
+            const dbResponse = await apiClient.get('/api/tags');
+            const dbTags = new Set(dbResponse.data.map(t => t.tag));
+            setDbTagNames(dbTags);
+            if (onTagsUpdated) onTagsUpdated();
+
+        } catch (e) {
+            alert(e.response?.data?.detail || "Failed to add tag");
+        }
+    };
+
+    return (
+        <div className="card tag-browser-widget" style={{ display: 'flex', flexDirection: 'column', marginTop: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h2 style={{ margin: 0 }}>PLC Tag Browser</h2>
+                <button
+                    onClick={fetchData}
+                    disabled={isLoading}
+                    style={{ padding: '0.4rem 0.8rem', backgroundColor: '#3a3a3a' }}
+                >
+                    {isLoading ? 'Refreshing...' : 'Refresh'}
+                </button>
+            </div>
+
+            {error && <p className="error-message">{error}</p>}
+
+            <div className="tag-browser-content" style={{ flexGrow: 1, overflowY: 'auto', maxHeight: '400px', border: '1px solid #444', borderRadius: '6px', padding: '1rem', backgroundColor: '#1e1e1e' }}>
+                {isLoading && !error && <div className="loading-message">Loading PLC Structure...</div>}
+
+                {plcTree && Object.keys(plcTree).length > 0 && (
+                    <TagTree node={plcTree} onTagSelect={handleTagSelect} dbTagNames={dbTagNames} />
+                )}
+
+                {(!plcTree || Object.keys(plcTree).length === 0) && !isLoading && !error && (
+                    <div style={{ color: '#888', fontStyle: 'italic' }}>No tags found or PLC offline.</div>
+                )}
+            </div>
         </div>
-
-        <button 
-          className={`eng-btn-full ${tags['Controller:Global/EM_ControlEnable'] ? 'active' : 'inactive'}`}
-          onClick={() => toggleTag('Controller:Global/EM_ControlEnable')}
-        >
-          {tags['Controller:Global/EM_ControlEnable'] ? 'ENABLED' : 'DISABLED'}
-        </button>
-      </div>
-
-      {/* BOX 2: MOTOR CONTROL */}
-      <div className="eng-box">
-        <div className="eng-header-row">MOTOR CONTROL</div>
-        
-        <div className="eng-field-row">
-          <div className="eng-label-field">TARGET SETPOINT</div>
-          <input 
-            id="mot-input"
-            className="eng-value-input"
-            type="number" 
-            value={motorInput}
-            onChange={(e) => setMotorInput(e.target.value)}
-            onBlur={() => handleWrite('A25_Speed', motorInput)}
-          />
-        </div>
-
-        <div className="eng-btn-grid">
-          <button 
-            className={`eng-btn-half ${tags['SCADA_Tags/VFD_AutoReturnEnable'] ? 'active' : 'inactive'}`}
-            onClick={() => toggleTag('SCADA_Tags/VFD_AutoReturnEnable')}
-          >
-            {tags['SCADA_Tags/VFD_AutoReturnEnable'] ? 'AUTO RET. ON' : 'AUTO RET. OFF'}
-          </button>
-          <button 
-            className={`eng-btn-half ${tags['VFD_OFF1_CONTROL'] ? 'active' : 'inactive'}`}
-            onClick={() => toggleTag('VFD_OFF1_CONTROL')}
-          >
-            START
-          </button>
-        </div>
-
-        <div className="eng-btn-grid">
-          <button 
-            className={`eng-btn-half ${tags['VFD_RESET'] ? 'active' : 'inactive'}`}
-            onClick={() => toggleTag('VFD_RESET')}
-          >
-            RESET FAULTS
-          </button>
-          <button 
-            className={`eng-btn-half ${tags['VFD_OFF3_CONTROL'] ? 'active' : 'inactive'}`}
-            onClick={() => toggleTag('VFD_OFF3_CONTROL')}
-          >
-            FORCE STOP
-          </button>
-        </div>
-      </div>
-
-    </div>
-  );
+    );
 }
 
-export default EngineeringSidebar;
+export default TagBrowserWidget;
 </file>
 
 <file path="dashboard-ui/src/components/HealthStatus.jsx">
@@ -631,120 +515,6 @@ function PensSidebar({ chartDefinitions, visiblePens, onTogglePen }) {
 }
 
 export default PensSidebar;
-</file>
-
-<file path="dashboard-ui/src/pages/EngineeringDashboardPage.jsx">
-// dashboard-ui/src/pages/HomePage.jsx
-
-import { useState } from 'react';
-import { useOutletContext } from "react-router-dom";
-import { useSystemStatus } from '../context/SystemStatusContext';
-import CommandsSidebar from '../components/CommandsSidebar';
-import FlywheelVisual from '../components/FlywheelVisual';
-import HealthStatus from '../components/HealthStatus';
-import PopoutWindow from '../components/PopoutWindow';
-import { getSystemStatus } from '../constants';
-import EngineeringSidebar from '../components/EngineeringSidebar';
-
-// Reusable component for the new stylized status rows
-const StatusRow = ({ label, value, unit = '', isWarning = false, isHealthy = false }) => {
-    return (
-        <div className="status-box-row">
-            <div className="status-box-label">{label}</div>
-            <div className={`status-box-value ${isWarning ? 'warning' : isHealthy ? 'healthy' : ''}`}>
-                {value !== undefined && value !== null ? value : '---'} {unit}
-            </div>
-        </div>
-    );
-};
-
-function EngineeringDashboardPage() {
-    const { setpoints } = useOutletContext();
-
-    // Consuming Global State instead of local fetching
-    const { liveData, connectionStatus, formatTime } = useSystemStatus();
-
-    // --- DERIVED VALUES (Updated to use NEW A25_ tags and new status logic) ---
-    const tags = liveData.tags || {};
-
-    // Helper for safe number formatting
-    const safeNum = (val, toFixed = 1) => {
-        if (val === undefined || val === null || isNaN(val)) return '---';
-        return Number(val).toFixed(toFixed);
-    };
-
-    return (
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
-
-            <div style={{
-                backgroundColor: '#181818',
-                borderBottom: '1px solid #333',
-                height: '6px',
-                flexShrink: 0
-            }}></div>
-
-            {/* Static Dashboard Layout */}
-            <div className="home-layout" style={{ backgroundColor: '#00151d' }}>
-                <EngineeringSidebar liveData={liveData} />
-
-                <div className="flywheel-section" style={{ position: 'relative', backgroundColor: '#1e1e1e' }}>
-                    <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <FlywheelVisual liveData={liveData} />
-                    </div>
-                </div>
-
-                <div className="sidebar status-sidebar">
-                    {/* SYSTEM STATUS BLOCK */}
-                    <div className="status-box">
-                        <div className="status-box-header">SYSTEM STATUS</div>
-                        <StatusRow label="CURRENT SPEED" value={safeNum(tags['VFD_Sts_MtrSpeedScaled'], 0)} unit="RPM" />
-                        <StatusRow label="CURRENT TORQUE" value={safeNum(tags['VFD_Sts_AcutalTorque'], 1)} unit="%" />
-                        <StatusRow label="GRID FREQUENCY" value={safeNum(tags['VFD_Sts_GridFreq'], 1)} unit="Hz" />
-                        <StatusRow label="GRID VOLTS" value={safeNum(tags['VFD_Sts_GridVolts'], 1)} unit="V" />
-                        <StatusRow label="GRID POWER" value={safeNum(tags['VFD_Sts_GridAppPower'], 1)} unit="kVA" />
-                        <StatusRow label="OUTPUT POWER" value={safeNum(tags['VFD_Sts_OutPowerScaled'], 1)} unit="kW" />
-                        <StatusRow label="AMBIENT TEMP" value={safeNum(tags['TT001.Scaled'], 1)} unit="C" />
-                    </div>
-
-                    {/* MAGLEV STATUS BLOCK */}
-                    <div className="status-box">
-                        <div className="status-box-header">MAGLEV STATUS</div>
-                        <StatusRow label="CURRENT WEIGHT" value={safeNum(tags['WT001.Scaled'], 0)} unit="kg" />
-                        <StatusRow label="TARGET WEIGHT" value={safeNum(tags['EM_SV'], 0)} unit="kg" />
-                        <StatusRow label="SIGNAL OUTPUT" value={safeNum(tags['Ch0Data'], 1)} unit="mV" />
-                    </div>
-
-                    {/* VSD STATUS BLOCK */}
-                    <div className="status-box">
-                        <div className="status-box-header">VSD STATUS</div>
-                        <StatusRow label="CURRENT SPEED" value={safeNum(tags['VFD_Sts_MtrSpeedScaled'], 1)} unit="RPM" />
-                        <StatusRow label="CURRENT TORQUE" value={safeNum(tags['VFD_Sts_AcutalTorque'], 1)} unit="%" />
-                        <StatusRow label="OUTPUT FREQUENCY" value={safeNum(tags['VFD_Sts_OutFreq'], 1)} unit="Hz" />
-                        <StatusRow label="DC BUS VOLTS" value={safeNum(tags['VFD_Sts_DCVolts'], 0)} unit="V" />
-                        <StatusRow label="GRID VOLTS" value={safeNum(tags['VFD_Sts_GridVolts'], 1)} unit="V" />
-                        <StatusRow label="VSD AMBIENT TEMP" value={safeNum(tags['VSD_Sts_AmbTemp'], 1)} unit="C" />
-                        <StatusRow label="OUTPUT POWER" value={safeNum(tags['VFD_Sts_OutPowerScaled'], 1)} unit="kW" />
-                        <StatusRow 
-                            label="TRIPPING FAULT" 
-                            value={tags['VFD_Sts_TripFlt.value'] ? 'FAULT' : 'OK'} 
-                            isWarning={!!tags['VFD_Sts_TripFlt.value']}
-                            isHealthy={!tags['VFD_Sts_TripFlt.value']}
-                        />
-                        <StatusRow label="LATEST WARNING" value={safeNum(tags['VFD_Sts_latestWarning.value'], 1)} unit="" />
-                        <StatusRow 
-                            label="COMMS STATUS" 
-                            value={tags['VFD_Sts_Comms_Healthy'] ? 'Healthy' : 'Fault'} 
-                            isHealthy={!!tags['VFD_Sts_Comms_Healthy']}
-                            isWarning={!tags['VFD_Sts_Comms_Healthy']}
-                        />
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-export default EngineeringDashboardPage;
 </file>
 
 <file path="dashboard-ui/src/index.css">
@@ -1133,6 +903,122 @@ finally:
     if conn: conn.close()
 </file>
 
+<file path="dashboard-ui/src/components/EngineeringSidebar.jsx">
+import React, { useState, useEffect } from 'react';
+import apiClient from '../api';
+
+function EngineeringSidebar({ liveData }) {
+  const tags = liveData?.tags || {};
+
+  // Local state for smooth typing
+  const [maglevInput, setMaglevInput] = useState(tags['EM_SV'] || 0);
+  const [motorInput, setMotorInput] = useState(tags['A25_Speed'] || 0);
+
+  // Sync inputs with live data only when not typing
+  useEffect(() => {
+    if (document.activeElement.id !== 'mag-input') setMaglevInput(tags['EM_SV'] || 0);
+    if (document.activeElement.id !== 'mot-input') setMotorInput(tags['A25_Speed'] || 0);
+  }, [tags]);
+
+  const handleWrite = async (tagName, value) => {
+    try {
+      // Logic for bool vs float
+      const finalValue = typeof value === 'boolean' ? (value ? 1 : 0) : parseFloat(value);
+      await apiClient.post('/api/write-tag', { 
+        tag_name: tagName, 
+        value: finalValue 
+      });
+    } catch (error) {
+      console.error("Write error", error);
+    }
+  };
+
+  const toggleTag = (tagName) => {
+    const currentState = tags[tagName] === true || tags[tagName] === 1;
+    handleWrite(tagName, !currentState);
+  };
+
+  return (
+    <div className="sidebar commands-sidebar" style={{ gap: '20px', padding: '15px' }}>
+      
+      {/* BOX 1: MAGLEV CONTROL */}
+      <div className="eng-box">
+        <div className="eng-header-row">MAGLEV CONTROL</div>
+        
+        <div className="eng-field-row">
+          <div className="eng-label-field">TARGET SETPOINT</div>
+          <input 
+            id="mag-input"
+            className="eng-value-input"
+            type="number" 
+            value={maglevInput}
+            onChange={(e) => setMaglevInput(e.target.value)}
+            onBlur={() => handleWrite('EM_SV', maglevInput)}
+          />
+        </div>
+
+        <button 
+          className={`eng-btn-full ${tags['EM_ControlEnable'] ? 'active' : 'inactive'}`}
+          onClick={() => toggleTag('EM_ControlEnable')}
+        >
+          {tags['EM_ControlEnable'] ? 'ENABLED' : 'DISABLED'}
+        </button>
+      </div>
+
+      {/* BOX 2: MOTOR CONTROL */}
+      <div className="eng-box">
+        <div className="eng-header-row">MOTOR CONTROL</div>
+        
+        <div className="eng-field-row">
+          <div className="eng-label-field">TARGET SETPOINT</div>
+          <input 
+            id="mot-input"
+            className="eng-value-input"
+            type="number" 
+            value={motorInput}
+            onChange={(e) => setMotorInput(e.target.value)}
+            onBlur={() => handleWrite('VSD_SPEED_REF', motorInput)}
+          />
+        </div>
+
+        <div className="eng-btn-grid">
+          <button 
+            className={`eng-btn-half ${tags['VFD_AutoReturnEnable'] ? 'active' : 'inactive'}`}
+            onClick={() => toggleTag('VFD_AutoReturnEnable')}
+          >
+            {tags['VFD_AutoReturnEnable'] ? 'AUTO RET. ON' : 'AUTO RET. OFF'}
+          </button>
+          <button 
+            className={`eng-btn-half ${tags['VFD_OFF1_CONTROL'] ? 'active' : 'inactive'}`}
+            onClick={() => toggleTag('VFD_OFF1_CONTROL')}
+          >
+            START
+          </button>
+        </div>
+
+        <div className="eng-btn-grid">
+          <button 
+            className={`eng-btn-half ${tags['VFD_RESET'] ? 'active' : 'inactive'}`}
+            onClick={() => toggleTag('VFD_RESET')}
+          >
+            RESET FAULTS
+          </button>
+          <button 
+            className={`eng-btn-half ${tags['VFD_OFF3_CONTROL'] ? 'active' : 'inactive'}`}
+            onClick={() => toggleTag('VFD_OFF3_CONTROL')}
+          >
+            FORCE STOP
+          </button>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+export default EngineeringSidebar;
+</file>
+
 <file path="dashboard-ui/src/components/PopoutWindow.jsx">
 import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -1217,88 +1103,6 @@ useEffect(() => {
 }
 
 export default PopoutWindow;
-</file>
-
-<file path="dashboard-ui/src/context/SystemStatusContext.jsx">
-import { createContext, useState, useContext, useEffect, useRef } from 'react';
-import apiClient from '../api';
-
-const SystemStatusContext = createContext(null);
-
-export const SystemStatusProvider = ({ children }) => {
-  const [liveData, setLiveData] = useState({ tags: {} });
-  
-  // FIX: Initialize state from LocalStorage so we remember "Last Seen" after refresh
-  const [connectionStatus, setConnectionStatus] = useState(() => {
-      const saved = localStorage.getItem('lastSystemSeen');
-      return {
-          state: 'CONNECTING',
-          lastSeen: saved ? new Date(saved) : null
-      };
-  });
-
-  const isFetchingRef = useRef(false);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const performHeartbeat = async () => {
-      if (isFetchingRef.current) return;
-      isFetchingRef.current = true;
-
-      try {
-        const response = await apiClient.get(`/api/live-data?_=${Date.now()}`, { timeout: 2000 });
-        
-        if (isMounted) {
-            setLiveData(response.data);
-            const now = new Date();
-            // FIX: Save to LocalStorage
-            localStorage.setItem('lastSystemSeen', now.toISOString());
-            
-            setConnectionStatus({
-                state: 'ONLINE',
-                lastSeen: now,
-                plcConnected: response.data.status === 'connected'
-            });
-        }
-      } catch (error) {
-        if (isMounted) {
-            setConnectionStatus(prev => ({
-                state: 'OFFLINE',
-                lastSeen: prev.lastSeen 
-            }));
-        }
-      } finally {
-        isFetchingRef.current = false;
-      }
-    };
-
-    performHeartbeat();
-    const intervalId = setInterval(performHeartbeat, 1000);
-
-    return () => {
-        isMounted = false;
-        clearInterval(intervalId);
-    };
-  }, []);
-
-  const value = {
-    liveData,
-    connectionStatus,
-    formatTime: (date) => {
-        if (!date) return "Never";
-        return new Date(date).toLocaleTimeString('en-US', { hour12: false });
-    }
-  };
-
-  return (
-    <SystemStatusContext.Provider value={value}>
-      {children}
-    </SystemStatusContext.Provider>
-  );
-};
-
-export const useSystemStatus = () => useContext(SystemStatusContext);
 </file>
 
 <file path="dashboard-ui/src/pages/LoginPage.jsx">
@@ -1673,6 +1477,201 @@ function ProtectedRoute({ children, adminOnly = false, restrictTo = null }) {
 export default ProtectedRoute;
 </file>
 
+<file path="dashboard-ui/src/context/SystemStatusContext.jsx">
+import { createContext, useState, useContext, useEffect, useRef } from 'react';
+import apiClient from '../api';
+
+const SystemStatusContext = createContext(null);
+
+export const SystemStatusProvider = ({ children }) => {
+  const [liveData, setLiveData] = useState({ tags: {} });
+
+  // FIX: Initialize state from LocalStorage so we remember "Last Seen" after refresh
+  const [connectionStatus, setConnectionStatus] = useState(() => {
+    const saved = localStorage.getItem('lastSystemSeen');
+    return {
+      state: 'CONNECTING',
+      lastSeen: saved ? new Date(saved) : null
+    };
+  });
+
+  const isFetchingRef = useRef(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const performHeartbeat = async () => {
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
+
+      try {
+        const response = await apiClient.get(`/api/live-data?_=${Date.now()}`, { timeout: 5000 });
+
+        if (isMounted) {
+          setLiveData(response.data);
+          const now = new Date();
+          // FIX: Save to LocalStorage
+          localStorage.setItem('lastSystemSeen', now.toISOString());
+
+          setConnectionStatus({
+            state: 'ONLINE',
+            lastSeen: now,
+            plcConnected: response.data.status === 'connected'
+          });
+        }
+      } catch (error) {
+        if (isMounted) {
+          setConnectionStatus(prev => ({
+            state: 'OFFLINE',
+            lastSeen: prev.lastSeen
+          }));
+        }
+      } finally {
+        isFetchingRef.current = false;
+      }
+    };
+
+    performHeartbeat();
+    const intervalId = setInterval(performHeartbeat, 1000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, []);
+
+  const value = {
+    liveData,
+    connectionStatus,
+    formatTime: (date) => {
+      if (!date) return "Never";
+      return new Date(date).toLocaleTimeString('en-US', { hour12: false });
+    }
+  };
+
+  return (
+    <SystemStatusContext.Provider value={value}>
+      {children}
+    </SystemStatusContext.Provider>
+  );
+};
+
+export const useSystemStatus = () => useContext(SystemStatusContext);
+</file>
+
+<file path="dashboard-ui/src/pages/EngineeringDashboardPage.jsx">
+// dashboard-ui/src/pages/HomePage.jsx
+
+import { useState } from 'react';
+import { useOutletContext } from "react-router-dom";
+import { useSystemStatus } from '../context/SystemStatusContext';
+import CommandsSidebar from '../components/CommandsSidebar';
+import FlywheelVisual from '../components/FlywheelVisual';
+import HealthStatus from '../components/HealthStatus';
+import PopoutWindow from '../components/PopoutWindow';
+import { getSystemStatus } from '../constants';
+import EngineeringSidebar from '../components/EngineeringSidebar';
+
+// Reusable component for the new stylized status rows
+const StatusRow = ({ label, value, unit = '', isWarning = false, isHealthy = false }) => {
+    return (
+        <div className="status-box-row">
+            <div className="status-box-label">{label}</div>
+            <div className={`status-box-value ${isWarning ? 'warning' : isHealthy ? 'healthy' : ''}`}>
+                {value !== undefined && value !== null ? value : '---'} {unit}
+            </div>
+        </div>
+    );
+};
+
+function EngineeringDashboardPage() {
+    const { setpoints } = useOutletContext();
+
+    // Consuming Global State instead of local fetching
+    const { liveData, connectionStatus, formatTime } = useSystemStatus();
+
+    // --- DERIVED VALUES (Updated to use NEW A25_ tags and new status logic) ---
+    const tags = liveData.tags || {};
+
+    // Helper for safe number formatting
+    const safeNum = (val, toFixed = 1) => {
+        if (val === undefined || val === null || isNaN(val)) return '---';
+        return Number(val).toFixed(toFixed);
+    };
+
+    return (
+        <div className="eng-dashboard-container" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{
+                backgroundColor: '#181818',
+                borderBottom: '1px solid #333',
+                height: '6px',
+                flexShrink: 0
+            }}></div>
+
+            {/* Static Dashboard Layout */}
+            <div className="home-layout" style={{ backgroundColor: '#00151d' }}>
+                <EngineeringSidebar liveData={liveData} />
+
+                <div className="flywheel-section" style={{ position: 'relative', backgroundColor: '#1e1e1e' }}>
+                    <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <FlywheelVisual liveData={liveData} />
+                    </div>
+                </div>
+
+                <div className="sidebar status-sidebar">
+                    {/* SYSTEM STATUS BLOCK */}
+                    <div className="status-box">
+                        <div className="status-box-header">SYSTEM STATUS</div>
+                        <StatusRow label="CURRENT SPEED" value={safeNum(tags['VFD_Sts_MtrSpeedScaled'], 0)} unit="RPM" />
+                        <StatusRow label="CURRENT TORQUE" value={safeNum(tags['VFD_Sts_AcutalTorque'], 1)} unit="%" />
+                        <StatusRow label="GRID FREQUENCY" value={safeNum(tags['VFD_Sts_GridFreq'], 1)} unit="Hz" />
+                        <StatusRow label="GRID VOLTS" value={safeNum(tags['VFD_Sts_GridVolts'], 1)} unit="V" />
+                        <StatusRow label="GRID POWER" value={safeNum(tags['VFD_Sts_GridAppPower'], 1)} unit="kVA" />
+                        <StatusRow label="OUTPUT POWER" value={safeNum(tags['VFD_Sts_OutPowerScaled'], 1)} unit="kW" />
+                        <StatusRow label="AMBIENT TEMP" value={safeNum(tags['TT001.Scaled'], 1)} unit="C" />
+                    </div>
+
+                    {/* MAGLEV STATUS BLOCK */}
+                    <div className="status-box">
+                        <div className="status-box-header">MAGLEV STATUS</div>
+                        <StatusRow label="CURRENT WEIGHT" value={safeNum(tags['WT001.Scaled'], 0)} unit="kg" />
+                        <StatusRow label="TARGET WEIGHT" value={safeNum(tags['EM_SV'], 0)} unit="kg" />
+                        <StatusRow label="SIGNAL OUTPUT" value={safeNum(tags['Ch0Data'], 1)} unit="mV" />
+                    </div>
+
+                    {/* VSD STATUS BLOCK */}
+                    <div className="status-box">
+                        <div className="status-box-header">VSD STATUS</div>
+                        <StatusRow label="CURRENT SPEED" value={safeNum(tags['VFD_Sts_MtrSpeedScaled'], 1)} unit="RPM" />
+                        <StatusRow label="CURRENT TORQUE" value={safeNum(tags['VFD_Sts_AcutalTorque'], 1)} unit="%" />
+                        <StatusRow label="OUTPUT FREQUENCY" value={safeNum(tags['VFD_Sts_OutFreq'], 1)} unit="Hz" />
+                        <StatusRow label="DC BUS VOLTS" value={safeNum(tags['VFD_Sts_DCVolts'], 0)} unit="V" />
+                        <StatusRow label="GRID VOLTS" value={safeNum(tags['VFD_Sts_GridVolts'], 1)} unit="V" />
+                        <StatusRow label="VSD AMBIENT TEMP" value={safeNum(tags['VSD_Sts_AmbTemp'], 1)} unit="C" />
+                        <StatusRow label="OUTPUT POWER" value={safeNum(tags['VFD_Sts_OutPowerScaled'], 1)} unit="kW" />
+                        <StatusRow 
+                            label="TRIPPING FAULT" 
+                            value={tags['VFD_Sts_TripFlt'] ? 'FAULT' : 'OK'} 
+                            isWarning={!!tags['VFD_Sts_TripFlt']}
+                            isHealthy={!tags['VFD_Sts_TripFlt']}
+                        />
+                        <StatusRow label="LATEST WARNING" value={safeNum(tags['VFD_Sts_LatestWarning'], 1)} unit="" />
+                        <StatusRow 
+                            label="COMMS STATUS" 
+                            value={tags['VFD_Sts_Comms_Healthy'] ? 'Healthy' : 'Fault'} 
+                            isHealthy={!!tags['VFD_Sts_Comms_Healthy']}
+                            isWarning={!tags['VFD_Sts_Comms_Healthy']}
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default EngineeringDashboardPage;
+</file>
+
 <file path="dashboard-ui/src/App.jsx">
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
@@ -1882,264 +1881,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 )
 </file>
 
-<file path="dashboard-ui/src/components/StreamingChart.jsx">
-import { useState, useEffect, useRef, useMemo } from "react";
-import { Line } from "react-chartjs-2";
-import { 
-    Chart as ChartJS, 
-    CategoryScale, 
-    LinearScale, 
-    PointElement, 
-    LineElement, 
-    Title, 
-    Tooltip, 
-    Legend, 
-    TimeScale,
-    Decimation 
-} from "chart.js";
-import 'chartjs-adapter-date-fns';
-import apiClient from '../api';
-import { subSeconds } from 'date-fns';
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, TimeScale, Decimation);
-
-function StreamingChart({ selectedTags, displayRangeSec, tagColorMap }) {
-  const rawDataRef = useRef({});
-  const [chartData, setChartData] = useState({ datasets: [] });
-  const [isLoading, setIsLoading] = useState(true);
-  const pollingRef = useRef(null);
-  
-  const pollInterval = 1000; // 10Hz
-
-  // --- DUAL MODE CONFIGURATION ---
-  // "Safe Mode" (<= 5 mins): Standard rendering. Reliable.
-  // "Performance Mode" (> 5 mins): Decimation ON, Parsing OFF. Fast.
-  const isPerformanceMode = displayRangeSec > 300; 
-
-  const chartOptions = useMemo(() => {
-    // BASE OPTIONS
-    const opts = {
-        responsive: true, 
-        maintainAspectRatio: false, 
-        animation: false, 
-        spanGaps: false,
-        plugins: { 
-            legend: { display: true },
-            position: 'top',
-            align: 'end',
-            labels: {
-              color: '#a0a0a0',
-              boxWidth: 12,
-              usePointStyle: 'circle',
-              padding: 10,
-              font: { size: 11 }
-            },
-            onClick: (e, legendItem, legend) => {
-              const index = legendItem.datasetIndex;
-              const ci = legend.chart;
-              if (ci.isDatasetVisible(index)) {
-                ci.hide(index);
-                legendItem.hidden = true;
-              } else {
-                ci.show(index);
-                legendItem.hidden = false;
-              }
-            },
-            decimation: { enabled : false }
-        },
-        scales: {
-            x: {
-                type: "time",
-                time: { unit: "second", tooltipFormat: "HH:mm:ss.SSS" },
-                displayFormats: {
-                  second: 'HH:mm:ss',
-                  minute: 'HH:mm',
-                  hour: 'MMM d, HH"mm',
-                },
-                ticks: { color: '#a0a0a0', maxRotation: 0, autoSkip: true, maxTicksLimit: 10, source: 'auto' },
-                grid: { color: '#333' }
-            },
-            y: {
-              type: 'linear',
-              display: true,
-              position: 'left',
-              ticks: { color: '#a0a0a0' },
-              grid: { color: '#333' }
-            },
-            y1: {
-              type: 'linear',
-              display: true,
-              position: 'right',
-              min: 0,
-              max: 9000,
-              ticks: { color: '#a0a0a0' },
-              grid: { drawOnChartArea: false }
-            }
-        },
-        elements: {
-            line: { tension: 0, borderWidth: 2 },
-            point: { radius: 0, hoverRadius: 5 } // Default hidden
-        }
-    };
-
-    if (isPerformanceMode) {
-        // --- PERFORMANCE MODE (> 5 mins) ---
-        opts.parsing = false; // Trust our x: ms data
-        opts.normalized = true;
-        opts.plugins.decimation = {
-            enabled: true,
-            algorithm: 'min-max',
-            samples: 500, 
-        };
-    } else {
-        // --- SAFE MODE (<= 5 mins) ---
-        opts.parsing = true; // Let Chart.js parse the ISO strings/Date objs
-        // Show dots only if range is very short (1 min or less)
-        if (displayRangeSec <= 120) {
-            opts.elements.point.radius = 2;
-        }
-    }
-
-    return opts;
-  }, [isPerformanceMode, displayRangeSec]);
-
-  const mergeAndSetData = (incomingData, endTime, windowSeconds) => {
-    const newRawData = { ...rawDataRef.current };
-
-    selectedTags.forEach((tag) => {
-      if (!newRawData[tag]) newRawData[tag] = [];
-      const existingTimestamps = new Set(newRawData[tag].map((p) => p.ts));
-      
-      if (incomingData[tag] && Array.isArray(incomingData[tag])) {
-          incomingData[tag].forEach((newPoint) => {
-            if (existingTimestamps.has(newPoint.ts)) return;
-            // Basic validation
-            if (newPoint.value === null || newPoint.value === undefined) return;
-            const numericValue = parseFloat(newPoint.value);
-            if (isNaN(numericValue)) return;
-
-            newRawData[tag].push({ ts: newPoint.ts, value: numericValue });
-          });
-      }
-      
-      // Prune old
-      const cutoff = subSeconds(endTime, windowSeconds).getTime();
-      newRawData[tag] = newRawData[tag].filter(
-        (p) => new Date(p.ts).getTime() >= cutoff
-      );
-      
-      newRawData[tag].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
-    });
-
-    rawDataRef.current = newRawData;
-
-    const datasets = selectedTags.map((tag) => {
-        const rawPoints = rawDataRef.current[tag] || [];
-        
-        // DATA TRANSFORMATION BASED ON MODE
-        let dataPoints;
-        if (isPerformanceMode) {
-            // Performance Mode: Needs {x: Milliseconds, y: Value}
-            dataPoints = rawPoints.map(p => ({ x: new Date(p.ts).getTime(), y: p.value }));
-        } else {
-            // Safe Mode: Needs {x: ISO String, y: Value} (Standard parsing)
-            dataPoints = rawPoints.map(p => ({ x: p.ts, y: p.value }));
-        }
-
-        return {
-            label: tag,
-            data: dataPoints,
-            borderColor: tagColorMap[tag],
-            backgroundColor: tagColorMap[tag] + '80',
-            yAxisID: tag === 'A25_Speed' ? 'y1' : 'y',
-        };
-    });
-
-    setChartData({ datasets });
-  };
-
-  useEffect(() => {
-    rawDataRef.current = {};
-    if (pollingRef.current) clearTimeout(pollingRef.current);
-    setIsLoading(true);
-
-    let isMounted = true;
-
-    const runProcess = async () => {
-      const now = new Date();
-      
-      // 1. Initial Backfill
-      try {
-        const start = subSeconds(now, displayRangeSec);
-        const params = new URLSearchParams();
-        selectedTags.forEach(tag => params.append('tags', tag));
-        params.append('start_time', start.toISOString());
-        params.append('end_time', now.toISOString());
-
-        const histResponse = await apiClient.get('/api/historian', { params });
-        if (isMounted) {
-            mergeAndSetData(histResponse.data, now, displayRangeSec);
-            setIsLoading(false); 
-        }
-      } catch (e) {
-        if (isMounted) setIsLoading(false);
-      }
-
-      // 2. Polling Loop
-      const poll = async () => {
-        if (!isMounted) return;
-        const loopNow = new Date();
-        const loopStart = subSeconds(loopNow, 10); // Fetch last 10 seconds to avoid gaps 
-
-        try {
-          const params = new URLSearchParams();
-          selectedTags.forEach(tag => params.append('tags', tag));
-          params.append('start_time', loopStart.toISOString());
-          params.append('end_time', loopNow.toISOString());
-
-          const liveResponse = await apiClient.get('/api/historian', { params });
-          if (isMounted) {
-            mergeAndSetData(liveResponse.data, loopNow, displayRangeSec);
-          }
-        } catch (e) { }
-        pollingRef.current = setTimeout(poll, pollInterval);
-      };
-
-      poll();
-    };
-
-    runProcess();
-
-    return () => {
-      isMounted = false;
-      if (pollingRef.current) clearTimeout(pollingRef.current);
-    };
-  }, [selectedTags, displayRangeSec]); 
-
-  if (isLoading) {
-    return (
-        <div style={{
-            height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-            color: '#a0a0a0', flexDirection: 'column', gap: '10px'
-        }}>
-            <span>Loading Data...</span>
-        </div>
-    );
-  }
-
-  // Key forces full re-mount when switching between Safe/Performance modes
-  return (
-    <Line 
-        key={isPerformanceMode ? 'perf' : 'safe'} 
-        data={chartData} 
-        options={chartOptions} 
-    />
-  );
-};
-
-export default StreamingChart;
-</file>
-
 <file path="dashboard-ui/src/context/AuthContext.jsx">
 // File: dashboard-ui/src/context/AuthContext.jsx
 // *** RESTORED TO WORKING STATE from repomix-output.xml ***
@@ -2346,6 +2087,350 @@ apiClient.interceptors.response.use(
 )
 
 export default apiClient;
+</file>
+
+<file path="dashboard-ui/src/components/StreamingChart.jsx">
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  TimeScale,
+  Decimation
+} from "chart.js";
+import 'chartjs-adapter-date-fns';
+import apiClient from '../api';
+import { subSeconds } from 'date-fns';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, TimeScale, Decimation);
+
+function StreamingChart({ allTags, visibleTags, displayRangeSec, tagColorMap, liveTags, onTogglePen }) {
+  const rawDataRef = useRef({});
+  const [chartData, setChartData] = useState({ datasets: [] });
+  const [isLoading, setIsLoading] = useState(true);
+
+  const pollInterval = 1000; // 10Hz
+
+  // --- DUAL MODE CONFIGURATION ---
+  // "Safe Mode" (<= 5 mins): Standard rendering. Reliable.
+  // "Performance Mode" (> 5 mins): Decimation ON, Parsing OFF. Fast.
+  const isPerformanceMode = displayRangeSec > 300;
+
+  const chartOptions = useMemo(() => {
+    // BASE OPTIONS
+    const opts = {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      spanGaps: false,
+      plugins: {
+        legend: { display: true },
+        position: 'top',
+        align: 'end',
+        labels: {
+          color: '#a0a0a0',
+          boxWidth: 12,
+          usePointStyle: 'circle',
+          padding: 10,
+          font: { size: 11 }
+        },
+        onClick: (e, legendItem, legend) => {
+          if (onTogglePen) {
+            onTogglePen(legendItem.text);
+          }
+        },
+        decimation: { enabled: false }
+      },
+      scales: {
+        x: {
+          type: "time",
+          time: { unit: "second", tooltipFormat: "HH:mm:ss.SSS" },
+          displayFormats: {
+            second: 'HH:mm:ss',
+            minute: 'HH:mm',
+            hour: 'MMM d, HH"mm',
+          },
+          ticks: { color: '#a0a0a0', maxRotation: 0, autoSkip: true, maxTicksLimit: 10, source: 'auto' },
+          grid: { color: '#333' }
+        },
+        y: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          ticks: { color: '#a0a0a0' },
+          grid: { color: '#333' }
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          min: 0,
+          max: 9000,
+          ticks: { color: '#a0a0a0' },
+          grid: { drawOnChartArea: false }
+        }
+      },
+      elements: {
+        line: { tension: 0, borderWidth: 2 },
+        point: { radius: 0, hoverRadius: 5 } // Default hidden
+      }
+    };
+
+    if (isPerformanceMode) {
+      // --- PERFORMANCE MODE (> 5 mins) ---
+      opts.parsing = false; // Trust our x: ms data
+      opts.normalized = true;
+      opts.plugins.decimation = {
+        enabled: true,
+        algorithm: 'min-max',
+        samples: 500,
+      };
+    } else {
+      // --- SAFE MODE (<= 5 mins) ---
+      opts.parsing = true; // Let Chart.js parse the ISO strings/Date objs
+      // Show dots only if range is very short (1 min or less)
+      if (displayRangeSec <= 120) {
+        opts.elements.point.radius = 2;
+      }
+    }
+
+    return opts;
+  }, [isPerformanceMode, displayRangeSec]);
+
+  const mergeAndSetData = (incomingData, endTime, windowSeconds) => {
+    const newRawData = { ...rawDataRef.current };
+
+    allTags.forEach((tag) => {
+      if (!newRawData[tag]) newRawData[tag] = [];
+      const existingTimestamps = new Set(newRawData[tag].map((p) => p.ts));
+
+      if (incomingData[tag] && Array.isArray(incomingData[tag])) {
+        incomingData[tag].forEach((newPoint) => {
+          if (existingTimestamps.has(newPoint.ts)) return;
+          // Basic validation
+          if (newPoint.value === null || newPoint.value === undefined) return;
+          const numericValue = parseFloat(newPoint.value);
+          if (isNaN(numericValue)) return;
+
+          newRawData[tag].push({ ts: newPoint.ts, value: numericValue });
+        });
+      }
+
+      // Prune old
+      const cutoff = subSeconds(endTime, windowSeconds).getTime();
+      newRawData[tag] = newRawData[tag].filter(
+        (p) => new Date(p.ts).getTime() >= cutoff
+      );
+
+      newRawData[tag].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
+    });
+
+    rawDataRef.current = newRawData;
+
+    const datasets = allTags.map((tag) => {
+      const rawPoints = rawDataRef.current[tag] || [];
+
+      // DATA TRANSFORMATION BASED ON MODE
+      let dataPoints;
+      if (isPerformanceMode) {
+        // Performance Mode: Needs {x: Milliseconds, y: Value}
+        dataPoints = rawPoints.map(p => ({ x: new Date(p.ts).getTime(), y: p.value }));
+      } else {
+        // Safe Mode: Needs {x: ISO String, y: Value} (Standard parsing)
+        dataPoints = rawPoints.map(p => ({ x: p.ts, y: p.value }));
+      }
+
+      return {
+        label: tag,
+        data: dataPoints,
+        borderColor: tagColorMap[tag],
+        backgroundColor: tagColorMap[tag] + '80',
+        yAxisID: tag === 'A25_Speed' ? 'y1' : 'y',
+      };
+    });
+
+    setChartData({ datasets });
+  };
+
+  useEffect(() => {
+    rawDataRef.current = {};
+    setIsLoading(true);
+
+    let isMounted = true;
+
+    const runProcess = async () => {
+      const now = new Date();
+
+      // 1. Initial Backfill
+      try {
+        const start = subSeconds(now, displayRangeSec);
+        const params = new URLSearchParams();
+        allTags.forEach(tag => params.append('tags', tag));
+        params.append('start_time', start.toISOString());
+        params.append('end_time', now.toISOString());
+
+        const histResponse = await apiClient.get('/api/historian', { params });
+        if (isMounted) {
+          mergeAndSetData(histResponse.data, now, displayRangeSec);
+          setIsLoading(false);
+        }
+      } catch (e) {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    runProcess();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [allTags, displayRangeSec]);
+
+  // 2. Live Data Injection
+  useEffect(() => {
+    if (isLoading || !liveTags || Object.keys(liveTags).length === 0) return;
+
+    const now = new Date();
+    const incomingData = {};
+
+    allTags.forEach(tag => {
+      if (liveTags[tag] !== undefined) {
+        // Create the structure expected by mergeAndSetData
+        incomingData[tag] = [{ ts: now.toISOString(), value: liveTags[tag] }];
+      }
+    });
+
+    if (Object.keys(incomingData).length > 0) {
+      mergeAndSetData(incomingData, now, displayRangeSec);
+    }
+  }, [liveTags, isLoading, allTags, displayRangeSec]);
+
+  if (isLoading) {
+    return (
+      <div style={{
+        height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: '#a0a0a0', flexDirection: 'column', gap: '10px'
+      }}>
+        <span>Loading Data...</span>
+      </div>
+    );
+  }
+
+  // Key forces full re-mount when switching between Safe/Performance modes
+  return (
+    <Line
+      key={isPerformanceMode ? 'perf' : 'safe'}
+      data={{
+        ...chartData,
+        datasets: chartData.datasets.map(ds => ({
+          ...ds,
+          hidden: !visibleTags.includes(ds.label)
+        }))
+      }}
+      options={chartOptions}
+    />
+  );
+};
+
+export default StreamingChart;
+</file>
+
+<file path="dashboard-ui/src/constants/index.js">
+// src/constants/index.js
+
+export const COLORS = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
+
+export const STATUS_MAP = {
+    1: { text: "Stopped", color: "#7f8c8d" },
+    2: { text: "Starting Up", color: "#3498db" },
+    3: { text: "Idle", color: "#95a5a6" },
+    4: { text: "Charging", color: "#2ecc71" },
+    5: { text: "Discharging", color: "#e74c3c" },
+    6: { text: "Idle", color: "#95a5a6"},
+    7: { text: "Idle", color: "#95a5a6" },
+}
+
+export const getSystemStatus = (statusCode) => {
+    return STATUS_MAP[statusCode] || { text: "Unknown", color: "#888" };
+};
+
+// arrow logic
+export const getDirectionConfig = (statusText) => {
+    if (statusText === "Charging" || statusText === "Starting Up") {
+        return { char: '↓', color: '#2ecc71' };
+    }
+    if (statusText === "Discharging") {
+        return { char: '↑', color: '#e74c3c' };
+    }
+    if (statusText === "Stopped" || statusText === "Idle") {
+        return { char: '-', color: '#888' };
+    }
+    return { char: '⚠️', color: '#f39c12' };
+};
+
+export const chartDefinitions = [
+    { 
+        title: "Power", // Based on Picture 2 Top
+        tags: [
+            'A25_Power', 
+            'A25_Speed', 
+            'A25_Energy', // Mapped to 'Energy' in diagram
+        ] 
+    },
+    { 
+        title: "Vibration", // Based on Picture 2 Middle
+        tags: [
+            'VT001.Scaled', 
+            'VT002.Scaled',
+            'A25_Speed',
+        ] 
+    },
+    { 
+        title: "Temperature", 
+        tags: [
+            'A25_Speed',
+            'TT001.Scaled',
+            'TT002.Scaled',
+            'TT003.Scaled',
+        ] 
+    },
+    { 
+        title: "Electromag", // Based on Picture 3 Top (Simplified)
+        tags: [
+            'A25_Speed',
+            'EM_SV',
+            'WT001.Scaled',
+        ] 
+    },
+    { 
+        title: "Pressure", // Based on Picture 3 Middle (Simplified)
+        tags: [
+            'PT001.Scaled'
+        ] 
+    },
+    {
+        title: "Custom", // Based on Picture 3 Bottom (Simplified / Custom)
+        tags: [
+            'A25_SoC',
+            'A25_Cycles',
+            'A25_RunHours',
+        ]
+    }
+];
+
+// All tags from all definitions
+export const allPossibleTags = [...new Set(chartDefinitions.flatMap(c => c.tags))];
+
+// The map is created once and exported for global use
+export const tagColorMap = Object.fromEntries(
+    allPossibleTags.map((tag, index) => [tag, COLORS[index % COLORS.length]])
+);
 </file>
 
 <file path="dashboard-ui/src/pages/EngineeringPage.jsx">
@@ -2656,96 +2741,104 @@ function EngineeringPage() {
 export default EngineeringPage;
 </file>
 
-<file path="dashboard-ui/src/constants/index.js">
-// src/constants/index.js
+<file path="dashboard-ui/src/components/CommandsSidebar.jsx">
+import apiClient from '../api';
+import { useAuth } from '../context/AuthContext'; // Import the auth hook to check token
 
-export const COLORS = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
+const COMMAND_TAG_BASE = 'A25_CMD_';
 
-export const STATUS_MAP = {
-    1: { text: "Stopped", color: "#7f8c8d" },
-    2: { text: "Starting Up", color: "#3498db" },
-    3: { text: "Idle", color: "#95a5a6" },
-    4: { text: "Charging", color: "#2ecc71" },
-    5: { text: "Discharging", color: "#e74c3c" },
-    6: { text: "Idle", color: "#95a5a6"},
-    7: { text: "Idle", color: "#95a5a6" },
+// FIX 1: Change parameter name from 'value' to 'commandKey'
+function CommandsSidebar({ setpoints, liveData }) {
+  const { token, user } = useAuth(); // Get the current token status
+
+  const currentSpeed = liveData?.tags?.['A25_Speed'] || 0; // placeholder for now just in case we want to use speed as reference in future?
+  const En_Charge = liveData?.tags?.['A25_En_Charge'] || 0;
+  const En_Discharge = liveData?.tags?.['A25_En_Discharge'] || 0;
+  const En_Shutdown = liveData?.tags?.['A25_En_Shutdown'] || 0;
+  const En_Startup = liveData?.tags?.['A25_En_Startup'] || 0;
+
+  // 1. Base check: Must be logged in/ token should exist.
+  const isUserAuthenticated = !!token && (user?.role === 'Engineer' || user?.role === 'Admin' || user?.role === 'Operator');
+
+  // 2. Button specific logic.
+  const canCharge = isUserAuthenticated && En_Charge == 1;
+  const canDischarge = isUserAuthenticated && En_Discharge == 1;
+  const canShutdown = isUserAuthenticated && En_Shutdown == 1;
+  const canStartup = isUserAuthenticated && En_Startup == 1;
+
+  const handleCommand = async (commandKey) => {
+    if (!isUserAuthenticated) {
+      alert("You must be logged in with sufficient permissions to send commands.");
+      return;
+    }
+
+    const tagName = COMMAND_TAG_BASE + commandKey.charAt(0).toUpperCase() + commandKey.slice(1);
+    console.log(`Attempting to send command '${commandKey}' by writing to tag '${tagName}' with value true.`);
+    const valueToWrite = 1;
+
+    try {
+      // Send command as 1 (TRUE) for all actions.
+      await apiClient.post('/api/write-tag', {
+        tag_name: tagName,
+        value: valueToWrite
+      });
+      alert(`Command '${commandKey}' sent successfully!`);
+    } catch (error) {
+      console.error(`Error writing to ${tagName}:`, error);
+      alert(`Failed to send command '${commandKey}'. Please try again.`);
+    }
+  }
+
+  const baseDisabled = !isUserAuthenticated;
+
+  return (
+    <div className="sidebar commands-sidebar">
+      <h2>Commands</h2>
+
+      {/* Guest access warning */}
+      {!isUserAuthenticated && (
+        <p className="auth-warning">
+          Please log in to send commands.
+        </p>
+      )}
+
+      {/* 1. Charge Button */}
+      <button 
+        onClick={() => handleCommand('Charge')} 
+        disabled={baseDisabled || !canCharge}
+      >
+        Charge
+      </button>
+      
+      {/* 2. Discharge Button */}
+      <button 
+        onClick={() => handleCommand('Discharge')} 
+        disabled={baseDisabled || !canDischarge}
+      >
+        Discharge
+      </button>
+
+      {/* 3. Startup Button (Always enabled if authenticated) */}
+      <button 
+        onClick={() => handleCommand('Startup')} 
+        disabled={baseDisabled || !canStartup}
+      >
+        Startup
+      </button>
+      
+      {/* 4. Shutdown Button (Always enabled if authenticated) */}
+      <button 
+        onClick={() => handleCommand('Shutdown')} 
+        disabled={baseDisabled || !canShutdown}
+      >
+        Shutdown
+      </button> 
+      
+    </div>
+  );
 }
 
-export const getSystemStatus = (statusCode) => {
-    return STATUS_MAP[statusCode] || { text: "Unknown", color: "#888" };
-};
-
-// arrow logic
-export const getDirectionConfig = (statusText) => {
-    if (statusText === "Charging" || statusText === "Starting Up") {
-        return { char: '↓', color: '#2ecc71' };
-    }
-    if (statusText === "Discharging") {
-        return { char: '↑', color: '#e74c3c' };
-    }
-    if (statusText === "Stopped" || statusText === "Idle") {
-        return { char: '-', color: '#888' };
-    }
-    return { char: '⚠️', color: '#f39c12' };
-};
-
-export const chartDefinitions = [
-    { 
-        title: "Power", // Based on Picture 2 Top
-        tags: [
-            'A25_Power', 
-            'A25_Speed', 
-            'A25_Energy', // Mapped to 'Energy' in diagram
-        ] 
-    },
-    { 
-        title: "Vibration", // Based on Picture 2 Middle
-        tags: [
-            'VT001.Scaled', 
-            'VT002.Scaled',
-            'A25_Speed',
-        ] 
-    },
-    { 
-        title: "Temperature", 
-        tags: [
-            'A25_Speed',
-            'TT001.Scaled',
-            'TT002.Scaled',
-            'TT003.Scaled',
-        ] 
-    },
-    { 
-        title: "Electromag", // Based on Picture 3 Top (Simplified)
-        tags: [
-            'A25_Speed',
-            'EM_SV',
-            'WT001.Scaled',
-        ] 
-    },
-    { 
-        title: "Pressure", // Based on Picture 3 Middle (Simplified)
-        tags: [
-            'PT001.Scaled'
-        ] 
-    },
-    {
-        title: "Custom", // Based on Picture 3 Bottom (Simplified / Custom)
-        tags: [
-            'A25_SoC',
-            'A25_Cycles',
-            'A25_RunHours',
-        ]
-    }
-];
-
-// All tags from all definitions
-export const allPossibleTags = [...new Set(chartDefinitions.flatMap(c => c.tags))];
-
-// The map is created once and exported for global use
-export const tagColorMap = Object.fromEntries(
-    allPossibleTags.map((tag, index) => [tag, COLORS[index % COLORS.length]])
-);
+export default CommandsSidebar;
 </file>
 
 <file path="dashboard-ui/src/App.css">
@@ -2779,6 +2872,7 @@ body {
   flex-direction: column;
   height: 100vh;
   width: 100vw;
+  overflow: hidden; /* Prevent the whole body from scrolling */
 }
 
 .main-content {
@@ -2908,8 +3002,10 @@ body {
 .home-layout {
   display: grid;
   grid-template-columns: 300px 1fr 350px;
-  height: calc(100vh - 66px);
-  overflow: hidden;
+  /* Subtract the header (60px) and the divider (6px) */
+  height: calc(100vh - 66px); 
+  width: 100%;
+  overflow: hidden; /* Grid itself doesn't scroll; the children do */
 }
 
 .commands-sidebar {
@@ -2959,11 +3055,8 @@ body {
 
 /* --- UNIVERSAL INDUSTRIAL SIDEBAR STYLES --- */
 .sidebar.status-sidebar {
-  padding: 15px !important;
-  background-color: #1a1a1a !important;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  padding: 15px 15px 40px 15px !important; /* Added 40px bottom padding */
+  box-sizing: border-box;
 }
 
 /* Reusing the look of the Command boxes for Status boxes */
@@ -3354,6 +3447,12 @@ body {
     padding: 3rem 0;
   }
 
+  .flywheel-section {
+  height: 100%;
+  overflow: hidden;
+  background-color: #1e1e1e;
+}
+
   /* On mobile/tablet, stack the specific chart sidebar */
   .chart-card-container {
     grid-template-columns: 1fr;
@@ -3443,10 +3542,11 @@ body {
 /* Sidebars */
 .sidebar {
   background-color: #2d2d2d;
-  border-radius: 8px;
-  overflow-y: auto;
-  height: 100%;
-  /* Fill the grid cell */
+  height: 100%; 
+  overflow-y: auto !important; /* Enable vertical scrolling */
+  overflow-x: hidden;
+  display: block; /* Change from flex to block to aid standard scrolling */
+  min-height: 0; /* CRITICAL for Grid children to scroll */
 }
 
 /* Right Sidebar specific */
@@ -4057,106 +4157,6 @@ body {
 }
 </file>
 
-<file path="dashboard-ui/src/components/CommandsSidebar.jsx">
-import apiClient from '../api';
-import { useAuth } from '../context/AuthContext'; // Import the auth hook to check token
-
-const COMMAND_TAG_BASE = 'A25_CMD_';
-
-// FIX 1: Change parameter name from 'value' to 'commandKey'
-function CommandsSidebar({ setpoints, liveData }) {
-  const { token, user } = useAuth(); // Get the current token status
-
-  const currentSpeed = liveData?.tags?.['A25_Speed'] || 0; // placeholder for now just in case we want to use speed as reference in future?
-  const En_Charge = liveData?.tags?.['A25_En_Charge'] || 0;
-  const En_Discharge = liveData?.tags?.['A25_En_Discharge'] || 0;
-  const En_Shutdown = liveData?.tags?.['A25_En_Shutdown'] || 0;
-  const En_Startup = liveData?.tags?.['A25_En_Startup'] || 0;
-
-  // 1. Base check: Must be logged in/ token should exist.
-  const isUserAuthenticated = !!token && (user?.role === 'Engineer' || user?.role === 'Admin' || user?.role === 'Operator');
-
-  // 2. Button specific logic.
-  const canCharge = isUserAuthenticated && En_Charge == 1;
-  const canDischarge = isUserAuthenticated && En_Discharge == 1;
-  const canShutdown = isUserAuthenticated && En_Shutdown == 1;
-  const canStartup = isUserAuthenticated && En_Startup == 1;
-
-  const handleCommand = async (commandKey) => {
-    if (!isUserAuthenticated) {
-      alert("You must be logged in with sufficient permissions to send commands.");
-      return;
-    }
-
-    const tagName = COMMAND_TAG_BASE + commandKey.charAt(0).toUpperCase() + commandKey.slice(1);
-    console.log(`Attempting to send command '${commandKey}' by writing to tag '${tagName}' with value true.`);
-    const valueToWrite = 1;
-
-    try {
-      // Send command as 1 (TRUE) for all actions.
-      await apiClient.post('/api/write-tag', {
-        tag_name: tagName,
-        value: valueToWrite
-      });
-      alert(`Command '${commandKey}' sent successfully!`);
-    } catch (error) {
-      console.error(`Error writing to ${tagName}:`, error);
-      alert(`Failed to send command '${commandKey}'. Please try again.`);
-    }
-  }
-
-  const baseDisabled = !isUserAuthenticated;
-
-  return (
-    <div className="sidebar commands-sidebar">
-      <h2>Commands</h2>
-
-      {/* Guest access warning */}
-      {!isUserAuthenticated && (
-        <p className="auth-warning">
-          Please log in to send commands.
-        </p>
-      )}
-
-      {/* 1. Charge Button */}
-      <button 
-        onClick={() => handleCommand('Charge')} 
-        disabled={baseDisabled || !canCharge}
-      >
-        Charge
-      </button>
-      
-      {/* 2. Discharge Button */}
-      <button 
-        onClick={() => handleCommand('Discharge')} 
-        disabled={baseDisabled || !canDischarge}
-      >
-        Discharge
-      </button>
-
-      {/* 3. Startup Button (Always enabled if authenticated) */}
-      <button 
-        onClick={() => handleCommand('Startup')} 
-        disabled={baseDisabled || !canStartup}
-      >
-        Startup
-      </button>
-      
-      {/* 4. Shutdown Button (Always enabled if authenticated) */}
-      <button 
-        onClick={() => handleCommand('Shutdown')} 
-        disabled={baseDisabled || !canShutdown}
-      >
-        Shutdown
-      </button> 
-      
-    </div>
-  );
-}
-
-export default CommandsSidebar;
-</file>
-
 <file path="dashboard-ui/src/components/FlywheelVisual.jsx">
 // src/components/FlywheelVisual.jsx
 
@@ -4194,8 +4194,10 @@ function FlywheelVisual({ liveData }) {
 
     const status = tags?.['A25_Status'] ?? 0;
     const { text: statusText } = getSystemStatus(status);
-
     const arrow = getDirectionConfig(statusText);
+
+    // Get Power value for display
+    const power = tags['A25_Power'] || 0;
 
     const arrowStyle = {
         position: 'absolute',
@@ -4212,15 +4214,38 @@ function FlywheelVisual({ liveData }) {
 
     return (
         <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+            {/* The relative container with fixed aspect ratio keeps everything synced */}
             <div style={{ position: 'relative', height: '90%', aspectRatio: '407 / 471', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 
+                {/* --- BIG POWER DISPLAY --- */}
+                <div style={{
+                    position: 'absolute',
+                    top: '4%',    // Aligned near AC Network height
+                    left: '88%',  // Top Right position
+                    transform: 'translateX(-50%)',
+                    backgroundColor: 'rgba(26, 26, 26, 0.9)',
+                    border: '2px solid #41D1FF',
+                    borderRadius: '4px',
+                    padding: '8px 12px',
+                    minWidth: '120px',
+                    textAlign: 'center',
+                    zIndex: 110,
+                    boxShadow: '0 0 10px rgba(65, 209, 255, 0.2)'
+                }}>
+                    <div style={{ color: '#aaa', fontSize: '0.7em', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>SYSTEM POWER</div>
+                    <div style={{ color: '#41D1FF', fontSize: '2em', fontFamily: 'monospace', fontWeight: 'bold', lineHeight: '1' }}>
+                        {power.toFixed(1)}
+                        <span style={{ fontSize: '0.5em', marginLeft: '3px', color: '#eee' }}>kW</span>
+                    </div>
+                </div>
+
                 <img src="/A25+Leaders.svg" alt="Schematic" style={{ width: '60%', height: '60%', objectFit: 'contain', position: 'absolute', top: '40%' }} />
 
                 <div style={{ position: 'absolute', top: '5%', left: '53%', transform: 'translateX(-50%)', fontSize: '2.5em', fontWeight: 'bold', color: '#dcdcdc', zIndex: 102, whiteSpace: 'nowrap' }}>
                     AC Network
                 </div>
 
-                {/* Dynamic Health Cards */}
+                {/* Dynamic Health Cards - Percentage placements stay locked to the image */}
                 <HealthCard title="Load Cell" value={tags['WT001_Healthy']} top="32%" left="8%" />
                 <HealthCard title="Upper Bearing Temp." value={tags['TT001_Healthy']} top="38%" left="93%" />
                 <HealthCard title="Upper Vibration" value={tags['VT001_Healthy']} top="45%" left="8%" />
@@ -4341,16 +4366,16 @@ export default HomePage;
 <file path="dashboard-ui/src/pages/OperationalDetailsPage.jsx">
 import { useState, useEffect, useCallback } from 'react';
 import { Line } from 'react-chartjs-2';
-import { 
-    Chart as ChartJS, 
-    CategoryScale, 
-    LinearScale, 
-    PointElement, 
-    LineElement, 
-    Title, 
-    Tooltip, 
-    Legend, 
-    TimeScale 
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+    TimeScale
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import { subSeconds, subHours, subDays, subMonths, startOfYear } from 'date-fns';
@@ -4360,21 +4385,21 @@ import { getSystemStatus } from '../constants';
 import StreamingChart from '../components/StreamingChart';
 import PopoutWindow from '../components/PopoutWindow';
 import { chartDefinitions, tagColorMap } from '../constants';
-import apiClient from '../api'; 
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, TimeScale);
+import apiClient from '../api';
+import { useSystemStatus } from '../context/SystemStatusContext';
+import { useAuth } from '../context/AuthContext'; // <--- Added this line
 
 const staticChartOptions = {
-    responsive: true, 
-    maintainAspectRatio: false, 
-    parsing: false, 
+    responsive: true,
+    maintainAspectRatio: false,
+    parsing: false,
     normalized: true,
-    plugins: { 
-        legend: { display: true, position: 'top', labels: { color: '#a0a0a0' } } 
+    plugins: {
+        legend: { display: true, position: 'top', labels: { color: '#a0a0a0' } }
     },
     scales: {
-        x: { 
-            type: 'time', 
+        x: {
+            type: 'time',
             time: { tooltipFormat: 'PP pp' },
             displayFormats: {
                 hour: 'MMM d, h a',
@@ -4382,8 +4407,8 @@ const staticChartOptions = {
                 week: 'MMM d',
                 month: 'MMM yyyy'
             },
-            ticks: { color: '#a0a0a0', maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, 
-            grid: { color: '#333' } 
+            ticks: { color: '#a0a0a0', maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
+            grid: { color: '#333' }
         },
         y: {
             type: 'linear',
@@ -4392,7 +4417,7 @@ const staticChartOptions = {
             ticks: { color: '#a0a0a0' },
             grid: { color: '#333' }
         },
-        y1: { 
+        y1: {
             type: 'linear',
             display: true,
             position: 'right',
@@ -4403,8 +4428,8 @@ const staticChartOptions = {
                 text: 'Speed (RPM)',
                 color: '#a0a0a0'
             },
-            ticks: { color: '#a0a0a0' }, 
-            grid: { drawOnChartArea: false } 
+            ticks: { color: '#a0a0a0' },
+            grid: { drawOnChartArea: false }
         }
     },
     animation: { duration: 0 }
@@ -4415,7 +4440,7 @@ const getDurationInSeconds = (timeRangeKey) => {
     const unit = timeRangeKey.slice(-1);
     if (unit === 's') return value;
     if (unit === 'm') return value * 60;
-    return 0; 
+    return 0;
 };
 
 const getStartEndTime = (timeRangeKey) => {
@@ -4429,7 +4454,7 @@ const getStartEndTime = (timeRangeKey) => {
     else if (timeRangeKey === 'YTD') startTime = startOfYear(now);
     // CHANGE: Reduce All Time to 1 year or 90 days depending on your needs.
     // If you look back 5 years but only have 1 month of data, the line looks like a tiny dot.
-    else if (timeRangeKey === 'All') startTime = subDays(now, 365); 
+    else if (timeRangeKey === 'All') startTime = subDays(now, 365);
 
     return { startTime, endTime: now };
 };
@@ -4457,11 +4482,11 @@ function LiveSensorTable({ tags }) {
         const height = 800;
         const left = (window.screen.width / 2) - (width / 2);
         const top = (window.screen.height / 2) - (height / 2);
-        
+
         // Open the dedicated route in a new window
         window.open(
-            '/sensor-wall', 
-            'SensorWallWindow', 
+            '/sensor-wall',
+            'SensorWallWindow',
             `width=${width},height=${height},left=${left},top=${top},resizable,scrollbars`
         );
     };
@@ -4475,30 +4500,30 @@ function LiveSensorTable({ tags }) {
         <div className="sidebar sensor-sidebar">
             <div className="sidebar-header-row">
                 <h2>Telemetry</h2> {/* <--- Updated Title */}
-                <button 
-                    className="maximize-btn" 
+                <button
+                    className="maximize-btn"
                     onClick={handlePopout}
                 >
                     ❐ View All Tags
                 </button>
             </div>
-            
+
             <div className="sensor-list">
                 {TELEMETRY_TAGS_TO_DISPLAY.map(({ label, tag, unit }) => {
                     const value = tags[tag];
                     let displayValue;
-                    
+
                     if (tag === "A25_Status") {
                         displayValue = derivedFlywheelStatus;
                     } else if (typeof value === 'number') {
                         // All numeric values display to 2 decimal places (or just the number)
                         displayValue = `${value.toFixed(value % 1 !== 0 ? 2 : 0)} ${unit}`;
                     } else if (typeof value === 'boolean' || unit === 'Bool') {
-                         displayValue = value ? 'TRUE' : 'FALSE';
+                        displayValue = value ? 'TRUE' : 'FALSE';
                     } else {
                         displayValue = String(value);
                     }
-                    
+
                     return (
                         <div className="sensor-item" key={tag}>
                             <span className="sensor-label">{label}</span>
@@ -4513,11 +4538,11 @@ function LiveSensorTable({ tags }) {
     );
 }
 
-const IndividualTimeSelector = ({ onSelect }) => {
+const IndividualTimeSelector = ({ onSelect, rangeValue }) => {
     const ranges = {
         '1m': '1 Minute (Live)',
         '5m': '5 Minutes (Live)',
-        '30m':'30 Minutes (Live)',
+        '30m': '30 Minutes (Live)',
         '1h': '1 Hour (History)',
         '24h': '24 Hours (History)',
         '7d': '7 Days (History)',
@@ -4529,7 +4554,7 @@ const IndividualTimeSelector = ({ onSelect }) => {
     return (
         <div className="individual-time-selector">
             <span>Range:</span>
-            <select onChange={(e) => onSelect(e.target.value)} defaultValue="5m">
+            <select onChange={(e) => onSelect(e.target.value)} value={rangeValue || '5m'}>
                 {Object.entries(ranges).map(([key, label]) => (
                     <option key={key} value={key}>{label}</option>
                 ))}
@@ -4539,8 +4564,7 @@ const IndividualTimeSelector = ({ onSelect }) => {
 };
 
 // --- UPDATED: HistorianChart with Pop-out Logic ---
-function HistorianChart({ title, visibleTags, fetchHistoricalData }) {
-    const [timeRange, setTimeRange] = useState('5m'); 
+function HistorianChart({ title, allTags, visibleTags, fetchHistoricalData, liveTags, timeRange = '5m', onTimeRangeChange, onTogglePen }) {
     const [staticData, setStaticData] = useState({ datasets: [] });
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [isPoppedOut, setIsPoppedOut] = useState(false);
@@ -4548,54 +4572,74 @@ function HistorianChart({ title, visibleTags, fetchHistoricalData }) {
     const isStreamingMode = ['1m', '5m', '30m'].includes(timeRange);
 
     useEffect(() => {
-        if (isStreamingMode || visibleTags.length === 0) return;
+        if (isStreamingMode || allTags.length === 0) return;
 
         const loadHistory = async () => {
             setIsLoadingHistory(true);
-            const data = await fetchHistoricalData(title, visibleTags, timeRange);
+            const data = await fetchHistoricalData(title, allTags, timeRange);
             setStaticData(data);
             setIsLoadingHistory(false);
         };
 
         loadHistory();
-    }, [timeRange, visibleTags, isStreamingMode, title, fetchHistoricalData]);
+    }, [timeRange, allTags, isStreamingMode, title, fetchHistoricalData]);
 
     // The Inner Content
     const chartContent = (
         <div className="chart-card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <div className="chart-header">
                 <h3>
-                    {title} 
-                    {isStreamingMode ? 
-                        <span className="live-badge" style={{marginLeft:'10px'}}>LIVE</span> : 
-                        <span style={{marginLeft:'10px', fontSize:'0.7em', color:'#a0a0a0'}}>HISTORICAL</span>
+                    {title}
+                    {isStreamingMode ?
+                        <span className="live-badge" style={{ marginLeft: '10px' }}>LIVE</span> :
+                        <span style={{ marginLeft: '10px', fontSize: '0.7em', color: '#a0a0a0' }}>HISTORICAL</span>
                     }
                 </h3>
-                <div style={{display:'flex', gap:'10px'}}>
-                    <IndividualTimeSelector onSelect={setTimeRange} />
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <IndividualTimeSelector onSelect={onTimeRangeChange} rangeValue={timeRange} />
                     <button className="maximize-btn" onClick={() => setIsPoppedOut(!isPoppedOut)}>
                         {isPoppedOut ? 'Dock' : '❐ Maximise Chart'}
                     </button>
                 </div>
             </div>
 
-            <div className="chart-wrapper" style={{flexGrow: 1, minHeight: 0}}>
-                {visibleTags.length === 0 ? (
-                    <div className="no-data-message">No Pens Selected</div>
+            <div className="chart-wrapper" style={{ flexGrow: 1, minHeight: 0 }}>
+                {allTags.length === 0 ? (
+                    <div className="no-data-message">No Pens Available</div>
                 ) : isStreamingMode ? (
-                    <StreamingChart 
-                        selectedTags={visibleTags}
+                    <StreamingChart
+                        allTags={allTags}
+                        visibleTags={visibleTags}
                         displayRangeSec={getDurationInSeconds(timeRange)}
                         tagColorMap={tagColorMap}
+                        liveTags={liveTags}
+                        onTogglePen={onTogglePen}
                     />
                 ) : (
                     isLoadingHistory ? (
                         <div className="loading-message">Loading History...</div>
                     ) : (
                         <Line
-                            key={visibleTags.join('-')}
-                            options={staticChartOptions}
-                            data={staticData}></Line>
+                            key={allTags.join('-')}
+                            options={{
+                                ...staticChartOptions,
+                                plugins: {
+                                    ...staticChartOptions.plugins,
+                                    legend: {
+                                        ...staticChartOptions.plugins.legend,
+                                        onClick: (e, legendItem, legend) => {
+                                            if (onTogglePen) onTogglePen(legendItem.text);
+                                        }
+                                    }
+                                }
+                            }}
+                            data={{
+                                ...staticData,
+                                datasets: staticData.datasets.map(ds => ({
+                                    ...ds,
+                                    hidden: !visibleTags.includes(ds.label)
+                                }))
+                            }}></Line>
                     )
                 )}
             </div>
@@ -4609,10 +4653,10 @@ function HistorianChart({ title, visibleTags, fetchHistoricalData }) {
                 <PopoutWindow title={title} onClose={() => setIsPoppedOut(false)}>
                     {/* --- FIX CONTAINER HERE --- */}
                     <div style={{
-                        height: '100vh', 
+                        height: '100vh',
                         width: '100vw',
-                        padding: '2rem', 
-                        boxSizing: 'border-box', 
+                        padding: '2rem',
+                        boxSizing: 'border-box',
                         backgroundColor: '#1e1e1e',
                         display: 'flex',
                         flexDirection: 'column'
@@ -4634,24 +4678,78 @@ function HistorianChart({ title, visibleTags, fetchHistoricalData }) {
 }
 
 function OperationalDetailsPage() {
-    const [liveTags, setLiveTags] = useState({});
+    const { liveData } = useSystemStatus();
+    const { user, token } = useAuth(); // <--- Identify User
+    const liveTags = liveData?.tags || {};
+
     const [visiblePens, setVisiblePens] = useState(() => {
         const initial = {};
         chartDefinitions.forEach(def => {
-            initial[def.title] = def.tags; 
+            initial[def.title] = def.tags;
         });
         return initial;
     });
+
+    const [timeRanges, setTimeRanges] = useState(() => {
+        const initial = {};
+        chartDefinitions.forEach(def => {
+            initial[def.title] = '5m';
+        });
+        return initial;
+    });
+
+    const [hasLoadedPrefs, setHasLoadedPrefs] = useState(false);
+
+    // Initial Load of Preferences
+    useEffect(() => {
+        if (!user || !token) {
+            setHasLoadedPrefs(true);
+            return;
+        }
+
+        const fetchPrefs = async () => {
+            try {
+                const response = await apiClient.get('/api/user/prefs');
+                const prefs = response.data?.prefs || {};
+
+                if (prefs.visiblePens) setVisiblePens(prefs.visiblePens);
+                if (prefs.timeRanges) setTimeRanges(prefs.timeRanges);
+            } catch (error) {
+                console.error("Failed to fetch user prefs:", error);
+            } finally {
+                setHasLoadedPrefs(true);
+            }
+        };
+
+        fetchPrefs();
+    }, [user, token]);
+
+    // Save Preferences on Change
+    useEffect(() => {
+        if (!user || !token || !hasLoadedPrefs) return;
+
+        const savePrefs = async () => {
+            try {
+                await apiClient.put('/api/user/prefs', {
+                    prefs: { visiblePens, timeRanges }
+                });
+            } catch (error) {
+                console.error("Failed to save user prefs:", error);
+            }
+        };
+        savePrefs();
+    }, [visiblePens, timeRanges, user, token, hasLoadedPrefs]);
+
     const [historicalCache, setHistoricalCache] = useState({});
     const fetchHistoricalData = useCallback(async (chartTitle, visibleTags, timeRange) => {
         // Create unique key for the cache entry
         const cacheKey = `${chartTitle}-${timeRange}-${visibleTags.join(',')}`;
-        
+
         // 1. Check Cache
         if (historicalCache[cacheKey]) {
             return historicalCache[cacheKey];
         }
-        
+
         // 2. Fetch from API
         try {
             const { startTime, endTime } = getStartEndTime(timeRange);
@@ -4662,7 +4760,7 @@ function OperationalDetailsPage() {
 
             const response = await apiClient.get('/api/historian', { params });
             const data = response.data;
-            
+
             // Convert data into chart datasets (same logic as before)
             const newDatasets = visibleTags.map(tagName => ({
                 label: tagName,
@@ -4670,8 +4768,8 @@ function OperationalDetailsPage() {
                 borderColor: tagColorMap[tagName] || '#888',
                 backgroundColor: (tagColorMap[tagName] || '#888') + '80',
                 yAxisID: tagName === 'A25_Speed' ? 'y1' : 'y',
-                tension: 0.2, 
-                pointRadius: 0, 
+                tension: 0.2,
+                pointRadius: 0,
                 borderWidth: 2,
             }));
             const chartData = { datasets: newDatasets };
@@ -4685,20 +4783,6 @@ function OperationalDetailsPage() {
             return { datasets: [] };
         }
     }, [historicalCache, setHistoricalCache]);
-
-    useEffect(() => {
-        const fetchLive = async () => {
-            try {
-                const resp = await apiClient.get('/api/live-data');
-                setLiveTags(resp.data.tags || {});
-            } catch (err) { 
-                console.error("Live data error:", err); 
-            }
-        };
-        fetchLive(); 
-        const intervalId = setInterval(fetchLive, 1000); 
-        return () => clearInterval(intervalId);
-    }, []);
 
     const handleTogglePen = (chartTitle, penName) => {
         setVisiblePens(prev => {
@@ -4724,11 +4808,18 @@ function OperationalDetailsPage() {
             /> */}
             <div className="charts-container-final">
                 {chartDefinitions.map(chart => (
-                    <HistorianChart 
+                    <HistorianChart
                         key={chart.title}
-                        title={chart.title} 
+                        title={chart.title}
+                        allTags={chart.tags}
                         visibleTags={visiblePens[chart.title] || []}
                         fetchHistoricalData={fetchHistoricalData}
+                        liveTags={liveTags}
+                        timeRange={timeRanges[chart.title] || '5m'}
+                        onTimeRangeChange={(newRange) => {
+                            setTimeRanges(prev => ({ ...prev, [chart.title]: newRange }));
+                        }}
+                        onTogglePen={(penName) => handleTogglePen(chart.title, penName)}
                     />
                 ))}
             </div>
@@ -4793,8 +4884,8 @@ WRITEABLE_TAGS = {
     "A25_CMD_Shutdown", 
     "A25_CMD_Startup",
     "EM_SV",
-    "Controller:Global/EM_ControlEnable",
-    "SCADA_Tags/VFD_AutoReturnEnable",
+    "EM_ControlEnable",
+    "VFD_AutoReturnEnable",
     "VFD_OFF1_CONTROL",
     "VFD_RESET",
     "VFD_OFF3_CONTROL"
@@ -4886,6 +4977,9 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
     password: Optional[str] = None
 
+class UserPrefsUpdate(BaseModel):
+    prefs: dict
+
 # --- HELPERS ---
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -4938,7 +5032,7 @@ def get_current_active_admin(current_user: User = Depends(get_current_user)):
     return current_user
 
 def get_current_active_engineer(current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["Engineer", "Admin"]: raise HTTPException(403, "Engineer required")
+    if current_user.role not in ["Engineer", "Admin", "Operator"]: raise HTTPException(403, "Engineer required")
     return current_user
 
 def require_api_key(x_api_key: str = Header(None)):
@@ -5347,13 +5441,9 @@ def update_user(username: str, u: UserUpdate):
     
 @app.delete("/api/admin/users/{username}", dependencies=[Depends(get_current_active_admin)])
 def delete_user(username: str, current_user: User = Depends(get_current_active_admin)):
-    # 1. Protect the MASTER account (Hardcoded name)
     MASTER_ACCOUNT = "admin" 
-    
     if username.lower() == MASTER_ACCOUNT:
         raise HTTPException(403, "Security: The Master Admin account cannot be deleted.")
-
-    # 2. Prevent deleting yourself (if you aren't the master but are an admin)
     if username == current_user.username:
         raise HTTPException(400, "Security: You cannot delete your own session account.")
 
@@ -5361,14 +5451,57 @@ def delete_user(username: str, current_user: User = Depends(get_current_active_a
     try:
         conn = get_db_conn()
         with conn.cursor() as cur:
+            # FIX: Added the SQL command and indented correctly
             cur.execute("DELETE FROM app.users WHERE username = %s", (username,))
             conn.commit()
         return {"status": "deleted"}
     except Exception as e:
         if conn: conn.rollback()
-        raise HTTPException(500, f"Database error: {e}")
+        raise HTTPException(400, f"Database error: {str(e)}")
     finally:
-        release_db_conn(conn)
+        if conn: release_db_conn(conn)
+
+# --- USER PREFS ENDPOINTS (Standardized for your Frontend) ---
+
+@app.get("/api/user/prefs")
+def get_user_prefs(current_user: User = Depends(get_current_user)):
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute("SELECT ui_prefs FROM app.users WHERE username = %s", (current_user.username,))
+            res = cur.fetchone()
+            # If DB is null or empty, return expected JSON structure
+            if res and res[0]:
+                return {"prefs": res[0]}
+            return {"prefs": {}}
+    except Exception as e:
+        print(f"🔴 DB Error (get_user_prefs): {e}")
+        raise HTTPException(500, "Database error")
+    finally:
+        if conn: release_db_conn(conn)
+
+@app.put("/api/user/prefs")
+def update_user_prefs(prefs_update: UserPrefsUpdate, current_user: User = Depends(get_current_user)):
+    conn = None
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            # FIX: Use psycopg2's Json wrapper instead of manually doing json.dumps
+            # This ensures Postgres treats it as a JSONB object correctly.
+            from psycopg2.extras import Json
+            cur.execute(
+                "UPDATE app.users SET ui_prefs = %s WHERE username = %s",
+                (Json(prefs_update.prefs), current_user.username)
+            )
+            conn.commit()
+        return {"status": "success"}
+    except Exception as e:
+        if conn: conn.rollback()
+        print(f"🔴 DB Error (update_user_prefs): {e}")
+        raise HTTPException(500, f"Database error: {str(e)}")
+    finally:
+        if conn: release_db_conn(conn)
 
 @app.get("/")
 def health_check(): return {"status": "online", "ts": datetime.now().isoformat()}
@@ -5456,26 +5589,33 @@ def delete_tag(tag_id: int):
 def browse_plc():
     c = PLC()
     c.IPAddress = PLC_IP
+    c.ProcessorSlot = 0 
     try:
-        tags = c.GetTagList()
-        # Parse tags into a tree
+        ret = c.GetTagList()
+        if ret.Status != 'Success':
+            raise HTTPException(500, f"PLC Error: {ret.Status}")
+        
+        tags = ret.Value
         tree = {}
         if not tags: return tree
+        
         for tag in tags:
+            # tag is a Tag object from pylogix
             parts = tag.TagName.split('.')
             current = tree
             for i, part in enumerate(parts):
                 if i == len(parts) - 1:
-                    # Leaf
                     if '__tags__' not in current:
                         current['__tags__'] = []
-                        
-                    raw_dt = getattr(tag, 'DataType', str(getattr(tag, 'DataTypeValue', 'unknown'))).lower()
+                    
+                    # DataType is usually an int, pylogix Tag object doesn't 
+                    # always have a string name for it ready
+                    dt = str(getattr(tag, 'DataType', 'Unknown'))
                     
                     current['__tags__'].append({
                         "name": tag.TagName,
                         "tag_name_only": part,
-                        "datatype": raw_dt
+                        "datatype": dt
                     })
                 else:
                     if part not in current:
@@ -5483,10 +5623,10 @@ def browse_plc():
                     current = current[part]
         return tree
     except Exception as e:
+        print(f"PLC Browse Exception: {e}")
         raise HTTPException(500, f"Error browsing PLC: {e}")
     finally:
-        try: c.Close()
-        except: pass
+        c.Close()
 
 @app.get("/api/historian")
 def get_historian(tags: List[str] = Query(None), start_time: Optional[str] = None, end_time: Optional[str] = None):
