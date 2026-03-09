@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import apiClient from '../api';
 import { useAuth } from '../context/AuthContext'; 
 import TagBrowserWidget from '../components/widgets/TagBrowserWidget';
+import { tagColorMap, chartDefinitions } from '../constants';
 
 // ==========================================
 // 1. User Manager (Admin Only)
@@ -289,6 +290,186 @@ function ExportControls() {
         }
     };
 
+    const generateInteractiveReport = async () => {
+        setIsExporting(true);
+        try {
+            // 1. Get the latest tags
+            const tagRes = await apiClient.get('/api/tags');
+            const activeTags = tagRes.data.map(t => t.tag);
+            
+            const now = new Date();
+            let start = new Date();
+            if (range === '1h') start.setHours(now.getHours() - 1);
+            else if (range === '24h') start.setHours(now.getHours() - 24);
+            else if (range === '7d') start.setDate(now.getDate() - 7);
+            else if (range === '1mo') start.setMonth(now.getMonth() - 1);
+            else if (range === '1y') start.setFullYear(now.getFullYear() - 1);
+            else if (range === 'All') start = new Date(2020, 0, 1);
+
+            const params = new URLSearchParams();
+            activeTags.forEach(t => params.append('tags', t));
+            params.append('start_time', start.toISOString());
+            params.append('end_time', now.toISOString());
+
+            // 2. Fetch Data
+            const dataRes = await apiClient.get('/api/historian', { params });
+            const historyData = dataRes.data;
+
+            // 3. Build the HTML Template
+            const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>A25 Flywheel System Report - ${range}</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+        <style>
+            body { background: #0f0f0f; color: #dcdcdc; font-family: 'Segoe UI', system-ui, sans-serif; padding: 40px; }
+            .report-header { border-bottom: 2px solid #333; margin-bottom: 40px; padding-bottom: 20px; }
+            .report-header h1 { color: #41D1FF; margin: 0; font-size: 2.2em; text-transform: uppercase; letter-spacing: 2px; }
+            .meta { color: #888; font-family: monospace; margin-top: 10px; line-height: 1.5; }
+            .chart-grid { display: flex; flex-direction: column; gap: 40px; }
+            .chart-card { 
+                background: #161616; 
+                border: 1px solid #333; 
+                border-radius: 12px; 
+                padding: 25px; 
+                height: 550px; 
+                box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                page-break-inside: avoid;
+            }
+            .chart-title { 
+                color: #fff; 
+                margin-bottom: 20px; 
+                font-size: 1.4em; 
+                font-weight: bold;
+                border-left: 5px solid #41D1FF; 
+                padding-left: 15px; 
+            }
+            .canvas-wrapper { height: 450px; width: 100%; position: relative; }
+            
+            @media print {
+                body { background: white; color: black; padding: 0; }
+                .chart-card { 
+                    border: 1px solid #ccc; 
+                    box-shadow: none; 
+                    margin-bottom: 20px; 
+                    height: 500px;
+                    page-break-after: always; /* Each chart gets its own page when printing */
+                }
+                .chart-title { color: black; border-left: 5px solid #000; }
+                .report-header h1 { color: black; }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="report-header">
+            <h1>A25 Flywheel Operational Report</h1>
+            <div class="meta">
+                <strong>TIMESTAMP:</strong> ${now.toLocaleString()}<br>
+                <strong>DATA RANGE:</strong> ${range}<br>
+                <strong>SOURCE:</strong> OHMNI A25 Historian System
+            </div>
+        </div>
+        
+        <div class="chart-grid" id="charts-root"></div>
+
+        <script>
+            // Data injected from backend
+            const rawData = ${JSON.stringify(historyData)};
+            const tagColors = ${JSON.stringify(tagColorMap)};
+            const definitions = ${JSON.stringify(chartDefinitions)};
+            
+            definitions.forEach((chartDef, index) => {
+                // 1. Create the container for this chart
+                const container = document.createElement('div');
+                container.className = 'chart-card';
+                
+                // 2. Add title and canvas
+                container.innerHTML = \`
+                    <div class="chart-title">\${chartDef.title}</div>
+                    <div class="canvas-wrapper">
+                        <canvas id="canvas-\${index}"></canvas>
+                    </div>
+                \`;
+                document.getElementById('charts-root').appendChild(container);
+
+                const ctx = document.getElementById('canvas-' + index).getContext('2d');
+                
+                // 3. Render the Chart.js instance
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        datasets: chartDef.tags.map(tag => ({
+                            label: tag,
+                            data: (rawData[tag] || []).map(p => ({ x: new Date(p.ts).getTime(), y: p.value })),
+                            borderColor: tagColors[tag] || '#888',
+                            backgroundColor: (tagColors[tag] || '#888') + '22',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.1,
+                            yAxisID: tag === 'A25_Speed' ? 'y1' : 'y'
+                        }))
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { 
+                                type: 'time', 
+                                grid: { color: 'rgba(255,255,255,0.05)' }, 
+                                ticks: { color: '#888' } 
+                            },
+                            y: { 
+                                position: 'left',
+                                grid: { color: 'rgba(255,255,255,0.1)' }, 
+                                ticks: { color: '#aaa' } 
+                            },
+                            y1: { 
+                                position: 'right', 
+                                display: chartDef.tags.includes('A25_Speed'), 
+                                min: 0, max: 9000, 
+                                grid: { drawOnChartArea: false }, 
+                                ticks: { color: '#41D1FF' },
+                                title: { display: true, text: 'Speed (RPM)', color: '#41D1FF' }
+                            }
+                        },
+                        plugins: {
+                            legend: { 
+                                position: 'top', 
+                                labels: { color: '#ccc', boxWidth: 15, usePointStyle: true } 
+                            },
+                            tooltip: { 
+                                mode: 'index', 
+                                intersect: false,
+                                backgroundColor: 'rgba(0,0,0,0.8)'
+                            }
+                        }
+                    }
+                });
+            });
+        </script>
+    </body>
+    </html>`;
+
+            // 4. Download as HTML
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `A25_Full_System_Report_${range}_\${new Date().toISOString().split('T')[0]}.html`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error("Report Generation Error:", e);
+            alert("Report failed. Ensure you are connected to the network.");
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -309,7 +490,12 @@ function ExportControls() {
             >
                 {isExporting ? 'Processing...' : 'Download CSV'}
             </button>
-            <button style={{ backgroundColor: '#2980b9' }}>Generate Report PDF</button>
+            <button
+                onClick={generateInteractiveReport}
+                disabled={isExporting}
+                style={{ backgroundColor: '#2980b9', cursor: isExporting ? 'not-allowed' : 'pointer' }}>
+                    {isExporting ? 'Generating...' : 'Generate Interactive Report'}
+            </button>
         </div>
     );
 }
