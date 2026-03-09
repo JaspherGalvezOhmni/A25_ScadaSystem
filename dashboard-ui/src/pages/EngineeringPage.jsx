@@ -416,6 +416,7 @@ function ExportControls() {
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false, axis: 'x' },
                         scales: {
                             x: { 
                                 type: 'time', 
@@ -444,7 +445,9 @@ function ExportControls() {
                             tooltip: { 
                                 mode: 'index', 
                                 intersect: false,
-                                backgroundColor: 'rgba(0,0,0,0.8)'
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                borderColor: "#41D1FF",
+                                borderWidth: 1
                             }
                         }
                     }
@@ -459,7 +462,7 @@ function ExportControls() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `A25_Full_System_Report_${range}_\${new Date().toISOString().split('T')[0]}.html`;
+            a.download = `A25_Full_Report_${range}_${new Date().toISOString().split('T')[0]}.html`;
             a.click();
             window.URL.revokeObjectURL(url);
         } catch (e) {

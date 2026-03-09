@@ -31,6 +31,15 @@ function StreamingChart({ allTags, visibleTags, displayRangeSec, tagColorMap, li
       maintainAspectRatio: false,
       animation: false,
       spanGaps: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+        axis: 'x',
+      },
+      hover : {
+        mode: 'index',
+        intersect: false
+      },
       plugins: {
         legend: {
           display: true,
@@ -57,8 +66,21 @@ function StreamingChart({ allTags, visibleTags, displayRangeSec, tagColorMap, li
         },
         tooltip: {
             enabled: true,
-            mode: 'index',
-            intersect: false,
+            position: 'nearest',
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleColor: "#41D1FF",
+            bodySpacing: 5,
+            padding: 10,
+            callbacks: {
+              label: (context) => {
+                let label = context.dataset.label || '';
+                if (label) label += ': ';
+                if (context.parsed.y !== null) {
+                  label += context.parsed.y.toFixed(2);
+                }
+                return label;
+              }
+            }
         },
         decimation: { enabled: false }
       },
@@ -84,7 +106,7 @@ function StreamingChart({ allTags, visibleTags, displayRangeSec, tagColorMap, li
           max: 9000,
           ticks: { color: '#a0a0a0' },
           grid: { drawOnChartArea: false }
-        }
+        },
       },
       elements: {
         line: { tension: 0, borderWidth: 2 },

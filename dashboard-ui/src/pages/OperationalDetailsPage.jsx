@@ -28,8 +28,15 @@ const staticChartOptions = {
     maintainAspectRatio: false,
     parsing: false,
     normalized: true,
+    interaction: { mode: 'index', intersect: false, axis: 'x'},
+    hover: { mode: 'index', intersect: false, axis: 'x' },
     plugins: {
-        legend: { display: true, position: 'top', labels: { color: '#a0a0a0' } }
+        legend: { display: true, position: 'top', labels: { color: '#a0a0a0' } },
+        tooltip: {
+            enabled: true,
+            mode: 'index',
+            intersect: false,
+        }
     },
     scales: {
         x: {
